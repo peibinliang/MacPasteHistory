@@ -4,7 +4,7 @@
   - 实现描述：在 Xcode entitlements 中启用 App Sandbox，并配置剪贴板、文件访问等首版所需能力。
   - 前置条件：核心功能已实现到可回归测试状态，目标分发方式已明确。
   - 验收条件：启用 Sandbox 后应用可构建，启动、记录、恢复和本地存储仍可工作。
-  - 当前进展：`project.yml` 已通过 `CODE_SIGN_ENTITLEMENTS` 绑定 `MacPasteHistory/MacPasteHistory.entitlements`，Release 产物已确认包含 `com.apple.security.app-sandbox = true`；`scripts/release-smoke-test.sh` 已验证沙盒 Release 包可启动并捕获模拟文本/图片到本地数据库；仍需完成恢复和人工 UI 回归后才能关闭。
+  - 当前进展：`project.yml` 已通过 `CODE_SIGN_ENTITLEMENTS` 绑定 `MacPasteHistory/MacPasteHistory.entitlements`，Release 产物已确认包含 `com.apple.security.app-sandbox = true`；`scripts/release-smoke-test.sh` 已验证沙盒 Release 包可启动、捕获模拟文本/图片到本地数据库、退出、重启后历史仍保留；仍需完成人工恢复和 UI 回归后才能关闭。
 - [ ] 1.2 Configure signing certificate settings.
   - 实现描述：配置开发或分发签名团队、证书、profile 和 bundle identifier。
   - 前置条件：Apple Developer 账号和证书资源已准备，项目 Bundle ID 已确定。
@@ -18,7 +18,7 @@
   - 实现描述：生成 Release 应用包并在本机独立启动验证。
   - 前置条件：Sandbox、签名和 Release 设置已配置。
   - 验收条件：Release 包可启动、显示菜单栏图标、打开窗口并执行基本复制历史流程。
-  - 当前进展：`scripts/release-smoke-test.sh` 已验证 Release app 可启动、捕获模拟文本/图片、写入沙盒数据库并正常退出；菜单栏图标、窗口打开和恢复流程仍需人工 UI 验证。
+  - 当前进展：`scripts/release-smoke-test.sh` 已验证 Release app 临时安装副本可启动、捕获模拟文本/图片、写入沙盒数据库、正常退出并在重启后保留历史；菜单栏图标、窗口打开和恢复流程仍需人工 UI 验证。
 
 ## 2. Compatibility Testing
 
@@ -30,7 +30,7 @@
   - 实现描述：在 Apple Silicon Mac 运行 Release 包，执行核心功能回归。
   - 前置条件：可访问 Apple Silicon 测试设备；Release 包已生成。
   - 验收条件：启动、菜单栏、文本/图片记录、恢复和退出行为通过；架构相关问题已记录。
-  - 当前进展：当前机器为 Apple Silicon（arm64，Apple M5，macOS 26.5.1），Release 冒烟测试已验证启动、文本/图片记录和退出；菜单栏、恢复和完整人工回归仍待验证。
+  - 当前进展：当前机器为 Apple Silicon（arm64，Apple M5，macOS 26.5.1），Release 冒烟测试已验证临时安装副本启动、文本/图片记录、退出、重启后历史保留和启动清理；菜单栏、恢复和完整人工回归仍待验证。
 - [ ] 2.3 Test supported macOS versions.
   - 实现描述：在目标支持的 macOS 版本上验证安装、启动和核心功能。
   - 前置条件：已确定最低和主要支持 macOS 版本，测试设备或虚拟环境可用。
@@ -39,6 +39,7 @@
   - 实现描述：验证应用首次安装、普通启动、退出、重启后历史加载和设置恢复。
   - 前置条件：Release 包可运行，已有测试数据或可现场生成。
   - 验收条件：安装/启动/退出/重启无异常，历史和设置符合预期。
+  - 当前进展：`scripts/release-smoke-test.sh` 已将 Release 包复制到临时安装目录启动，验证捕获后的历史在退出并重启后仍可查询；设置窗口、开机启动和真实安装路径仍需人工验证。
 
 ## 3. Functional QA
 
@@ -72,7 +73,7 @@
   - 实现描述：在 Release 环境验证过期清理、数量限制、空间限制和清空全部数据。
   - 前置条件：清理功能已实现，测试数据可控。
   - 验收条件：数据库和图片文件清理结果正确，Release 下行为与 Debug 一致。
-  - 当前进展：新增 `DataCleanupServiceTests` 回归测试，覆盖过期图片文件清理、文本数量限制、图片数量限制、收藏图片计入总数限制、图片存储空间上限清理；修复过期图片清理只删数据库不删文件的问题，并修复收藏项未计入数量上限导致总记录数超限的问题。`scripts/release-smoke-test.sh` 已在 Release 启动时验证过期图片数据库记录、原图和缩略图都会清理。数量限制、空间限制和清空全部数据仍需 Release 场景补验。
+  - 当前进展：新增 `DataCleanupServiceTests` 回归测试，覆盖过期图片文件清理、文本数量限制、图片数量限制、收藏图片计入总数限制、图片存储空间上限清理；修复过期图片清理只删数据库不删文件的问题，并修复收藏项未计入数量上限导致总记录数超限的问题。`scripts/release-smoke-test.sh` 已在备份真实应用数据后验证 Release 启动时会清理过期图片数据库记录/原图/缩略图，会按文本数量限制、图片数量限制和图片存储空间上限清理，并保留收藏项。清空全部数据仍需 Release UI 场景补验。
 
 ## 4. Release Materials
 

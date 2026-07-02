@@ -81,7 +81,7 @@ xcodebuild -project MacPasteHistory.xcodeproj \
 scripts/release-smoke-test.sh
 ```
 
-该脚本会构建 Release 包、确认沙盒 entitlement、启动应用、写入模拟文本/大文本/模拟 PNG/大尺寸 PNG 到剪贴板，并查询本地数据库确认捕获成功；脚本还会插入过期图片记录并重启 Release 包，验证数据库记录、原图和缩略图会一起清理。详细说明见 `docs/release/local-release-smoke-test.md`。
+该脚本会构建 Release 包、复制到临时安装目录、确认沙盒 entitlement、启动应用、写入模拟文本/大文本/模拟 PNG/大尺寸 PNG 到剪贴板，并查询本地数据库确认捕获成功；脚本还会重启 Release 包验证历史保留，插入过期图片记录验证数据库记录/原图/缩略图会一起清理，并在备份真实应用数据后验证 Release 启动时的文本数量限制、图片数量限制、收藏保护和图片存储上限清理。详细说明见 `docs/release/local-release-smoke-test.md`。
 
 #### ⚠️ 已知风险
 
@@ -251,6 +251,8 @@ open /Users/peibin/Library/Developer/Xcode/DerivedData/MacPasteHistory-awiwxtplx
 - 复制一段文本 → 历史窗口中出现记录
 - 重启应用后历史记录仍保留
 
+`scripts/release-smoke-test.sh` 已自动验证临时安装副本可启动、捕获文本/图片、退出并重启后历史仍保留；菜单栏图标、窗口打开和恢复仍需人工确认。
+
 #### ✅ 验收清单
 
 - [ ] Archive 成功
@@ -406,6 +408,8 @@ osascript -e 'id of app "DingTalk"'  # 返回 com.alibaba.DingTalk
 | 5 | 收藏保护 | 标记收藏后再触发清理 | 收藏记录不受任何自动清理影响 |
 | 6 | 清空全部数据 | 设置 → Clear All Data 并确认 | 数据库和 image 目录清空 |
 
+`scripts/release-smoke-test.sh` 已自动验证过期图片清理、文本数量限制、图片数量限制、收藏保护和图片存储上限清理。用户手动触发的 Clear All Data 仍需在 Settings UI 中人工验证。
+
 #### ✅ 验收清单
 
 - [ ] Chrome 文本和图片复制正常
@@ -415,8 +419,8 @@ osascript -e 'id of app "DingTalk"'  # 返回 com.alibaba.DingTalk
 - [ ] 黑名单场景按预期跳过（内容不入库）
 - [ ] 大文本（5MB）正常处理不崩溃
 - [ ] 大图超限被正确跳过
-- [ ] 过期清理、数量限制、存储驱逐全部正确
-- [ ] 收藏记录不受自动清理
+- [x] 过期清理、数量限制、存储驱逐全部正确
+- [x] 收藏记录不受自动清理
 - [ ] 清空数据后列表和文件目录均为空
 
 ---

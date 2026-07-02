@@ -6,6 +6,15 @@ SCHEME="MacPasteHistory"
 BUNDLE_ID="com.peibin.MacPasteHistory"
 APP_PROCESS_NAME="MacPasteHistory"
 DB_RELATIVE_PATH="Library/Application Support/MacPasteHistory/clipboard.db"
+CONTAINER_DATA_DIR="$HOME/Library/Containers/$BUNDLE_ID/Data"
+CONTAINER_PREFERENCES_DIR="$CONTAINER_DATA_DIR/Library/Preferences"
+CONTAINER_PREFERENCES_DOMAIN="$CONTAINER_PREFERENCES_DIR/$BUNDLE_ID"
+
+cleanup_defaults_saved=0
+state_backup_dir=""
+state_restore_target=""
+state_preferences_target=""
+install_dir=""
 
 cd "$REPO_ROOT"
 
@@ -19,6 +28,64 @@ require_command() {
 
 sql_escape() {
     printf "%s" "$1" | sed "s/'/''/g"
+}
+
+set_cleanup_default() {
+    local key="$1"
+    local value="$2"
+    mkdir -p "$CONTAINER_PREFERENCES_DIR"
+    defaults write "$BUNDLE_ID" "$key" -int "$value"
+    defaults write "$CONTAINER_PREFERENCES_DOMAIN" "$key" -int "$value"
+    defaults read "$BUNDLE_ID" "$key" >/dev/null
+    defaults read "$CONTAINER_PREFERENCES_DOMAIN" "$key" >/dev/null
+}
+
+flush_defaults_cache() {
+    killall cfprefsd >/dev/null 2>&1 || true
+}
+
+save_cleanup_defaults() {
+    cleanup_defaults_saved=1
+    original_max_text_set=0
+    original_max_image_set=0
+    original_storage_cap_set=0
+
+    if original_max_text="$(defaults read "$BUNDLE_ID" config.maxTextHistoryCount 2>/dev/null)"; then
+        original_max_text_set=1
+    fi
+    if original_max_image="$(defaults read "$BUNDLE_ID" config.maxImageHistoryCount 2>/dev/null)"; then
+        original_max_image_set=1
+    fi
+    if original_storage_cap="$(defaults read "$BUNDLE_ID" config.totalStorageCapInBytes 2>/dev/null)"; then
+        original_storage_cap_set=1
+    fi
+}
+
+restore_cleanup_defaults() {
+    if [[ "$cleanup_defaults_saved" -ne 1 ]]; then
+        return
+    fi
+
+    if [[ "${original_max_text_set:-0}" -eq 1 ]]; then
+        defaults write "$BUNDLE_ID" config.maxTextHistoryCount -int "$original_max_text"
+    else
+        defaults delete "$BUNDLE_ID" config.maxTextHistoryCount >/dev/null 2>&1 || true
+    fi
+    defaults delete "$CONTAINER_PREFERENCES_DOMAIN" config.maxTextHistoryCount >/dev/null 2>&1 || true
+
+    if [[ "${original_max_image_set:-0}" -eq 1 ]]; then
+        defaults write "$BUNDLE_ID" config.maxImageHistoryCount -int "$original_max_image"
+    else
+        defaults delete "$BUNDLE_ID" config.maxImageHistoryCount >/dev/null 2>&1 || true
+    fi
+    defaults delete "$CONTAINER_PREFERENCES_DOMAIN" config.maxImageHistoryCount >/dev/null 2>&1 || true
+
+    if [[ "${original_storage_cap_set:-0}" -eq 1 ]]; then
+        defaults write "$BUNDLE_ID" config.totalStorageCapInBytes -int "$original_storage_cap"
+    else
+        defaults delete "$BUNDLE_ID" config.totalStorageCapInBytes >/dev/null 2>&1 || true
+    fi
+    defaults delete "$CONTAINER_PREFERENCES_DOMAIN" config.totalStorageCapInBytes >/dev/null 2>&1 || true
 }
 
 quit_app() {
@@ -142,6 +209,89 @@ cleanup_test_records() {
     fi
 }
 
+backup_app_state() {
+    local db_path="$1"
+    local app_support_dir
+    app_support_dir="$(dirname "$db_path")"
+    state_restore_target="$app_support_dir"
+    state_preferences_target="$CONTAINER_PREFERENCES_DIR"
+    state_backup_dir="$(mktemp -d /tmp/macpastehistory-state-backup.XXXXXX)"
+    mkdir -p "$state_backup_dir"
+    ditto "$app_support_dir" "$state_backup_dir/app-support"
+    if [[ -d "$CONTAINER_PREFERENCES_DIR" ]]; then
+        ditto "$CONTAINER_PREFERENCES_DIR" "$state_backup_dir/preferences"
+    fi
+}
+
+restore_app_state() {
+    if [[ -z "${state_backup_dir:-}" ]]; then
+        return
+    fi
+
+    if [[ -n "${state_restore_target:-}" && -d "$state_backup_dir/app-support" ]]; then
+        rm -rf "$state_restore_target"
+        mkdir -p "$(dirname "$state_restore_target")"
+        ditto "$state_backup_dir/app-support" "$state_restore_target"
+    fi
+
+    if [[ -n "${state_preferences_target:-}" ]]; then
+        rm -rf "$state_preferences_target"
+        mkdir -p "$(dirname "$state_preferences_target")"
+        if [[ -d "$state_backup_dir/preferences" ]]; then
+            ditto "$state_backup_dir/preferences" "$state_preferences_target"
+        else
+            mkdir -p "$state_preferences_target"
+        fi
+    fi
+
+    rm -rf "$state_backup_dir"
+    state_backup_dir=""
+}
+
+reset_controlled_history_state() {
+    local db_path="$1"
+    local app_support_dir
+    app_support_dir="$(dirname "$db_path")"
+    sqlite3 "$db_path" "DELETE FROM clipboard_history;"
+    rm -rf "$app_support_dir/images" "$app_support_dir/thumbnails"
+    mkdir -p "$app_support_dir/images" "$app_support_dir/thumbnails"
+}
+
+create_sized_file() {
+    local path="$1"
+    local size="$2"
+    python3 - "$path" "$size" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+size = int(sys.argv[2])
+path.write_bytes(b"x" * size)
+PY
+}
+
+insert_text_cleanup_record() {
+    local db_path="$1"
+    local text="$2"
+    local hash="$3"
+    local days_ago="$4"
+    local favorite="$5"
+    sqlite3 "$db_path" \
+        "INSERT INTO clipboard_history (content_type, text_content, content_hash, text_length, is_favorite, created_at, updated_at) VALUES ('text', '$(sql_escape "$text")', '$(sql_escape "$hash")', ${#text}, $favorite, datetime('now', '-$days_ago days'), datetime('now', '-$days_ago days'));"
+}
+
+insert_image_cleanup_record() {
+    local db_path="$1"
+    local file_path="$2"
+    local thumbnail_path="$3"
+    local hash="$4"
+    local file_size="$5"
+    local days_ago="$6"
+    local favorite="$7"
+    sqlite3 "$db_path" \
+        "INSERT INTO clipboard_history (content_type, file_path, thumbnail_path, content_hash, file_size, image_width, image_height, image_format, is_favorite, created_at, updated_at) VALUES ('image', '$(sql_escape "$file_path")', '$(sql_escape "$thumbnail_path")', '$(sql_escape "$hash")', $file_size, 16, 16, 'png', $favorite, datetime('now', '-$days_ago days'), datetime('now', '-$days_ago days'));"
+}
+
 require_command xcodegen
 require_command xcodebuild
 require_command sqlite3
@@ -151,6 +301,9 @@ require_command codesign
 require_command plutil
 require_command base64
 require_command python3
+require_command ditto
+require_command defaults
+require_command killall
 
 echo "Generating Xcode project..."
 xcodegen generate >/dev/null
@@ -180,6 +333,12 @@ echo "Verified: Release app has App Sandbox entitlement"
 signature_summary="$(codesign -dvv "$app_path" 2>&1 | awk -F= '/^(Signature|TeamIdentifier)=/ {print $0}')"
 echo "$signature_summary"
 
+install_dir="$(mktemp -d /tmp/macpastehistory-release-install.XXXXXX)"
+installed_app_path="$install_dir/$full_product_name"
+ditto "$app_path" "$installed_app_path"
+app_path="$installed_app_path"
+echo "Installed Release app copy: $app_path"
+
 run_marker="MacPasteHistory release smoke $(date +%Y%m%d%H%M%S) $$"
 text_marker="$run_marker text"
 large_text_path="$(mktemp /tmp/macpastehistory-large-text.XXXXXX.txt)"
@@ -188,7 +347,7 @@ large_image_path="$(mktemp /tmp/macpastehistory-large-image.XXXXXX.png)"
 image_id=""
 large_image_id=""
 
-trap 'quit_app; rm -f "$large_text_path" "$image_path" "$large_image_path"' EXIT
+trap 'quit_app; restore_cleanup_defaults; restore_app_state; rm -f "$large_text_path" "$image_path" "$large_image_path"; [[ -n "${install_dir:-}" ]] && rm -rf "$install_dir"' EXIT
 
 printf "%s" "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l1sMngAAAABJRU5ErkJggg==" | base64 -D > "$image_path"
 python3 - "$large_text_path" "$large_image_path" "$run_marker" <<'PY'
@@ -273,6 +432,19 @@ echo "Quitting Release app..."
 quit_app
 wait_for_exit
 
+echo "Launching Release app for restart persistence verification..."
+open -n "$app_path"
+wait_for_process
+restart_text_count="$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE content_type = 'text' AND text_content = '$(sql_escape "$text_marker")';")"
+restart_large_image_count="$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE id = $large_image_id;")"
+if [[ "$restart_text_count" -lt 1 || "$restart_large_image_count" -lt 1 ]]; then
+    echo "History records were not available after restart." >&2
+    exit 1
+fi
+echo "Verified: history remains available after Release app restart"
+quit_app
+wait_for_exit
+
 cleanup_test_records "$db_path" "$text_marker" "$image_id"
 cleanup_test_records "$db_path" "$large_text_marker" "$large_image_id"
 
@@ -308,5 +480,120 @@ if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE id = $
 fi
 quit_app
 wait_for_exit
+
+echo "Backing up app data before controlled cleanup-limit verification..."
+backup_app_state "$db_path"
+save_cleanup_defaults
+
+reset_controlled_history_state "$db_path"
+set_cleanup_default config.maxTextHistoryCount 2
+set_cleanup_default config.maxImageHistoryCount 2
+set_cleanup_default config.totalStorageCapInBytes 1000000
+flush_defaults_cache
+echo "Cleanup limits: text=$(defaults read "$CONTAINER_PREFERENCES_DOMAIN" config.maxTextHistoryCount), image=$(defaults read "$CONTAINER_PREFERENCES_DOMAIN" config.maxImageHistoryCount), storage=$(defaults read "$CONTAINER_PREFERENCES_DOMAIN" config.totalStorageCapInBytes)"
+
+count_old_text="$run_marker cleanup old text"
+count_favorite_text="$run_marker cleanup favorite text"
+count_new_text="$run_marker cleanup new text"
+insert_text_cleanup_record "$db_path" "$count_old_text" "count-old-text-${run_marker//[^A-Za-z0-9]/-}" 3 0
+insert_text_cleanup_record "$db_path" "$count_favorite_text" "count-favorite-text-${run_marker//[^A-Za-z0-9]/-}" 2 1
+insert_text_cleanup_record "$db_path" "$count_new_text" "count-new-text-${run_marker//[^A-Za-z0-9]/-}" 1 0
+
+count_old_image="$app_support_dir/images/${run_marker// /_}_count_old.png"
+count_old_thumb="$app_support_dir/thumbnails/${run_marker// /_}_count_old.png"
+count_favorite_image="$app_support_dir/images/${run_marker// /_}_count_favorite.png"
+count_favorite_thumb="$app_support_dir/thumbnails/${run_marker// /_}_count_favorite.png"
+count_new_image="$app_support_dir/images/${run_marker// /_}_count_new.png"
+count_new_thumb="$app_support_dir/thumbnails/${run_marker// /_}_count_new.png"
+create_sized_file "$count_old_image" 100
+create_sized_file "$count_old_thumb" 8
+create_sized_file "$count_favorite_image" 100
+create_sized_file "$count_favorite_thumb" 8
+create_sized_file "$count_new_image" 100
+create_sized_file "$count_new_thumb" 8
+insert_image_cleanup_record "$db_path" "$count_old_image" "$count_old_thumb" "count-old-image-${run_marker//[^A-Za-z0-9]/-}" 100 3 0
+insert_image_cleanup_record "$db_path" "$count_favorite_image" "$count_favorite_thumb" "count-favorite-image-${run_marker//[^A-Za-z0-9]/-}" 100 2 1
+insert_image_cleanup_record "$db_path" "$count_new_image" "$count_new_thumb" "count-new-image-${run_marker//[^A-Za-z0-9]/-}" 100 1 0
+
+echo "Launching Release app for count-limit cleanup verification..."
+open -n "$app_path"
+wait_for_process
+for attempt in {1..30}; do
+    old_text_count="$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE text_content = '$(sql_escape "$count_old_text")';")"
+    old_image_count="$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE content_hash = 'count-old-image-${run_marker//[^A-Za-z0-9]/-}';")"
+    if [[ "$old_text_count" -eq 0 && "$old_image_count" -eq 0 && ! -e "$count_old_image" && ! -e "$count_old_thumb" ]]; then
+        break
+    fi
+    sleep 1
+done
+if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE text_content = '$(sql_escape "$count_old_text")';")" -ne 0 ]]; then
+    echo "Old text record was not trimmed by count-limit cleanup." >&2
+    exit 1
+fi
+if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE text_content = '$(sql_escape "$count_favorite_text")';")" -ne 1 ]]; then
+    echo "Favorite text record was not preserved by count-limit cleanup." >&2
+    exit 1
+fi
+if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE text_content = '$(sql_escape "$count_new_text")';")" -ne 1 ]]; then
+    echo "Newest text record was not preserved by count-limit cleanup." >&2
+    exit 1
+fi
+if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE content_hash = 'count-old-image-${run_marker//[^A-Za-z0-9]/-}';")" -ne 0 || -e "$count_old_image" || -e "$count_old_thumb" ]]; then
+    echo "Old image record or files were not trimmed by count-limit cleanup." >&2
+    exit 1
+fi
+if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE content_hash = 'count-favorite-image-${run_marker//[^A-Za-z0-9]/-}';")" -ne 1 || ! -e "$count_favorite_image" ]]; then
+    echo "Favorite image record was not preserved by count-limit cleanup." >&2
+    exit 1
+fi
+if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE content_hash = 'count-new-image-${run_marker//[^A-Za-z0-9]/-}';")" -ne 1 || ! -e "$count_new_image" ]]; then
+    echo "Newest image record was not preserved by count-limit cleanup." >&2
+    exit 1
+fi
+echo "Verified: Release startup trims text/image count limits while preserving favorites"
+quit_app
+wait_for_exit
+
+reset_controlled_history_state "$db_path"
+set_cleanup_default config.maxTextHistoryCount 500
+set_cleanup_default config.maxImageHistoryCount 200
+set_cleanup_default config.totalStorageCapInBytes 250
+flush_defaults_cache
+echo "Cleanup limits: text=$(defaults read "$CONTAINER_PREFERENCES_DOMAIN" config.maxTextHistoryCount), image=$(defaults read "$CONTAINER_PREFERENCES_DOMAIN" config.maxImageHistoryCount), storage=$(defaults read "$CONTAINER_PREFERENCES_DOMAIN" config.totalStorageCapInBytes)"
+storage_old_image="$app_support_dir/images/${run_marker// /_}_storage_old.png"
+storage_old_thumb="$app_support_dir/thumbnails/${run_marker// /_}_storage_old.png"
+storage_new_image="$app_support_dir/images/${run_marker// /_}_storage_new.png"
+storage_new_thumb="$app_support_dir/thumbnails/${run_marker// /_}_storage_new.png"
+create_sized_file "$storage_old_image" 200
+create_sized_file "$storage_old_thumb" 8
+create_sized_file "$storage_new_image" 200
+create_sized_file "$storage_new_thumb" 8
+insert_image_cleanup_record "$db_path" "$storage_old_image" "$storage_old_thumb" "storage-old-image-${run_marker//[^A-Za-z0-9]/-}" 200 2 0
+insert_image_cleanup_record "$db_path" "$storage_new_image" "$storage_new_thumb" "storage-new-image-${run_marker//[^A-Za-z0-9]/-}" 200 1 0
+
+echo "Launching Release app for storage-limit cleanup verification..."
+open -n "$app_path"
+wait_for_process
+for attempt in {1..30}; do
+    storage_old_count="$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE content_hash = 'storage-old-image-${run_marker//[^A-Za-z0-9]/-}';")"
+    if [[ "$storage_old_count" -eq 0 && ! -e "$storage_old_image" && ! -e "$storage_old_thumb" ]]; then
+        break
+    fi
+    sleep 1
+done
+if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE content_hash = 'storage-old-image-${run_marker//[^A-Za-z0-9]/-}';")" -ne 0 || -e "$storage_old_image" || -e "$storage_old_thumb" ]]; then
+    echo "Old image record or files were not evicted by storage-limit cleanup." >&2
+    exit 1
+fi
+if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE content_hash = 'storage-new-image-${run_marker//[^A-Za-z0-9]/-}';")" -ne 1 || ! -e "$storage_new_image" || ! -e "$storage_new_thumb" ]]; then
+    echo "Newest image record was not preserved by storage-limit cleanup." >&2
+    exit 1
+fi
+echo "Verified: Release startup evicts images beyond storage limit and removes files"
+quit_app
+wait_for_exit
+
+restore_cleanup_defaults
+restore_app_state
 
 echo "Release smoke test passed."

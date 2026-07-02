@@ -28,6 +28,7 @@
 - Added XcodeGen-managed entitlements wiring and Release build optimization/signing settings for local release validation.
 - Added a local Release smoke-test script for sandbox entitlement, launch, text capture, image capture, and quit validation.
 - Extended the Release smoke-test script to cover large text, large image metadata, and expired image startup cleanup.
+- Extended the Release smoke-test script to launch a temporary installed app copy, verify restart persistence, and validate Release startup cleanup for count limits, favorite preservation, and storage caps while backing up and restoring app data.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
 - Fixed expired image cleanup so original and thumbnail files are removed before expired database rows are deleted.
@@ -40,7 +41,7 @@
 - `xcodebuild test` passed with 48 tests and 0 failures.
 - `xcodebuild -configuration Release build` passed and produced a locally signed Release app.
 - `codesign -d --entitlements :-` confirmed the Release app includes App Sandbox entitlements.
-- `scripts/release-smoke-test.sh` passed on the current Apple Silicon Mac with synthetic clipboard text, large text, PNG, large PNG, and expired image cleanup data.
+- `scripts/release-smoke-test.sh` passed on the current Apple Silicon Mac with a temporary installed app copy, synthetic clipboard text, large text, PNG, large PNG, restart persistence, expired image cleanup, count-limit cleanup, favorite preservation, and storage-cap cleanup data.
 - Targeted `DataCleanupServiceTests` passed with 5 tests and 0 failures after adding count-limit and storage-cap cleanup coverage.
 - Targeted `DataCleanupServiceTests` passed after reproducing and fixing expired image file cleanup.
 - Targeted `ClipboardReaderTests` passed with 7 tests and 0 failures after adding Finder image file URL coverage.
