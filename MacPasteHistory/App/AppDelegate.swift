@@ -5,6 +5,7 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let logger = Logger(category: "AppDelegate")
     private let applicationSupportService = ApplicationSupportService()
+    private let restorationState = ClipboardRestorationState()
     private lazy var databaseInitializer = DatabaseInitializer(
         applicationSupportService: applicationSupportService,
         logger: Logger(category: "DatabaseInitializer")
@@ -12,11 +13,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var mainWindowController: NSWindowController?
     private var settingsWindowController: NSWindowController?
+    private var clipboardHistoryRepository: ClipboardHistoryRepository?
+    private var clipboardWriter: ClipboardWriter?
+    private var imageStorageService: ImageStorageService?
+    private var clipboardMonitor: ClipboardMonitor?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         configureApplication()
-        createStatusItem()
         initializeLocalStorage()
+        createStatusItem()
+        clipboardMonitor?.start()
     }
 
     private func configureApplication() {
@@ -51,6 +57,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             try applicationSupportService.createRequiredDirectories()
             try databaseInitializer.initializeDatabase()
+            guard let database = databaseInitializer.currentDatabase() else {
+                logger.error("Database connection unavailable after initialization")
+                return
+            }
+            let repository = ClipboardHistoryRepository(database: database)
+            let writer = ClipboardWriter(restorationState: restorationState)
+            let imageStorageService = ImageStorageService(
+                imagesDirectory: try applicationSupportService.imagesURL,
+                thumbnailsDirectory: try applicationSupportService.thumbnailsURL
+            )
+            clipboardHistoryRepository = repository
+            clipboardWriter = writer
+            self.imageStorageService = imageStorageService
+            clipboardMonitor = ClipboardMonitor(
+                repository: repository,
+                imageStorageService: imageStorageService,
+                restorationState: restorationState
+            )
             logger.info("Local storage initialized")
         } catch {
             logger.error("Local storage initialization failed: \(error.localizedDescription)")
@@ -58,9 +82,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openMainPanel() {
+        guard let clipboardHistoryRepository, let clipboardWriter else {
+            logger.error("Cannot open history before local storage is initialized")
+            return
+        }
+        let viewModel = ClipboardHistoryViewModel(
+            repository: clipboardHistoryRepository,
+            writer: clipboardWriter,
+            imageStorageService: imageStorageService
+        )
         let controller = mainWindowController ?? createWindowController(
             title: "Clipboard History",
-            rootView: MainPanelView(),
+            rootView: MainPanelView(viewModel: viewModel),
             size: NSSize(width: 520, height: 640)
         )
         mainWindowController = controller
@@ -78,6 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func quitApplication() {
+        clipboardMonitor?.stop()
         NSApp.terminate(nil)
     }
 

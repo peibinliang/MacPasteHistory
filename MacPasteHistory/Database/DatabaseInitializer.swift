@@ -4,6 +4,7 @@ import SQLite3
 final class DatabaseInitializer {
     private let applicationSupportService: ApplicationSupportService
     private let logger: Logger
+    private var database: DatabaseConnection?
 
     init(applicationSupportService: ApplicationSupportService, logger: Logger) {
         self.applicationSupportService = applicationSupportService
@@ -11,18 +12,13 @@ final class DatabaseInitializer {
     }
 
     func initializeDatabase() throws {
-        var database: OpaquePointer?
-        let databasePath = try applicationSupportService.databaseURL.path
-
-        guard sqlite3_open(databasePath, &database) == SQLITE_OK else {
-            let message = database.map { String(cString: sqlite3_errmsg($0)) } ?? "Unknown SQLite error"
-            throw DatabaseInitializationError.openFailed(message)
-        }
-
-        defer {
-            sqlite3_close(database)
-        }
-
+        let connection = try DatabaseConnection(databaseURL: applicationSupportService.databaseURL)
+        try MigrationManager(database: connection).migrate()
+        database = connection
         logger.info("SQLite database opened")
+    }
+
+    func currentDatabase() -> DatabaseConnection? {
+        database
     }
 }
