@@ -16,8 +16,10 @@
 - Added PNG/TIFF image history capture, local image and thumbnail storage, image metadata persistence, image restore, image delete cleanup, and image previews.
 - Added Finder image file copy detection for supported local image files.
 - Added persisted total storage cap configuration for cleanup rules.
+- Added user guide and privacy policy drafts for release preparation.
 
 ### Fixed
 
 - Stabilized image dimension tests across Retina and non-Retina environments.
 - Fixed cleanup storage-limit wiring to use the total storage cap instead of the single-image size limit.
+- Fixed main-list restore actions so mouse restore writes the selected item before showing feedback.

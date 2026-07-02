@@ -69,11 +69,11 @@
 
 ## 4. Release Materials
 
-- [ ] 4.1 Write user usage documentation.
+- [x] 4.1 Write user usage documentation.
   - 实现描述：编写用户使用说明，覆盖启动、菜单栏、搜索、恢复、删除、清空、暂停、设置和黑名单。
   - 前置条件：首版功能范围已冻结。
   - 验收条件：文档能指导新用户完成主要工作流，内容与实际 UI 一致。
-- [ ] 4.2 Write privacy policy.
+- [x] 4.2 Write privacy policy.
   - 实现描述：完善隐私政策，说明记录范围、本地存储、敏感过滤、黑名单、清空数据和无云同步。
   - 前置条件：隐私功能和数据处理方式已实现并确认。
   - 验收条件：隐私政策可用于发布审查，且不承诺应用未实现的能力。

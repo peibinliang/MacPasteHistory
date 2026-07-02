@@ -24,6 +24,8 @@
 - Added persisted total storage cap configuration and wired cleanup to use the total storage cap instead of the single-image size limit.
 - Stabilized image dimension tests by generating deterministic pixel-sized bitmap fixtures.
 - Added tests for total storage cap defaults and persistence.
+- Added release user guide and privacy policy drafts.
+- Fixed main-list restore actions so mouse restore and Enter restore both write the selected item to the clipboard before showing feedback.
 
 ### Verification
 
@@ -38,3 +40,4 @@
 - Text history still needs manual GUI verification for real app copy, restart, restore, delete, and clear workflows.
 - History experience still needs manual GUI verification for large-list scroll smoothness and detail interaction polish.
 - Image history still needs manual GUI verification for screenshot capture, browser-copied images, and pasting restored images into real apps.
+- Release preparation still needs signed Release build, sandbox, compatibility, common-app QA, and screenshot verification.

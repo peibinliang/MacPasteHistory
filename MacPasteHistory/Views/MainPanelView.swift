@@ -113,6 +113,11 @@ struct MainPanelView: View {
         }
     }
 
+    private func restoreAndShowFeedback(_ item: ClipboardHistoryItem) {
+        viewModel.restore(item)
+        showCopyToast()
+    }
+
     private var filterBar: some View {
         HStack(spacing: 12) {
             Toggle(isOn: $viewModel.isFavoritesOnly) {
@@ -156,7 +161,7 @@ struct MainPanelView: View {
                             viewModel.toggleFavorite(item)
                         },
                         restoreAction: {
-                            showCopyToast()
+                            restoreAndShowFeedback(item)
                         },
                         deleteAction: {
                             viewModel.delete(item)
@@ -179,8 +184,7 @@ struct MainPanelView: View {
             }
             .onKeyPress(.return) {
                 if let item = selectedKeyboardItem.flatMap({ id in viewModel.items.first(where: { $0.id == id }) }) {
-                    viewModel.restore(item)
-                    showCopyToast()
+                    restoreAndShowFeedback(item)
                 }
                 return .handled
             }
