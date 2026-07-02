@@ -408,7 +408,7 @@ osascript -e 'id of app "DingTalk"'  # 返回 com.alibaba.DingTalk
 | 5 | 收藏保护 | 标记收藏后再触发清理 | 收藏记录不受任何自动清理影响 |
 | 6 | 清空全部数据 | 设置 → Clear All Data 并确认 | 数据库和 image 目录清空 |
 
-`scripts/release-smoke-test.sh` 已自动验证过期图片清理、文本数量限制、图片数量限制、收藏保护和图片存储上限清理。用户手动触发的 Clear All Data 仍需在 Settings UI 中人工验证。
+`scripts/release-smoke-test.sh` 已自动验证过期图片清理、文本数量限制、图片数量限制、收藏保护和图片存储上限清理。`ClipboardDataClearServiceTests` 已验证清空全部数据的核心行为会删除数据库记录、原图和缩略图；用户手动触发的 Clear All Data 仍需在 Settings UI 中人工验证。
 
 #### ✅ 验收清单
 
@@ -421,7 +421,7 @@ osascript -e 'id of app "DingTalk"'  # 返回 com.alibaba.DingTalk
 - [ ] 大图超限被正确跳过
 - [x] 过期清理、数量限制、存储驱逐全部正确
 - [x] 收藏记录不受自动清理
-- [ ] 清空数据后列表和文件目录均为空
+- [x] 清空数据后列表和文件目录均为空（服务级自动测试）
 
 ---
 

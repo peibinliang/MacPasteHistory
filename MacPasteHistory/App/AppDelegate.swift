@@ -54,8 +54,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         do {
-            try repository.clearAllHistory()
-            try imageStorageService.deleteAllFiles()
+            try ClipboardDataClearService(
+                repository: repository,
+                imageStorageService: imageStorageService
+            ).clearAllData()
             logger.info("All clipboard data cleared")
         } catch {
             logger.error("Failed to clear all data: \(error.localizedDescription)")

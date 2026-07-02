@@ -22,6 +22,7 @@
 - Extended Release smoke validation to cover large text, large images, and expired image cleanup.
 - Extended Release smoke validation to cover installed-copy launch, restart persistence, count-limit cleanup, favorite preservation, and storage-cap cleanup with app data backup/restore.
 - Added cleanup regression tests for text count limits, image count limits, favorite preservation, and image storage limits.
+- Added service-level coverage for clearing all history records and image files.
 
 ### Fixed
 

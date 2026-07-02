@@ -31,6 +31,7 @@
 - Extended the Release smoke-test script to launch a temporary installed app copy, verify restart persistence, and validate Release startup cleanup for count limits, favorite preservation, and storage caps while backing up and restoring app data.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
+- Added `ClipboardDataClearService` and unit coverage for clearing all database records plus image and thumbnail files.
 - Fixed expired image cleanup so original and thumbnail files are removed before expired database rows are deleted.
 - Fixed cleanup count-limit eviction so favorites count toward the configured total limit while remaining protected from deletion.
 - Fixed main-list restore actions so mouse restore and Enter restore both write the selected item to the clipboard before showing feedback.
@@ -38,10 +39,11 @@
 ### Verification
 
 - `xcodebuild build` passed for `MacPasteHistory`.
-- `xcodebuild test` passed with 48 tests and 0 failures.
+- `xcodebuild test` passed with 49 tests and 0 failures.
 - `xcodebuild -configuration Release build` passed and produced a locally signed Release app.
 - `codesign -d --entitlements :-` confirmed the Release app includes App Sandbox entitlements.
 - `scripts/release-smoke-test.sh` passed on the current Apple Silicon Mac with a temporary installed app copy, synthetic clipboard text, large text, PNG, large PNG, restart persistence, expired image cleanup, count-limit cleanup, favorite preservation, and storage-cap cleanup data.
+- Targeted `ClipboardDataClearServiceTests` passed with 1 test and 0 failures after extracting clear-all behavior into a service.
 - Targeted `DataCleanupServiceTests` passed with 5 tests and 0 failures after adding count-limit and storage-cap cleanup coverage.
 - Targeted `DataCleanupServiceTests` passed after reproducing and fixing expired image file cleanup.
 - Targeted `ClipboardReaderTests` passed with 7 tests and 0 failures after adding Finder image file URL coverage.
