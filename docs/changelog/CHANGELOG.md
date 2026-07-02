@@ -20,8 +20,9 @@
 - Added XcodeGen-managed sandbox entitlements and Release build settings for local release validation.
 - Added a local Release smoke-test script for synthetic text and image clipboard capture validation.
 - Extended Release smoke validation to cover large text, large images, and expired image cleanup.
-- Extended Release smoke validation to cover installed-copy launch, restart persistence, count-limit cleanup, favorite preservation, and storage-cap cleanup with app data backup/restore.
+- Extended Release smoke validation to cover installed-copy launch, restart persistence, count-limit cleanup, favorite preservation, and storage-cap cleanup with an isolated temporary App Support directory.
 - Extended Release smoke validation to cover oversized-image skip behavior without database or file residue.
+- Added an Application Support override path for isolated release smoke and test runs.
 - Added a release environment report script and local environment snapshot for signing, Xcode, architecture, macOS, and common-app QA readiness.
 - Added cleanup regression tests for text count limits, image count limits, favorite preservation, and image storage limits.
 - Added service-level coverage for clearing all history records and image files.

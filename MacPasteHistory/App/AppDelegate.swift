@@ -4,8 +4,12 @@ import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private static let appSupportOverrideEnvironmentKey = "MACPASTEHISTORY_APP_SUPPORT_DIR"
+
     private let logger = Logger(category: "AppDelegate")
-    private let applicationSupportService = ApplicationSupportService()
+    private lazy var applicationSupportService = ApplicationSupportService(
+        applicationSupportOverrideURL: Self.applicationSupportOverrideURL()
+    )
     private let restorationState = ClipboardRestorationState()
     private lazy var databaseInitializer = DatabaseInitializer(
         applicationSupportService: applicationSupportService,
@@ -29,6 +33,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboardMonitor?.start()
         setupClearDataObserver()
         setupShortcut()
+    }
+
+    private static func applicationSupportOverrideURL() -> URL? {
+        guard let path = ProcessInfo.processInfo.environment[appSupportOverrideEnvironmentKey],
+              path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+            return nil
+        }
+        return URL(fileURLWithPath: path, isDirectory: true)
     }
 
     private func setupClearDataObserver() {

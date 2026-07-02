@@ -423,7 +423,7 @@ osascript -e 'id of app "DingTalk"'  # 返回 com.alibaba.DingTalk
 | 5 | 收藏保护 | 标记收藏后再触发清理 | 收藏记录不受任何自动清理影响 |
 | 6 | 清空全部数据 | 设置 → Clear All Data 并确认 | 数据库和 image 目录清空 |
 
-`scripts/release-smoke-test.sh` 已自动验证过期图片清理、文本数量限制、图片数量限制、收藏保护和图片存储上限清理。`ClipboardDataClearServiceTests` 已验证清空全部数据的核心行为会删除数据库记录、原图和缩略图；用户手动触发的 Clear All Data 仍需在 Settings UI 中人工验证。
+`scripts/release-smoke-test.sh` 现在使用临时隔离 App Support 目录运行 Release 包，不写入真实历史数据库；脚本已自动验证过期图片清理、文本数量限制、图片数量限制、收藏保护和图片存储上限清理。`ClipboardDataClearServiceTests` 已验证清空全部数据的核心行为会删除数据库记录、原图和缩略图；用户手动触发的 Clear All Data 仍需在 Settings UI 中人工验证。
 
 #### ✅ 验收清单
 

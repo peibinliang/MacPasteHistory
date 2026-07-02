@@ -2,14 +2,19 @@ import Foundation
 
 final class ApplicationSupportService {
     private let fileManager: FileManager
+    private let applicationSupportOverrideURL: URL?
 
-    init(fileManager: FileManager = .default) {
+    init(fileManager: FileManager = .default, applicationSupportOverrideURL: URL? = nil) {
         self.fileManager = fileManager
+        self.applicationSupportOverrideURL = applicationSupportOverrideURL
     }
 
     var applicationSupportURL: URL {
         get throws {
-            try fileManager.url(
+            if let applicationSupportOverrideURL {
+                return applicationSupportOverrideURL
+            }
+            return try fileManager.url(
                 for: .applicationSupportDirectory,
                 in: .userDomainMask,
                 appropriateFor: nil,

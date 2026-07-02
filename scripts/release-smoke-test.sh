@@ -11,10 +11,8 @@ CONTAINER_PREFERENCES_DIR="$CONTAINER_DATA_DIR/Library/Preferences"
 CONTAINER_PREFERENCES_DOMAIN="$CONTAINER_PREFERENCES_DIR/$BUNDLE_ID"
 
 cleanup_defaults_saved=0
-state_backup_dir=""
-state_restore_target=""
-state_preferences_target=""
 install_dir=""
+test_app_support_dir=""
 
 cd "$REPO_ROOT"
 
@@ -127,9 +125,23 @@ wait_for_exit() {
     return 1
 }
 
+launch_app() {
+    launchctl setenv MACPASTEHISTORY_APP_SUPPORT_DIR "$test_app_support_dir"
+    open -n "$app_path"
+}
+
 find_database() {
+    local override_db="$test_app_support_dir/clipboard.db"
     local sandbox_db="$HOME/Library/Containers/$BUNDLE_ID/Data/$DB_RELATIVE_PATH"
     local unsandboxed_db="$HOME/$DB_RELATIVE_PATH"
+
+    if [[ -n "${test_app_support_dir:-}" ]]; then
+        if [[ -f "$override_db" ]]; then
+            printf "%s\n" "$override_db"
+            return 0
+        fi
+        return 1
+    fi
 
     if [[ -f "$sandbox_db" ]]; then
         printf "%s\n" "$sandbox_db"
@@ -250,45 +262,6 @@ cleanup_test_records() {
     fi
 }
 
-backup_app_state() {
-    local db_path="$1"
-    local app_support_dir
-    app_support_dir="$(dirname "$db_path")"
-    state_restore_target="$app_support_dir"
-    state_preferences_target="$CONTAINER_PREFERENCES_DIR"
-    state_backup_dir="$(mktemp -d /tmp/macpastehistory-state-backup.XXXXXX)"
-    mkdir -p "$state_backup_dir"
-    ditto "$app_support_dir" "$state_backup_dir/app-support"
-    if [[ -d "$CONTAINER_PREFERENCES_DIR" ]]; then
-        ditto "$CONTAINER_PREFERENCES_DIR" "$state_backup_dir/preferences"
-    fi
-}
-
-restore_app_state() {
-    if [[ -z "${state_backup_dir:-}" ]]; then
-        return
-    fi
-
-    if [[ -n "${state_restore_target:-}" && -d "$state_backup_dir/app-support" ]]; then
-        rm -rf "$state_restore_target"
-        mkdir -p "$(dirname "$state_restore_target")"
-        ditto "$state_backup_dir/app-support" "$state_restore_target"
-    fi
-
-    if [[ -n "${state_preferences_target:-}" ]]; then
-        rm -rf "$state_preferences_target"
-        mkdir -p "$(dirname "$state_preferences_target")"
-        if [[ -d "$state_backup_dir/preferences" ]]; then
-            ditto "$state_backup_dir/preferences" "$state_preferences_target"
-        else
-            mkdir -p "$state_preferences_target"
-        fi
-    fi
-
-    rm -rf "$state_backup_dir"
-    state_backup_dir=""
-}
-
 reset_controlled_history_state() {
     local db_path="$1"
     local app_support_dir
@@ -345,6 +318,7 @@ require_command python3
 require_command ditto
 require_command defaults
 require_command killall
+require_command launchctl
 
 echo "Generating Xcode project..."
 xcodegen generate >/dev/null
@@ -378,7 +352,10 @@ install_dir="$(mktemp -d /tmp/macpastehistory-release-install.XXXXXX)"
 installed_app_path="$install_dir/$full_product_name"
 ditto "$app_path" "$installed_app_path"
 app_path="$installed_app_path"
+mkdir -p "$CONTAINER_DATA_DIR"
+test_app_support_dir="$(mktemp -d "$CONTAINER_DATA_DIR/release-smoke-data.XXXXXX")"
 echo "Installed Release app copy: $app_path"
+echo "Using isolated app data: $test_app_support_dir"
 
 run_marker="MacPasteHistory release smoke $(date +%Y%m%d%H%M%S) $$"
 text_marker="$run_marker text"
@@ -389,7 +366,7 @@ oversized_image_path="$(mktemp /tmp/macpastehistory-oversized-image.XXXXXX.png)"
 image_id=""
 large_image_id=""
 
-trap 'quit_app; restore_cleanup_defaults; restore_app_state; rm -f "$large_text_path" "$image_path" "$large_image_path" "$oversized_image_path"; [[ -n "${install_dir:-}" ]] && rm -rf "$install_dir"' EXIT
+trap 'quit_app; launchctl unsetenv MACPASTEHISTORY_APP_SUPPORT_DIR >/dev/null 2>&1 || true; restore_cleanup_defaults; rm -f "$large_text_path" "$image_path" "$large_image_path" "$oversized_image_path"; [[ -n "${install_dir:-}" ]] && rm -rf "$install_dir"; [[ -n "${test_app_support_dir:-}" ]] && rm -rf "$test_app_support_dir"' EXIT
 
 printf "%s" "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l1sMngAAAABJRU5ErkJggg==" | base64 -D > "$image_path"
 python3 - "$large_text_path" "$large_image_path" "$oversized_image_path" "$run_marker" <<'PY'
@@ -436,7 +413,7 @@ quit_app
 wait_for_exit || true
 
 echo "Launching Release app..."
-open -n "$app_path"
+launch_app
 wait_for_process
 db_path="$(wait_for_database)"
 echo "Database: $db_path"
@@ -489,7 +466,7 @@ quit_app
 wait_for_exit
 
 echo "Launching Release app for restart persistence verification..."
-open -n "$app_path"
+launch_app
 wait_for_process
 restart_text_count="$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE content_type = 'text' AND text_content = '$(sql_escape "$text_marker")';")"
 restart_large_image_count="$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE id = $large_image_id;")"
@@ -515,7 +492,7 @@ sqlite3 "$db_path" \
 expired_id="$(sqlite3 "$db_path" "SELECT id FROM clipboard_history WHERE content_hash = '$(sql_escape "$expired_hash")' LIMIT 1;")"
 
 echo "Launching Release app for cleanup verification..."
-open -n "$app_path"
+launch_app
 wait_for_process
 for attempt in {1..30}; do
     expired_count="$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE id = $expired_id;")"
@@ -536,8 +513,7 @@ fi
 quit_app
 wait_for_exit
 
-echo "Backing up app data before controlled cleanup-limit verification..."
-backup_app_state "$db_path"
+echo "Using isolated app data for controlled cleanup-limit verification..."
 save_cleanup_defaults
 
 reset_controlled_history_state "$db_path"
@@ -571,7 +547,7 @@ insert_image_cleanup_record "$db_path" "$count_favorite_image" "$count_favorite_
 insert_image_cleanup_record "$db_path" "$count_new_image" "$count_new_thumb" "count-new-image-${run_marker//[^A-Za-z0-9]/-}" 100 1 0
 
 echo "Launching Release app for count-limit cleanup verification..."
-open -n "$app_path"
+launch_app
 wait_for_process
 for attempt in {1..30}; do
     old_text_count="$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE text_content = '$(sql_escape "$count_old_text")';")"
@@ -627,7 +603,7 @@ insert_image_cleanup_record "$db_path" "$storage_old_image" "$storage_old_thumb"
 insert_image_cleanup_record "$db_path" "$storage_new_image" "$storage_new_thumb" "storage-new-image-${run_marker//[^A-Za-z0-9]/-}" 200 1 0
 
 echo "Launching Release app for storage-limit cleanup verification..."
-open -n "$app_path"
+launch_app
 wait_for_process
 for attempt in {1..30}; do
     storage_old_count="$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE content_hash = 'storage-old-image-${run_marker//[^A-Za-z0-9]/-}';")"
@@ -649,6 +625,5 @@ quit_app
 wait_for_exit
 
 restore_cleanup_defaults
-restore_app_state
 
 echo "Release smoke test passed."
