@@ -11,7 +11,7 @@ enum ImageStorageError: Error {
 final class ImageStorageService {
     private let imagesDirectory: URL
     private let thumbnailsDirectory: URL
-    private let maxImageSizeInBytes: Int
+    private let maxImageSizeInBytesProvider: () -> Int
     private let fileManager: FileManager
     private let thumbnailMaxDimension: CGFloat
 
@@ -19,18 +19,19 @@ final class ImageStorageService {
         imagesDirectory: URL,
         thumbnailsDirectory: URL,
         maxImageSizeInBytes: Int = DefaultSettings.maxImageSizeInBytes,
+        maxImageSizeInBytesProvider: (() -> Int)? = nil,
         fileManager: FileManager = .default,
         thumbnailMaxDimension: CGFloat = 160
     ) {
         self.imagesDirectory = imagesDirectory
         self.thumbnailsDirectory = thumbnailsDirectory
-        self.maxImageSizeInBytes = maxImageSizeInBytes
+        self.maxImageSizeInBytesProvider = maxImageSizeInBytesProvider ?? { maxImageSizeInBytes }
         self.fileManager = fileManager
         self.thumbnailMaxDimension = thumbnailMaxDimension
     }
 
     func storeImage(_ candidate: ClipboardImageCandidate) throws -> StoredClipboardImage {
-        guard candidate.pngData.count <= maxImageSizeInBytes else {
+        guard candidate.pngData.count <= maxImageSizeInBytesProvider() else {
             throw ImageStorageError.imageTooLarge
         }
         guard NSImage(data: candidate.pngData) != nil else {

@@ -410,6 +410,8 @@ osascript -e 'id of app "DingTalk"'  # 返回 com.alibaba.DingTalk
 | 3 | 超大图片（5000x5000 PNG） | ~20 MB | 取决于 ImageStorageService 的 maxImageSizeInBytes 设置 |
 | 4 | 超过限制的图片 | > 20 MB | 按当前设置跳过，不生成文件，日志中记录 "image exceeds size limit" |
 
+`scripts/release-smoke-test.sh` 已自动验证 1024x768 模拟 PNG 可记录、持久化尺寸和缩略图；同时会临时降低 `config.maxImageSizeInBytes`，复制独立的超限 PNG，并验证不会新增数据库记录、原图文件或缩略图文件。图片恢复到真实目标应用仍需人工 QA。
+
 ### 3.7 数据清理功能测试（Release 构建）
 
 | # | 测试项 | 操作 | 预期结果 |
@@ -431,7 +433,7 @@ osascript -e 'id of app "DingTalk"'  # 返回 com.alibaba.DingTalk
 - [ ] 微信/钉钉非黑名单场景正常
 - [ ] 黑名单场景按预期跳过（内容不入库）
 - [ ] 大文本（5MB）正常处理不崩溃
-- [ ] 大图超限被正确跳过
+- [x] 大图超限被正确跳过
 - [x] 过期清理、数量限制、存储驱逐全部正确
 - [x] 收藏记录不受自动清理
 - [x] 清空数据后列表和文件目录均为空（服务级自动测试）
@@ -629,7 +631,7 @@ MacPasteHistory **不收集任何个人身份信息**。
 | 9 | Chrome/Safari/VS Code 复制场景通过 | 3.1-3.3 | ⬜ |
 | 10 | 微信/钉钉含黑名单测试通过 | 3.4 | ⬜ |
 | 11 | 大文本 (5MB) 正常处理 | 3.5 | ⬜ |
-| 12 | 大图片超限被正确跳过 | 3.6 | ⬜ |
+| 12 | 大图片超限被正确跳过 | 3.6 | ✅ |
 | 13 | 数据清理功能全部正确 | 3.7 | ⬜ |
 | 14 | 用户指南已完成 | 4.1 | ⬜ |
 | 15 | 隐私政策已完成 | 4.2 | ⬜ |

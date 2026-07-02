@@ -50,6 +50,21 @@ final class ImageStorageServiceTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: thumbnailsURL.path))
     }
 
+    func testStoreImage_whenLimitProviderChanges_shouldUseLatestLimit() throws {
+        let candidate = try makeCandidate(width: 32, height: 20)
+        var maxImageSizeInBytes = candidate.pngData.count + 1
+        service = ImageStorageService(
+            imagesDirectory: imagesURL,
+            thumbnailsDirectory: thumbnailsURL,
+            maxImageSizeInBytesProvider: { maxImageSizeInBytes }
+        )
+
+        _ = try service.storeImage(candidate)
+        maxImageSizeInBytes = 1
+
+        XCTAssertThrowsError(try service.storeImage(candidate))
+    }
+
     private func makeCandidate(width: Int, height: Int) throws -> ClipboardImageCandidate {
         let image = NSImage(size: NSSize(width: width, height: height))
         image.lockFocus()

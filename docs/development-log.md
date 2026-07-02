@@ -29,6 +29,7 @@
 - Added a local Release smoke-test script for sandbox entitlement, launch, text capture, image capture, and quit validation.
 - Extended the Release smoke-test script to cover large text, large image metadata, and expired image startup cleanup.
 - Extended the Release smoke-test script to launch a temporary installed app copy, verify restart persistence, and validate Release startup cleanup for count limits, favorite preservation, and storage caps while backing up and restoring app data.
+- Extended the Release smoke-test script to verify oversized images are skipped without database records, original files, or thumbnail files.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
@@ -38,6 +39,7 @@
 - Fixed expired image cleanup so original and thumbnail files are removed before expired database rows are deleted.
 - Fixed cleanup count-limit eviction so favorites count toward the configured total limit while remaining protected from deletion.
 - Fixed main-list restore actions so mouse restore and Enter restore both write the selected item to the clipboard before showing feedback.
+- Fixed image capture so the single-image size limit setting is read dynamically when saving images.
 
 ### Verification
 
@@ -45,7 +47,8 @@
 - `xcodebuild test` passed with 49 tests and 0 failures.
 - `xcodebuild -configuration Release build` passed and produced a locally signed Release app.
 - `codesign -d --entitlements :-` confirmed the Release app includes App Sandbox entitlements.
-- `scripts/release-smoke-test.sh` passed on the current Apple Silicon Mac with a temporary installed app copy, synthetic clipboard text, large text, PNG, large PNG, restart persistence, expired image cleanup, count-limit cleanup, favorite preservation, and storage-cap cleanup data.
+- `scripts/release-smoke-test.sh` passed on the current Apple Silicon Mac with a temporary installed app copy, synthetic clipboard text, large text, PNG, large PNG, oversized-image skip, restart persistence, expired image cleanup, count-limit cleanup, favorite preservation, and storage-cap cleanup data.
+- Targeted `ImageStorageServiceTests` passed with 3 tests and 0 failures after adding dynamic single-image limit coverage.
 - `scripts/release-environment-report.sh` confirmed Xcode is selected and licensed, the current machine is Apple Silicon, Chrome/Safari/VS Code/WeChat/DingTalk are installed, and no valid code signing identities are currently available.
 - `xcodebuild -checkFirstLaunchStatus` exited with 0 after selecting `/Applications/Xcode.app/Contents/Developer`, confirming Xcode first-launch authorization is complete.
 - Targeted `LoginItemServiceTests` passed with 3 tests and 0 failures after wiring launch-at-login registration.

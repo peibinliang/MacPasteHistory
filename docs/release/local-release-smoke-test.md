@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This smoke test verifies the Release build on the current Mac without using real clipboard data. It is intended to catch packaging, sandbox, install-copy launch, restart persistence, text capture, image capture, large-content, startup cleanup, and quit regressions before manual QA.
+This smoke test verifies the Release build on the current Mac without using real clipboard data. It is intended to catch packaging, sandbox, install-copy launch, restart persistence, text capture, image capture, large-content, oversized-image skip, startup cleanup, and quit regressions before manual QA.
 
 ## Command
 
@@ -20,13 +20,14 @@ The script performs these steps:
 6. Writes a synthetic large text sample and verifies the persisted character count.
 7. Writes a synthetic 1x1 PNG to the clipboard and verifies image and thumbnail paths are persisted.
 8. Writes a synthetic 1024x768 PNG and verifies persisted dimensions.
-9. Quits and relaunches the app, then verifies captured history remains available after restart.
-10. Removes only the synthetic records and files created by the capture test.
-11. Inserts an expired synthetic image record with files, relaunches the Release app, and verifies startup cleanup removes both the database row and files.
-12. Backs up the app database, image files, and sandbox preferences before controlled cleanup-limit checks.
-13. Writes cleanup limits into the sandbox preferences and verifies Release startup trims text/image count limits while preserving favorites.
-14. Verifies Release startup evicts older image files when the configured storage cap is exceeded.
-15. Restores the backed-up app data and preferences before exiting.
+9. Temporarily lowers the single-image size limit, writes a synthetic oversized PNG, and verifies no database record, original file, or thumbnail file is created.
+10. Quits and relaunches the app, then verifies captured history remains available after restart.
+11. Removes only the synthetic records and files created by the capture test.
+12. Inserts an expired synthetic image record with files, relaunches the Release app, and verifies startup cleanup removes both the database row and files.
+13. Backs up the app database, image files, and sandbox preferences before controlled cleanup-limit checks.
+14. Writes cleanup limits into the sandbox preferences and verifies Release startup trims text/image count limits while preserving favorites.
+15. Verifies Release startup evicts older image files when the configured storage cap is exceeded.
+16. Restores the backed-up app data and preferences before exiting.
 
 The text and image clipboard writes are retried while the script waits for database evidence. This avoids a launch race where an already-existing sandbox database appears before the clipboard monitor has finished initializing.
 

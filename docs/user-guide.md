@@ -24,7 +24,7 @@ Use row actions to favorite, restore, or delete individual records. **Clear Text
 
 ## Settings
 
-Settings include text/image recording toggles, launch-at-login preference backed by macOS Login Items, Dock icon preference, history retention days, text/image count limits, single-image size limit, and total storage cap. Cleanup runs on startup and uses these limits to bound local data growth.
+Settings include text/image recording toggles, launch-at-login preference backed by macOS Login Items, Dock icon preference, history retention days, text/image count limits, single-image size limit, and total storage cap. The single-image size limit applies to new image captures, while cleanup runs on startup and uses the count and storage limits to bound local data growth.
 
 ## Privacy Notes
 

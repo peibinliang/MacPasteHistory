@@ -21,6 +21,7 @@
 - Added a local Release smoke-test script for synthetic text and image clipboard capture validation.
 - Extended Release smoke validation to cover large text, large images, and expired image cleanup.
 - Extended Release smoke validation to cover installed-copy launch, restart persistence, count-limit cleanup, favorite preservation, and storage-cap cleanup with app data backup/restore.
+- Extended Release smoke validation to cover oversized-image skip behavior without database or file residue.
 - Added a release environment report script and local environment snapshot for signing, Xcode, architecture, macOS, and common-app QA readiness.
 - Added cleanup regression tests for text count limits, image count limits, favorite preservation, and image storage limits.
 - Added service-level coverage for clearing all history records and image files.
@@ -35,3 +36,4 @@
 - Fixed cleanup count-limit eviction so favorites count toward the configured total limit while remaining protected from deletion.
 - Fixed main-list restore actions so mouse restore writes the selected item before showing feedback.
 - Fixed launch-at-login settings behavior so failures roll back the toggle instead of silently persisting an unavailable state.
+- Fixed image capture so the single-image size limit setting is applied dynamically when saving images.

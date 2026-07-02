@@ -48,6 +48,7 @@ save_cleanup_defaults() {
     cleanup_defaults_saved=1
     original_max_text_set=0
     original_max_image_set=0
+    original_max_image_size_set=0
     original_storage_cap_set=0
 
     if original_max_text="$(defaults read "$BUNDLE_ID" config.maxTextHistoryCount 2>/dev/null)"; then
@@ -55,6 +56,9 @@ save_cleanup_defaults() {
     fi
     if original_max_image="$(defaults read "$BUNDLE_ID" config.maxImageHistoryCount 2>/dev/null)"; then
         original_max_image_set=1
+    fi
+    if original_max_image_size="$(defaults read "$BUNDLE_ID" config.maxImageSizeInBytes 2>/dev/null)"; then
+        original_max_image_size_set=1
     fi
     if original_storage_cap="$(defaults read "$BUNDLE_ID" config.totalStorageCapInBytes 2>/dev/null)"; then
         original_storage_cap_set=1
@@ -79,6 +83,13 @@ restore_cleanup_defaults() {
         defaults delete "$BUNDLE_ID" config.maxImageHistoryCount >/dev/null 2>&1 || true
     fi
     defaults delete "$CONTAINER_PREFERENCES_DOMAIN" config.maxImageHistoryCount >/dev/null 2>&1 || true
+
+    if [[ "${original_max_image_size_set:-0}" -eq 1 ]]; then
+        defaults write "$BUNDLE_ID" config.maxImageSizeInBytes -int "$original_max_image_size"
+    else
+        defaults delete "$BUNDLE_ID" config.maxImageSizeInBytes >/dev/null 2>&1 || true
+    fi
+    defaults delete "$CONTAINER_PREFERENCES_DOMAIN" config.maxImageSizeInBytes >/dev/null 2>&1 || true
 
     if [[ "${original_storage_cap_set:-0}" -eq 1 ]]; then
         defaults write "$BUNDLE_ID" config.totalStorageCapInBytes -int "$original_storage_cap"
@@ -189,6 +200,36 @@ wait_for_image_capture() {
 
     echo "Timed out waiting for: image clipboard capture with files" >&2
     return 1
+}
+
+verify_image_skip() {
+    local db_path="$1"
+    local image_path="$2"
+    local image_before_id="$3"
+    local expected_hash="$4"
+    local app_support_dir="$5"
+    local attempt
+    local count
+
+    for attempt in {1..8}; do
+        osascript -e "set the clipboard to (read (POSIX file \"$image_path\") as «class PNGf»)" >/dev/null
+        sleep 1
+        count="$(
+            sqlite3 "$db_path" \
+                "SELECT COUNT(*) FROM clipboard_history WHERE content_type = 'image' AND id > $image_before_id;"
+        )"
+        if [[ "${count:-0}" -ne 0 ]]; then
+            echo "Oversized image was unexpectedly saved." >&2
+            return 1
+        fi
+    done
+
+    if [[ -e "$app_support_dir/images/$expected_hash.png" || -e "$app_support_dir/thumbnails/$expected_hash.png" ]]; then
+        echo "Oversized image left residual files." >&2
+        return 1
+    fi
+
+    echo "Verified: oversized image is skipped without database records or files"
 }
 
 cleanup_test_records() {
@@ -344,13 +385,14 @@ text_marker="$run_marker text"
 large_text_path="$(mktemp /tmp/macpastehistory-large-text.XXXXXX.txt)"
 image_path="$(mktemp /tmp/macpastehistory-smoke.XXXXXX.png)"
 large_image_path="$(mktemp /tmp/macpastehistory-large-image.XXXXXX.png)"
+oversized_image_path="$(mktemp /tmp/macpastehistory-oversized-image.XXXXXX.png)"
 image_id=""
 large_image_id=""
 
-trap 'quit_app; restore_cleanup_defaults; restore_app_state; rm -f "$large_text_path" "$image_path" "$large_image_path"; [[ -n "${install_dir:-}" ]] && rm -rf "$install_dir"' EXIT
+trap 'quit_app; restore_cleanup_defaults; restore_app_state; rm -f "$large_text_path" "$image_path" "$large_image_path" "$oversized_image_path"; [[ -n "${install_dir:-}" ]] && rm -rf "$install_dir"' EXIT
 
 printf "%s" "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l1sMngAAAABJRU5ErkJggg==" | base64 -D > "$image_path"
-python3 - "$large_text_path" "$large_image_path" "$run_marker" <<'PY'
+python3 - "$large_text_path" "$large_image_path" "$oversized_image_path" "$run_marker" <<'PY'
 import binascii
 import pathlib
 import struct
@@ -358,33 +400,36 @@ import sys
 import zlib
 
 text_path = pathlib.Path(sys.argv[1])
-image_path = pathlib.Path(sys.argv[2])
-run_marker = sys.argv[3]
+large_image_path = pathlib.Path(sys.argv[2])
+oversized_image_path = pathlib.Path(sys.argv[3])
+run_marker = sys.argv[4]
 
 lines = [f"{run_marker} large text line {index:04d} sample content for release QA." for index in range(900)]
 text_path.write_text("\n".join(lines), encoding="utf-8")
 
-width = 1024
-height = 768
 seed = sum(run_marker.encode("utf-8")) % 256
-rows = []
-for y in range(height):
-    row = bytearray()
-    for x in range(width):
-        row.extend(((x + seed) % 256, (y + seed) % 256, (x + y + seed) % 256))
-    rows.append(b"\x00" + bytes(row))
 
 def chunk(chunk_type: bytes, data: bytes) -> bytes:
     checksum = binascii.crc32(chunk_type + data) & 0xFFFFFFFF
     return struct.pack(">I", len(data)) + chunk_type + data + struct.pack(">I", checksum)
 
-png = (
-    b"\x89PNG\r\n\x1a\n"
-    + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
-    + chunk(b"IDAT", zlib.compress(b"".join(rows), 6))
-    + chunk(b"IEND", b"")
-)
-image_path.write_bytes(png)
+def write_png(path: pathlib.Path, width: int, height: int, color_seed: int) -> None:
+    rows = []
+    for y in range(height):
+        row = bytearray()
+        for x in range(width):
+            row.extend(((x + color_seed) % 256, (y + color_seed) % 256, (x + y + color_seed) % 256))
+        rows.append(b"\x00" + bytes(row))
+    png = (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(b"".join(rows), 6))
+        + chunk(b"IEND", b"")
+    )
+    path.write_bytes(png)
+
+write_png(large_image_path, 1024, 768, seed)
+write_png(oversized_image_path, 640, 480, (seed + 97) % 256)
 PY
 
 quit_app
@@ -428,6 +473,17 @@ if [[ "$large_image_dimensions" != "1024x768" ]]; then
 fi
 echo "Verified: large image clipboard capture ($large_image_dimensions)"
 
+save_cleanup_defaults
+set_cleanup_default config.maxImageSizeInBytes 1
+flush_defaults_cache
+oversized_before_id="$(sqlite3 "$db_path" "SELECT COALESCE(MAX(id), 0) FROM clipboard_history WHERE content_type = 'image';")"
+oversized_hash="$(shasum -a 256 "$oversized_image_path" | awk '{print $1}')"
+app_support_dir="$(dirname "$db_path")"
+echo "Writing oversized PNG to clipboard..."
+verify_image_skip "$db_path" "$oversized_image_path" "$oversized_before_id" "$oversized_hash" "$app_support_dir"
+restore_cleanup_defaults
+flush_defaults_cache
+
 echo "Quitting Release app..."
 quit_app
 wait_for_exit
@@ -448,7 +504,6 @@ wait_for_exit
 cleanup_test_records "$db_path" "$text_marker" "$image_id"
 cleanup_test_records "$db_path" "$large_text_marker" "$large_image_id"
 
-app_support_dir="$(dirname "$db_path")"
 expired_original="$app_support_dir/images/${run_marker// /_}_expired.png"
 expired_thumbnail="$app_support_dir/thumbnails/${run_marker// /_}_expired.png"
 mkdir -p "$(dirname "$expired_original")" "$(dirname "$expired_thumbnail")"

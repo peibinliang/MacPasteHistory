@@ -104,7 +104,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let writer = ClipboardWriter(restorationState: restorationState)
             let imageStorageService = ImageStorageService(
                 imagesDirectory: try applicationSupportService.imagesURL,
-                thumbnailsDirectory: try applicationSupportService.thumbnailsURL
+                thumbnailsDirectory: try applicationSupportService.thumbnailsURL,
+                maxImageSizeInBytesProvider: { UserDefaultsConfig().maxImageSizeInBytes }
             )
             clipboardHistoryRepository = repository
             clipboardWriter = writer
