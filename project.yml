@@ -1,0 +1,48 @@
+name: MacPasteHistory
+options:
+  bundleIdPrefix: com.peibin
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+targets:
+  MacPasteHistory:
+    type: application
+    platform: macOS
+    sources:
+      - path: MacPasteHistory
+    resources:
+      - path: MacPasteHistory/Resources
+    dependencies:
+      - sdk: libsqlite3.tbd
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.peibin.MacPasteHistory
+        PRODUCT_NAME: MacPasteHistory
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_FILE: MacPasteHistory/Resources/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+  MacPasteHistoryTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: MacPasteHistoryTests
+    dependencies:
+      - target: MacPasteHistory
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.peibin.MacPasteHistoryTests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  MacPasteHistory:
+    build:
+      targets:
+        MacPasteHistory: all
+        MacPasteHistoryTests: [test]
+    test:
+      targets:
+        - MacPasteHistoryTests
