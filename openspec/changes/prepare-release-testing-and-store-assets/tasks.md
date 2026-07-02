@@ -9,6 +9,7 @@
   - 实现描述：配置开发或分发签名团队、证书、profile 和 bundle identifier。
   - 前置条件：Apple Developer 账号和证书资源已准备，项目 Bundle ID 已确定。
   - 验收条件：本机可完成签名构建；签名错误已清除或有明确处理记录。
+  - 当前进展：新增 `scripts/release-environment-report.sh` 可生成本机签名与发布环境诊断；当前报告显示 `security find-identity -p codesigning -v` 为 `0 valid identities found`，Release 包仍为 `Signature=adhoc`、`TeamIdentifier=not set`，分发签名需安装 Apple Development、Apple Distribution 或 Developer ID Application 证书后才能关闭。
 - [x] 1.3 Configure Release build settings.
   - 实现描述：检查 Release 配置、优化选项、版本号、构建号和资源包含情况。
   - 前置条件：Debug 构建功能已通过主要验收。
@@ -26,6 +27,7 @@
   - 实现描述：在 Intel Mac 或等价测试环境运行 Release 包，执行核心功能回归。
   - 前置条件：可访问 Intel 测试设备；Release 包已生成。
   - 验收条件：启动、菜单栏、文本/图片记录、恢复和退出行为通过；无法测试时记录原因。
+  - 当前进展：`scripts/release-environment-report.sh` 已确认当前机器为 `arm64` Apple Silicon；本机无法提供 Intel 实机证据，仍需 Intel Mac 或等价 CI/虚拟化环境。
 - [ ] 2.2 Test on Apple Silicon Mac where available.
   - 实现描述：在 Apple Silicon Mac 运行 Release 包，执行核心功能回归。
   - 前置条件：可访问 Apple Silicon 测试设备；Release 包已生成。
@@ -35,6 +37,7 @@
   - 实现描述：在目标支持的 macOS 版本上验证安装、启动和核心功能。
   - 前置条件：已确定最低和主要支持 macOS 版本，测试设备或虚拟环境可用。
   - 验收条件：每个已测版本结果有记录；不兼容版本有明确最低版本说明。
+  - 当前进展：本机发布环境报告记录当前可测系统为 macOS `26.5.1 (25F80)`；macOS 14.0+ 目标范围仍需额外设备或虚拟环境覆盖。
 - [ ] 2.4 Verify install, startup, quit, and restart behavior.
   - 实现描述：验证应用首次安装、普通启动、退出、重启后历史加载和设置恢复。
   - 前置条件：Release 包可运行，已有测试数据或可现场生成。
@@ -47,18 +50,22 @@
   - 实现描述：在 Chrome 中复制文本和图片，验证历史记录、预览和恢复。
   - 前置条件：Chrome 已安装，Release 应用运行中。
   - 验收条件：文本和支持的图片复制场景按预期记录；不支持场景有说明。
+  - 当前进展：发布环境报告已确认 `/Applications/Google Chrome.app` 存在；实际复制/预览/恢复仍需人工 QA。
 - [ ] 3.2 Test text and image copy from Safari.
   - 实现描述：在 Safari 中复制文本和图片，验证历史记录、预览和恢复。
   - 前置条件：Safari 可用，Release 应用运行中。
   - 验收条件：文本和支持的图片复制场景按预期记录；不支持场景有说明。
+  - 当前进展：发布环境报告已确认 `/Applications/Safari.app` 存在；实际复制/预览/恢复仍需人工 QA。
 - [ ] 3.3 Test text copy from VS Code.
   - 实现描述：在 VS Code 中复制代码和普通文本，验证文本历史、搜索和恢复。
   - 前置条件：VS Code 已安装或可用，Release 应用运行中。
   - 验收条件：复制代码可记录和搜索，恢复后格式按纯文本策略保持内容一致。
+  - 当前进展：发布环境报告已确认 `/Applications/Visual Studio Code.app` 存在；实际代码复制、搜索和恢复仍需人工 QA。
 - [ ] 3.4 Test common chat app copy flows such as WeChat and DingTalk.
   - 实现描述：在微信、钉钉等聊天应用中测试文本和可支持图片的复制/恢复。
   - 前置条件：测试账号和应用环境可用，隐私黑名单设置已确认。
   - 验收条件：非黑名单场景按预期记录；黑名单场景按预期跳过；结果有记录。
+  - 当前进展：发布环境报告已确认 `/Applications/WeChat.app` 和 `/Applications/DingTalk.app` 存在；测试账号、真实会话复制和黑名单场景仍需人工 QA。
 - [ ] 3.5 Test large text copy.
   - 实现描述：复制大段文本，观察捕获、存储、列表预览、详情、搜索和恢复表现。
   - 前置条件：大文本测试样本已准备，性能优化已完成。

@@ -83,6 +83,14 @@ scripts/release-smoke-test.sh
 
 该脚本会构建 Release 包、复制到临时安装目录、确认沙盒 entitlement、启动应用、写入模拟文本/大文本/模拟 PNG/大尺寸 PNG 到剪贴板，并查询本地数据库确认捕获成功；脚本还会重启 Release 包验证历史保留，插入过期图片记录验证数据库记录/原图/缩略图会一起清理，并在备份真实应用数据后验证 Release 启动时的文本数量限制、图片数量限制、收藏保护和图片存储上限清理。详细说明见 `docs/release/local-release-smoke-test.md`。
 
+发布环境可重复诊断：
+
+```bash
+scripts/release-environment-report.sh
+```
+
+当前快照见 `docs/release/local-release-environment.md`。
+
 #### ⚠️ 已知风险
 
 | 风险 | 缓解措施 |
@@ -117,6 +125,7 @@ scripts/release-smoke-test.sh
 - `xcodebuild -checkFirstLaunchStatus` 和 `xcodebuild -license check` 已通过。
 - `security find-identity -p codesigning -v` 显示 `0 valid identities found`。
 - 当前 Release 包签名为 `Signature=adhoc`、`TeamIdentifier=not set`，只能用于本机运行验证，不能用于 Developer ID 分发或 App Store 上传。
+- `scripts/release-environment-report.sh` 会生成签名身份、Xcode 状态、设备架构和常见测试应用安装情况报告。
 
 查看已有签名身份：
 

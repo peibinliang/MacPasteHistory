@@ -29,6 +29,7 @@
 - Added a local Release smoke-test script for sandbox entitlement, launch, text capture, image capture, and quit validation.
 - Extended the Release smoke-test script to cover large text, large image metadata, and expired image startup cleanup.
 - Extended the Release smoke-test script to launch a temporary installed app copy, verify restart persistence, and validate Release startup cleanup for count limits, favorite preservation, and storage caps while backing up and restoring app data.
+- Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
 - Added `ClipboardDataClearService` and unit coverage for clearing all database records plus image and thumbnail files.
@@ -43,6 +44,7 @@
 - `xcodebuild -configuration Release build` passed and produced a locally signed Release app.
 - `codesign -d --entitlements :-` confirmed the Release app includes App Sandbox entitlements.
 - `scripts/release-smoke-test.sh` passed on the current Apple Silicon Mac with a temporary installed app copy, synthetic clipboard text, large text, PNG, large PNG, restart persistence, expired image cleanup, count-limit cleanup, favorite preservation, and storage-cap cleanup data.
+- `scripts/release-environment-report.sh` confirmed Xcode is selected and licensed, the current machine is Apple Silicon, Chrome/Safari/VS Code/WeChat/DingTalk are installed, and no valid code signing identities are currently available.
 - Targeted `ClipboardDataClearServiceTests` passed with 1 test and 0 failures after extracting clear-all behavior into a service.
 - Targeted `DataCleanupServiceTests` passed with 5 tests and 0 failures after adding count-limit and storage-cap cleanup coverage.
 - Targeted `DataCleanupServiceTests` passed after reproducing and fixing expired image file cleanup.
