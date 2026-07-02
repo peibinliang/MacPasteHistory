@@ -25,12 +25,24 @@ final class ClipboardReader {
             return makeImageCandidate(fromPNGData: pngData)
         }
 
+        // Browser-copied images may arrive as JPEG data.
+        let jpegType = NSPasteboard.PasteboardType("public.jpeg")
+        if let jpegData = pasteboard.data(forType: jpegType) {
+            return makeImageCandidate(fromJPEGData: jpegData)
+        }
+
         if let tiffData = pasteboard.data(forType: .tiff) {
             return makeImageCandidate(fromTIFFData: tiffData)
         }
 
         if let fileImage = readImageFile() {
             return fileImage
+        }
+
+        // Fallback: read NSImage directly for types not covered by specific data types
+        // (e.g., some browsers or apps that only set the generic image type).
+        if let nsImage = pasteboard.image() {
+            return makeImageCandidate(fromNSImage: nsImage)
         }
 
         return nil
@@ -58,6 +70,35 @@ final class ClipboardReader {
     private func makeImageCandidate(fromTIFFData tiffData: Data) -> ClipboardImageCandidate? {
         guard let bitmap = NSBitmapImageRep(data: tiffData),
               let pngData = bitmap.representation(using: .png, properties: [:]) else {
+            return nil
+        }
+        return ClipboardImageCandidate(
+            pngData: pngData,
+            width: bitmap.pixelsWide,
+            height: bitmap.pixelsHigh,
+            format: .png
+        )
+    }
+
+    private func makeImageCandidate(fromJPEGData jpegData: Data) -> ClipboardImageCandidate? {
+        guard let bitmap = NSBitmapImageRep(data: jpegData),
+              let pngData = bitmap.representation(using: .png, properties: [:]) else {
+            return nil
+        }
+        return ClipboardImageCandidate(
+            pngData: pngData,
+            width: bitmap.pixelsWide,
+            height: bitmap.pixelsHigh,
+            format: .png
+        )
+    }
+
+    private func makeImageCandidate(fromNSImage nsImage: NSImage) -> ClipboardImageCandidate? {
+        guard let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return nil
+        }
+        let bitmap = NSBitmapImageRep(cgImage: cgImage)
+        guard let pngData = bitmap.representation(using: .png, properties: [:]) else {
             return nil
         }
         return ClipboardImageCandidate(

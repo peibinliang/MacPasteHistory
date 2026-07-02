@@ -186,6 +186,10 @@ private final class FakePasteboard: PasteboardProviding {
         return true
     }
 
+    func image() -> NSImage? {
+        nil
+    }
+
     func setString(_ string: String, forType dataType: NSPasteboard.PasteboardType) -> Bool {
         values[dataType] = string
         changeCount += 1

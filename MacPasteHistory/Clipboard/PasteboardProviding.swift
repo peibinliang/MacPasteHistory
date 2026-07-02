@@ -6,6 +6,7 @@ protocol PasteboardProviding: AnyObject {
     func data(forType dataType: NSPasteboard.PasteboardType) -> Data?
     func fileURLs() -> [URL]
     func string(forType dataType: NSPasteboard.PasteboardType) -> String?
+    func image() -> NSImage?
     func clearContents() -> Int
     func setData(_ data: Data?, forType dataType: NSPasteboard.PasteboardType) -> Bool
     func setString(_ string: String, forType dataType: NSPasteboard.PasteboardType) -> Bool
@@ -20,5 +21,9 @@ extension NSPasteboard: PasteboardProviding {
             }
             return url
         }
+    }
+
+    func image() -> NSImage? {
+        return NSImage(pasteboard: self)
     }
 }

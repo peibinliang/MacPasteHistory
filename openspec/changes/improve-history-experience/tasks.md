@@ -61,11 +61,11 @@
   - 实现描述：将历史查询改为分页或懒加载，滚动接近底部时加载更多。
   - 前置条件：repository 支持 limit/offset 或游标参数。
   - 验收条件：大量记录不会一次性全部加载；滚动到底部能继续加载下一页。
-- [ ] 4.2 Verify scrolling remains smooth with many records.
+- [x] 4.2 Verify scrolling remains smooth with many records.
   - 实现描述：用足量文本和图片记录进行滚动体验验证，定位明显卡顿点。
   - 前置条件：分页或懒加载已实现，测试数据可准备。
   - 验收条件：滚动无明显冻结；内存不会因列表浏览持续异常增长。
-- [ ] 4.3 Verify favorites, filters, detail viewing, and long previews.
+- [x] 4.3 Verify favorites, filters, detail viewing, and long previews.
   - 实现描述：执行阶段 3 功能验收，覆盖收藏、筛选、详情和长文本布局。
   - 前置条件：本阶段所有 UI 和查询增强任务已完成。
   - 验收条件：文档阶段 3 的验收标准全部通过。

@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
@@ -17,12 +18,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var clipboardWriter: ClipboardWriter?
     private var imageStorageService: ImageStorageService?
     private var clipboardMonitor: ClipboardMonitor?
+    private var clearDataCancellable: AnyCancellable?
+    private let shortcutService = ShortcutService()
+    private var shortcutCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         configureApplication()
         initializeLocalStorage()
         createStatusItem()
         clipboardMonitor?.start()
+        setupClearDataObserver()
+        setupShortcut()
+    }
+
+    private func setupClearDataObserver() {
+        clearDataCancellable = NotificationCenter.default
+            .publisher(for: .clearAllDataRequested)
+            .sink { [weak self] _ in
+                self?.handleClearAllData()
+            }
+    }
+
+    private func setupShortcut() {
+        shortcutService.registerDefaultShortcut()
+        shortcutCancellable = NotificationCenter.default
+            .publisher(for: .globalShortcutPressed)
+            .sink { [weak self] _ in
+                self?.openMainPanel()
+            }
+    }
+
+    private func handleClearAllData() {
+        guard let repository = clipboardHistoryRepository,
+              let imageStorageService else {
+            return
+        }
+        do {
+            try repository.clearAllHistory()
+            try imageStorageService.deleteAllFiles()
+            logger.info("All clipboard data cleared")
+        } catch {
+            logger.error("Failed to clear all data: \(error.localizedDescription)")
+        }
     }
 
     private func configureApplication() {
@@ -76,6 +113,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 restorationState: restorationState
             )
             logger.info("Local storage initialized")
+
+            // Perform data cleanup on startup (expired records, count limits, storage caps)
+            let cleanupService = DataCleanupService(
+                repository: repository,
+                imageStorageService: imageStorageService
+            )
+            cleanupService.performStartupCleanup()
         } catch {
             logger.error("Local storage initialization failed: \(error.localizedDescription)")
         }

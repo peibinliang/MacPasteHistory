@@ -9,6 +9,7 @@ final class ClipboardMonitor: NSObject {
     private let sourceApplicationProvider: SourceApplicationProviding
     private let restorationState: ClipboardRestorationState
     private let recordingSettings: RecordingSettingsProviding
+    private var privacyService: PrivacyService
     private let logger: Logger
     private var lastChangeCount: Int
     private var timer: Timer?
@@ -21,6 +22,7 @@ final class ClipboardMonitor: NSObject {
         sourceApplicationProvider: SourceApplicationProviding = SourceApplicationProvider(),
         restorationState: ClipboardRestorationState,
         recordingSettings: RecordingSettingsProviding = DefaultRecordingSettingsProvider(),
+        privacyService: PrivacyService = PrivacyService(),
         logger: Logger = Logger(category: "ClipboardMonitor")
     ) {
         self.pasteboard = pasteboard
@@ -30,6 +32,7 @@ final class ClipboardMonitor: NSObject {
         self.sourceApplicationProvider = sourceApplicationProvider
         self.restorationState = restorationState
         self.recordingSettings = recordingSettings
+        self.privacyService = privacyService
         self.logger = logger
         self.lastChangeCount = pasteboard.changeCount
         super.init()
@@ -69,6 +72,18 @@ final class ClipboardMonitor: NSObject {
             return
         }
 
+        // Privacy: skip if recording is paused
+        guard privacyService.recordingPaused == false else {
+            return
+        }
+
+        // Privacy: skip if the current foreground app is blocked
+        let sourceAppInfo = sourceApplicationProvider.currentSourceApplication()
+        if privacyService.isAppBlocked(bundleID: sourceAppInfo.bundleID) {
+            logger.info("Skipped clipboard change from blocked app: \(sourceAppInfo.bundleID ?? "unknown")")
+            return
+        }
+
         if recordingSettings.shouldRecordImage, let image = reader.readImage() {
             saveImage(image)
             return
@@ -80,6 +95,13 @@ final class ClipboardMonitor: NSObject {
         guard let text = reader.readPlainText() else {
             return
         }
+
+        // Privacy: skip if sensitive content detected
+        if privacyService.isSensitiveContent(text) {
+            logger.info("Skipped sensitive clipboard content")
+            return
+        }
+
         saveText(text)
     }
 

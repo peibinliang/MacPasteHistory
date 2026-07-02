@@ -4,7 +4,7 @@
   - 实现描述：创建 macOS SwiftUI App target，整理基础目录结构，并确保 Debug 构建可以启动到应用生命周期入口。
   - 前置条件：已确认项目名称、Bundle Identifier、最低 macOS 版本和首版只做菜单栏工具的产品定位。
   - 验收条件：从 Xcode 或命令行启动应用不崩溃，应用进程可见，基础 SwiftUI 入口代码可编译。
-- [ ] 1.2 Configure app name, bundle metadata, and app icon assets.
+- [x] 1.2 Configure app name, bundle metadata, and app icon assets.
   - 实现描述：配置 `Info.plist`、Bundle Display Name、版本号、权限占位和 `Assets.xcassets` 中的 AppIcon。
   - 前置条件：SwiftUI target 已创建，应用名称和图标素材或临时占位图已准备。
   - 验收条件：构建产物显示正确应用名称，Dock/App Switcher 或系统信息中元数据正确，缺失图标警告已消除。
@@ -42,7 +42,7 @@
   - 实现描述：接入 SQLite 访问层，打开或创建本地数据库文件，并提供基础连接管理。
   - 前置条件：Application Support 目录可用，已选择 SQLite 库或系统接口方案。
   - 验收条件：启动时数据库文件可创建和打开；失败时不静默吞错；可执行简单建表或查询语句。
-- [ ] 3.3 Add a migration or initialization layer for database setup.
+- [x] 3.3 Add a migration or initialization layer for database setup.
   - 实现描述：封装数据库 schema 初始化和版本迁移入口，为后续 `clipboard_history` 等表创建提供统一路径。
   - 前置条件：SQLite 连接管理已可用，已确定迁移版本记录方式。
   - 验收条件：首次启动执行初始化；重复启动不会重复破坏已有数据；迁移错误可被日志定位。
@@ -53,11 +53,11 @@
   - 实现描述：封装统一日志 API，至少支持 debug、info、warning、error 级别和模块标识。
   - 前置条件：项目基础模块目录已建立。
   - 验收条件：关键启动、存储、窗口路径能输出可读日志；Release 构建不会泄露敏感内容。
-- [ ] 4.2 Add a `UserDefaults` configuration helper.
+- [x] 4.2 Add a `UserDefaults` configuration helper.
   - 实现描述：封装基础配置读写，提供类型安全 key、默认值和后续设置页可复用的访问方法。
   - 前置条件：已列出首批需要持久化的基础配置项，例如启动时自动记录。
   - 验收条件：配置写入后可立即读取，重启后仍保留，缺失配置返回明确默认值。
-- [ ] 4.3 Verify app launch, menu icon display, window opening, data directory creation, and database initialization.
+- [x] 4.3 Verify app launch, menu icon display, window opening, data directory creation, and database initialization.
   - 实现描述：执行阶段 1 端到端自测，覆盖启动、菜单栏、主窗口、设置窗口、目录和数据库。
   - 前置条件：本阶段所有实现任务已完成。
   - 验收条件：验收清单全部通过，并记录任何已知限制或后续阶段依赖。

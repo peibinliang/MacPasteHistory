@@ -66,6 +66,17 @@ final class ImageStorageService {
         }
     }
 
+    func deleteAllFiles() throws {
+        let images = try fileManager.contentsOfDirectory(at: imagesDirectory, includingPropertiesForKeys: nil)
+        for url in images {
+            try? fileManager.removeItem(at: url)
+        }
+        let thumbnails = try fileManager.contentsOfDirectory(at: thumbnailsDirectory, includingPropertiesForKeys: nil)
+        for url in thumbnails {
+            try? fileManager.removeItem(at: url)
+        }
+    }
+
     private func thumbnailData(from pngData: Data) throws -> Data {
         guard let image = NSImage(data: pngData) else {
             throw ImageStorageError.invalidImageData

@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleDisplayName</key>
-    <string>MacPasteHistory</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -22,5 +20,13 @@
     <string>14.0</string>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 Peibin. All rights reserved.</string>
+    <key>CFBundleDisplayName</key>
+    <string>MacPasteHistory</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSPasteboardAccessUsageDescription</key>
+    <string>Paste History needs pasteboard access to record and restore your clipboard history.</string>
+    <key>NSAccessibilityUsageDescription</key>
+    <string>Paste History needs accessibility access to detect the current foreground app.</string>
 </dict>
 </plist>

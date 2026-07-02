@@ -73,7 +73,7 @@
   - 实现描述：提供清空文本历史操作，只删除文本类型记录并刷新列表。
   - 前置条件：repository 支持按类型批量删除，UI 有清空入口。
   - 验收条件：确认清空后文本记录为空；后续新复制文本仍可继续保存。
-- [ ] 4.4 Verify copy, dedupe, search, restore, delete, clear, and restart persistence.
+- [x] 4.4 Verify copy, dedupe, search, restore, delete, clear, and restart persistence.
   - 实现描述：执行阶段 2 端到端验收，覆盖文本历史核心闭环。
   - 前置条件：本阶段所有文本监听、存储、UI 和管理任务已完成。
   - 验收条件：文档阶段 2 的验收标准全部通过，并记录未完成的 P1 元数据项。

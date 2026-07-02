@@ -12,7 +12,7 @@
   - 实现描述：将 TIFF 数据解码后重新编码为 PNG，统一后续文件存储和恢复路径。
   - 前置条件：TIFF 读取已可获得有效图片数据，图片编码工具已确定。
   - 验收条件：TIFF 来源图片保存为 PNG 文件，图片尺寸和可视内容保持正确。
-- [ ] 1.4 Support browser-copied images where available.
+- [x] 1.4 Support browser-copied images where available.
   - 实现描述：验证并兼容 Chrome、Safari 等浏览器复制图片时提供的 pasteboard 类型。
   - 前置条件：PNG/TIFF 读取分支已实现，已有手动测试浏览器环境。
   - 验收条件：从主流浏览器复制图片后，能记录可预览的图片历史项；不支持的表示有日志说明。
@@ -77,7 +77,7 @@
   - 实现描述：将设置中的图片记录开关接入图片捕获入口，关闭时直接跳过图片保存。
   - 前置条件：设置服务或默认配置可读取图片记录开关。
   - 验收条件：关闭图片记录后复制图片不新增历史；重新开启后恢复记录能力。
-- [ ] 4.3 Verify screenshot, browser image, restore, delete cleanup, and disabled image recording behavior.
+- [x] 4.3 Verify screenshot, browser image, restore, delete cleanup, and disabled image recording behavior.
   - 实现描述：执行阶段 4 端到端验收，覆盖主要图片来源、恢复、删除和开关行为。
   - 前置条件：本阶段图片检测、存储、UI、恢复、清理和设置任务已完成。
   - 验收条件：文档阶段 4 的验收标准全部通过，并记录 Finder 图片文件复制等 P1 场景结果。

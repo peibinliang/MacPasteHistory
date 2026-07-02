@@ -4,6 +4,11 @@ struct MainPanelView: View {
     @StateObject private var viewModel: ClipboardHistoryViewModel
     @State private var selectedItem: ClipboardHistoryItem?
     @State private var selectedFilter: HistoryContentFilter = .all
+    @State private var selectedKeyboardItem: Int64?
+    @FocusState private var isListFocused: Bool
+    @State private var showToast = false
+    @State private var toastMessage = ""
+    @Environment(\.dismiss) private var dismiss
 
     init(viewModel: ClipboardHistoryViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -20,6 +25,21 @@ struct MainPanelView: View {
         .padding(16)
         .onAppear {
             viewModel.loadHistory()
+            isListFocused = true
+            if let first = viewModel.items.first {
+                selectedKeyboardItem = first.id
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if showToast {
+                Text(toastMessage)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(.thinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .padding(.bottom, 16)
+                    .transition(.opacity)
+            }
         }
         .sheet(item: $selectedItem) { item in
             HistoryDetailView(
@@ -64,6 +84,35 @@ struct MainPanelView: View {
             }
     }
 
+    // MARK: - Keyboard navigation
+
+    private func moveSelectionUp() {
+        guard let current = selectedKeyboardItem,
+              let index = viewModel.items.firstIndex(where: { $0.id == current }),
+              index > 0 else { return }
+        selectedKeyboardItem = viewModel.items[index - 1].id
+    }
+
+    private func moveSelectionDown() {
+        guard let current = selectedKeyboardItem,
+              let index = viewModel.items.firstIndex(where: { $0.id == current }),
+              index < viewModel.items.count - 1 else { return }
+        selectedKeyboardItem = viewModel.items[index + 1].id
+    }
+
+    private func closePanel() {
+        dismiss()
+    }
+
+    private func showCopyToast() {
+        toastMessage = "Copied to clipboard"
+        withAnimation { showToast = true }
+        Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            withAnimation { showToast = false }
+        }
+    }
+
     private var filterBar: some View {
         HStack(spacing: 12) {
             Toggle(isOn: $viewModel.isFavoritesOnly) {
@@ -96,27 +145,51 @@ struct MainPanelView: View {
         } else if viewModel.items.isEmpty {
             ContentUnavailableView("No History", systemImage: "doc.on.clipboard")
         } else {
-            List(viewModel.items) { item in
-                HistoryRowView(
-                    item: item,
-                    detailAction: {
-                        selectedItem = item
-                    },
-                    favoriteAction: {
-                        viewModel.toggleFavorite(item)
-                    },
-                    restoreAction: {
-                        viewModel.restore(item)
-                    },
-                    deleteAction: {
-                        viewModel.delete(item)
+            List(selection: $selectedKeyboardItem) {
+                ForEach(viewModel.items) { item in
+                    HistoryRowView(
+                        item: item,
+                        detailAction: {
+                            selectedItem = item
+                        },
+                        favoriteAction: {
+                            viewModel.toggleFavorite(item)
+                        },
+                        restoreAction: {
+                            showCopyToast()
+                        },
+                        deleteAction: {
+                            viewModel.delete(item)
+                        }
+                    )
+                    .tag(item.id)
+                    .onAppear {
+                        viewModel.loadMoreIfNeeded(currentItem: item)
                     }
-                )
-                .onAppear {
-                    viewModel.loadMoreIfNeeded(currentItem: item)
                 }
             }
             .listStyle(.inset)
+            .onKeyPress(.upArrow) {
+                moveSelectionUp()
+                return .handled
+            }
+            .onKeyPress(.downArrow) {
+                moveSelectionDown()
+                return .handled
+            }
+            .onKeyPress(.return) {
+                if let item = selectedKeyboardItem.flatMap({ id in viewModel.items.first(where: { $0.id == id }) }) {
+                    viewModel.restore(item)
+                    showCopyToast()
+                }
+                return .handled
+            }
+            .onKeyPress(.escape) {
+                closePanel()
+                return .handled
+            }
+            .focusable()
+            .focused($isListFocused)
         }
     }
 }
