@@ -15,3 +15,9 @@
 - Added bounded previews, friendly time display, detail viewing, favorites, favorites-only filtering, content type filtering, and paginated history loading.
 - Added PNG/TIFF image history capture, local image and thumbnail storage, image metadata persistence, image restore, image delete cleanup, and image previews.
 - Added Finder image file copy detection for supported local image files.
+- Added persisted total storage cap configuration for cleanup rules.
+
+### Fixed
+
+- Stabilized image dimension tests across Retina and non-Retina environments.
+- Fixed cleanup storage-limit wiring to use the total storage cap instead of the single-image size limit.

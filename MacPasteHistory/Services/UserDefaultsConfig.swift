@@ -17,6 +17,7 @@ struct UserDefaultsConfig {
         case maxTextHistoryCount = "config.maxTextHistoryCount"
         case maxImageHistoryCount = "config.maxImageHistoryCount"
         case maxImageSizeInBytes = "config.maxImageSizeInBytes"
+        case totalStorageCapInBytes = "config.totalStorageCapInBytes"
         case historyRetentionDays = "config.historyRetentionDays"
         case launchAtStartup = "config.launchAtStartup"
         case showDockIcon = "config.showDockIcon"
@@ -69,6 +70,11 @@ struct UserDefaultsConfig {
     var maxImageSizeInBytes: Int {
         get { integer(forKey: .maxImageSizeInBytes, defaultValue: DefaultSettings.maxImageSizeInBytes) }
         set { setInteger(newValue, forKey: .maxImageSizeInBytes) }
+    }
+
+    var totalStorageCapInBytes: Int {
+        get { integer(forKey: .totalStorageCapInBytes, defaultValue: DefaultSettings.totalStorageCapInBytes) }
+        set { setInteger(newValue, forKey: .totalStorageCapInBytes) }
     }
 
     var historyRetentionDays: Int {

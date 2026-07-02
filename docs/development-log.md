@@ -21,17 +21,20 @@
 - Added Finder image file copy detection through pasteboard file URLs, with non-image file URLs ignored.
 - Added tests for image reading, storage limits, thumbnail creation, repository metadata, monitor image capture, recording gating, restore, and cleanup.
 - Added tests for Finder image file URL reading and non-image file URL skipping.
+- Added persisted total storage cap configuration and wired cleanup to use the total storage cap instead of the single-image size limit.
+- Stabilized image dimension tests by generating deterministic pixel-sized bitmap fixtures.
+- Added tests for total storage cap defaults and persistence.
 
 ### Verification
 
 - `xcodebuild build` passed for `MacPasteHistory`.
-- `xcodebuild test` passed with 41 tests and 0 failures.
+- `xcodebuild test` passed with 43 tests and 0 failures.
 - Targeted `ClipboardReaderTests` passed with 7 tests and 0 failures after adding Finder image file URL coverage.
+- Targeted `ClipboardReaderTests`, `ClipboardMonitorTests`, and `UserDefaultsConfigTests` passed with 14 tests and 0 failures after fixing image fixture dimensions and storage cap persistence.
 
 ### Risks
 
 - App icon assets are only scaffolded; real icon artwork still needs to be added.
-- Settings persistence is not implemented yet.
 - Text history still needs manual GUI verification for real app copy, restart, restore, delete, and clear workflows.
 - History experience still needs manual GUI verification for large-list scroll smoothness and detail interaction polish.
 - Image history still needs manual GUI verification for screenshot capture, browser-copied images, and pasting restored images into real apps.

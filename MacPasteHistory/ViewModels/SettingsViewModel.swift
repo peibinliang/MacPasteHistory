@@ -11,7 +11,7 @@ final class SettingsViewModel: ObservableObject {
     @Published var maxTextHistoryCount = DefaultSettings.maxTextHistoryCount
     @Published var maxImageHistoryCount = DefaultSettings.maxImageHistoryCount
     @Published var singleImageSizeLimit = 20
-    @Published var totalStorageCap = 250
+    @Published var totalStorageCap = DefaultSettings.totalStorageCapInBytes / (1024 * 1024)
 
     private var config = UserDefaultsConfig()
 
@@ -24,7 +24,7 @@ final class SettingsViewModel: ObservableObject {
         maxTextHistoryCount = config.maxTextHistoryCount
         maxImageHistoryCount = config.maxImageHistoryCount
         singleImageSizeLimit = config.maxImageSizeInBytes / (1024 * 1024)
-        totalStorageCap = 250
+        totalStorageCap = config.totalStorageCapInBytes / (1024 * 1024)
     }
 
     func updateShouldRecordText(_ value: Bool) {
@@ -60,8 +60,7 @@ final class SettingsViewModel: ObservableObject {
     }
 
     func updateTotalStorageCap(_ megabytes: Int) {
-        // Total storage cap is used by cleanup service.
-        // Persisted via UserDefaults under a dedicated key could be added here.
+        config.totalStorageCapInBytes = megabytes * 1024 * 1024
     }
 
     func clearAllData() {

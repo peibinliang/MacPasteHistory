@@ -123,15 +123,27 @@ final class ClipboardMonitorTests: XCTestCase {
     }
 
     private func makePNGData() throws -> Data {
-        let image = NSImage(size: NSSize(width: 12, height: 8))
-        image.lockFocus()
+        guard let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: 12,
+            pixelsHigh: 8,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else {
+            throw TestImageError.encodingFailed
+        }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
         NSColor.systemOrange.setFill()
         NSRect(x: 0, y: 0, width: 12, height: 8).fill()
-        image.unlockFocus()
+        NSGraphicsContext.restoreGraphicsState()
 
-        guard let tiffData = image.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData),
-              let pngData = bitmap.representation(using: .png, properties: [:]) else {
+        guard let pngData = bitmap.representation(using: .png, properties: [:]) else {
             throw TestImageError.encodingFailed
         }
         return pngData

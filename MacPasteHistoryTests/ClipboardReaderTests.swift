@@ -105,9 +105,7 @@ final class ClipboardReaderTests: XCTestCase {
     }
 
     private func makePNGData(width: Int, height: Int) throws -> Data {
-        let image = makeImage(width: width, height: height)
-        guard let tiffData = image.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData),
+        guard let bitmap = makeBitmap(width: width, height: height),
               let pngData = bitmap.representation(using: .png, properties: [:]) else {
             throw TestImageError.encodingFailed
         }
@@ -115,20 +113,33 @@ final class ClipboardReaderTests: XCTestCase {
     }
 
     private func makeTIFFData(width: Int, height: Int) throws -> Data {
-        let image = makeImage(width: width, height: height)
-        guard let tiffData = image.tiffRepresentation else {
+        guard let tiffData = makeBitmap(width: width, height: height)?.tiffRepresentation else {
             throw TestImageError.encodingFailed
         }
         return tiffData
     }
 
-    private func makeImage(width: Int, height: Int) -> NSImage {
-        let image = NSImage(size: NSSize(width: width, height: height))
-        image.lockFocus()
+    private func makeBitmap(width: Int, height: Int) -> NSBitmapImageRep? {
+        guard let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: width,
+            pixelsHigh: height,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else {
+            return nil
+        }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
         NSColor.systemBlue.setFill()
         NSRect(x: 0, y: 0, width: width, height: height).fill()
-        image.unlockFocus()
-        return image
+        NSGraphicsContext.restoreGraphicsState()
+        return bitmap
     }
 }
 

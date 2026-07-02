@@ -81,7 +81,7 @@ struct DataCleanupService {
     }
 
     private func evictImageFilesBeyondStorageLimit() throws {
-        let maxStorage = settings.maxImageSizeInBytes
+        let maxStorage = settings.totalStorageCapInBytes
         let recordsToEvict = try repository.imageRecordsBeyondStorage(maxStorageInBytes: maxStorage)
         guard !recordsToEvict.isEmpty else { return }
 
