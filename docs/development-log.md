@@ -29,16 +29,19 @@
 - Added a local Release smoke-test script for sandbox entitlement, launch, text capture, image capture, and quit validation.
 - Extended the Release smoke-test script to cover large text, large image metadata, and expired image startup cleanup.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
+- Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
 - Fixed expired image cleanup so original and thumbnail files are removed before expired database rows are deleted.
+- Fixed cleanup count-limit eviction so favorites count toward the configured total limit while remaining protected from deletion.
 - Fixed main-list restore actions so mouse restore and Enter restore both write the selected item to the clipboard before showing feedback.
 
 ### Verification
 
 - `xcodebuild build` passed for `MacPasteHistory`.
-- `xcodebuild test` passed with 44 tests and 0 failures.
+- `xcodebuild test` passed with 48 tests and 0 failures.
 - `xcodebuild -configuration Release build` passed and produced a locally signed Release app.
 - `codesign -d --entitlements :-` confirmed the Release app includes App Sandbox entitlements.
 - `scripts/release-smoke-test.sh` passed on the current Apple Silicon Mac with synthetic clipboard text, large text, PNG, large PNG, and expired image cleanup data.
+- Targeted `DataCleanupServiceTests` passed with 5 tests and 0 failures after adding count-limit and storage-cap cleanup coverage.
 - Targeted `DataCleanupServiceTests` passed after reproducing and fixing expired image file cleanup.
 - Targeted `ClipboardReaderTests` passed with 7 tests and 0 failures after adding Finder image file URL coverage.
 - Targeted `ClipboardReaderTests`, `ClipboardMonitorTests`, and `UserDefaultsConfigTests` passed with 14 tests and 0 failures after fixing image fixture dimensions and storage cap persistence.

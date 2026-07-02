@@ -72,7 +72,7 @@
   - 实现描述：在 Release 环境验证过期清理、数量限制、空间限制和清空全部数据。
   - 前置条件：清理功能已实现，测试数据可控。
   - 验收条件：数据库和图片文件清理结果正确，Release 下行为与 Debug 一致。
-  - 当前进展：新增 `DataCleanupServiceTests` 回归测试，修复过期图片清理只删数据库不删文件的问题；`scripts/release-smoke-test.sh` 已在 Release 启动时验证过期图片数据库记录、原图和缩略图都会清理。数量限制、空间限制和清空全部数据仍需 Release 场景补验。
+  - 当前进展：新增 `DataCleanupServiceTests` 回归测试，覆盖过期图片文件清理、文本数量限制、图片数量限制、收藏图片计入总数限制、图片存储空间上限清理；修复过期图片清理只删数据库不删文件的问题，并修复收藏项未计入数量上限导致总记录数超限的问题。`scripts/release-smoke-test.sh` 已在 Release 启动时验证过期图片数据库记录、原图和缩略图都会清理。数量限制、空间限制和清空全部数据仍需 Release 场景补验。
 
 ## 4. Release Materials
 

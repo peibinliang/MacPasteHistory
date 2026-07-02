@@ -222,6 +222,7 @@ final class ClipboardHistoryRepository {
     /// Returns IDs of text records exceeding `maxCount`, ordered oldest first (favorites preserved).
     func textRecordsExceeding(limit maxCount: Int) throws -> [Int64] {
         guard maxCount > 0 else { return [] }
+        let nonFavoriteLimit = try max(0, maxCount - favoriteRecordCount(contentType: .text))
         let sql = """
         SELECT id FROM clipboard_history
         WHERE content_type = 'text' AND is_favorite = 0
@@ -230,13 +231,14 @@ final class ClipboardHistoryRepository {
         """
         let statement = try database.prepare(sql)
         defer { sqlite3_finalize(statement) }
-        try bindInt(maxCount, to: statement, index: 1)
+        try bindInt(nonFavoriteLimit, to: statement, index: 1)
         return try collectInt64Column(from: statement)
     }
 
     /// Returns image records exceeding `maxCount`, as full items (needed for file cleanup).
     func imageRecordsForEviction(limit maxCount: Int) throws -> [ClipboardHistoryItem] {
         guard maxCount > 0 else { return [] }
+        let nonFavoriteLimit = try max(0, maxCount - favoriteRecordCount(contentType: .image))
         let sql = """
         SELECT id FROM clipboard_history
         WHERE content_type = 'image' AND is_favorite = 0
@@ -245,7 +247,7 @@ final class ClipboardHistoryRepository {
         """
         let statement = try database.prepare(sql)
         defer { sqlite3_finalize(statement) }
-        try bindInt(maxCount, to: statement, index: 1)
+        try bindInt(nonFavoriteLimit, to: statement, index: 1)
         let ids = try collectInt64Column(from: statement)
         return try ids.compactMap { try fetchItem(id: $0) }
     }
@@ -307,6 +309,16 @@ final class ClipboardHistoryRepository {
             "SELECT COUNT(*) FROM clipboard_history WHERE content_type = 'text';"
         )
         defer { sqlite3_finalize(statement) }
+        guard sqlite3_step(statement) == SQLITE_ROW else { return 0 }
+        return Int(sqlite3_column_int(statement, 0))
+    }
+
+    private func favoriteRecordCount(contentType: ClipboardContentType) throws -> Int {
+        let statement = try database.prepare(
+            "SELECT COUNT(*) FROM clipboard_history WHERE content_type = ? AND is_favorite = 1;"
+        )
+        defer { sqlite3_finalize(statement) }
+        try bindText(contentType.rawValue, to: statement, index: 1)
         guard sqlite3_step(statement) == SQLITE_ROW else { return 0 }
         return Int(sqlite3_column_int(statement, 0))
     }
