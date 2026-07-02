@@ -24,6 +24,7 @@
 - Added a release environment report script and local environment snapshot for signing, Xcode, architecture, macOS, and common-app QA readiness.
 - Added cleanup regression tests for text count limits, image count limits, favorite preservation, and image storage limits.
 - Added service-level coverage for clearing all history records and image files.
+- Added system login item registration for the settings launch-at-login toggle, backed by service and ViewModel tests.
 
 ### Fixed
 
@@ -32,3 +33,4 @@
 - Fixed expired image cleanup so original and thumbnail files are removed with expired database records.
 - Fixed cleanup count-limit eviction so favorites count toward the configured total limit while remaining protected from deletion.
 - Fixed main-list restore actions so mouse restore writes the selected item before showing feedback.
+- Fixed launch-at-login settings behavior so failures roll back the toggle instead of silently persisting an unavailable state.

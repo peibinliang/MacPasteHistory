@@ -330,7 +330,10 @@ open /Users/peibin/Library/Developer/Xcode/DerivedData/MacPasteHistory-awiwxtplx
 | 复制测试 | 从任意应用复制文本 | 历史列表出现记录 |
 | 正常退出 | 菜单栏 Quit | 进程结束，图标消失 |
 | 重启 | 重新启动应用 | 历史记录和设置恢复 |
+| 开机启动 | 在 Settings 启用 Launch at login，再注销/登录 | 应用通过 macOS Login Items 自动启动；若系统拒绝注册，应用回滚开关并显示错误 |
 | 强制退出 | ⌘⌥Esc 强制退出 | 重新启动后数据完整 |
+
+当前代码状态：Launch at login 已接入 `SMAppService.mainApp.register()` / `unregister()`，并由 `LoginItemServiceTests` 与 `SettingsViewModelTests` 覆盖注册、注销和失败回滚。真实登录后自动启动仍需在 Release 包安装路径下人工验证。
 
 #### ✅ 验收清单
 
@@ -338,6 +341,7 @@ open /Users/peibin/Library/Developer/Xcode/DerivedData/MacPasteHistory-awiwxtplx
 - [ ] Intel Mac 已测试（或记录"无可用设备，暂不测试"）
 - [ ] macOS 14.0 Sonoma+ 已测试
 - [ ] 安装/启动/退出/重启均为预期
+- [ ] Launch at login 注销/登录后自动启动行为通过
 - [ ] 授权流程用户友好
 
 ---

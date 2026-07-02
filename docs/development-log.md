@@ -33,6 +33,7 @@
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
 - Added `ClipboardDataClearService` and unit coverage for clearing all database records plus image and thumbnail files.
+- Added `LoginItemService` using `SMAppService.mainApp` for the settings launch-at-login toggle, with service and ViewModel regression tests.
 - Fixed expired image cleanup so original and thumbnail files are removed before expired database rows are deleted.
 - Fixed cleanup count-limit eviction so favorites count toward the configured total limit while remaining protected from deletion.
 - Fixed main-list restore actions so mouse restore and Enter restore both write the selected item to the clipboard before showing feedback.
@@ -45,6 +46,9 @@
 - `codesign -d --entitlements :-` confirmed the Release app includes App Sandbox entitlements.
 - `scripts/release-smoke-test.sh` passed on the current Apple Silicon Mac with a temporary installed app copy, synthetic clipboard text, large text, PNG, large PNG, restart persistence, expired image cleanup, count-limit cleanup, favorite preservation, and storage-cap cleanup data.
 - `scripts/release-environment-report.sh` confirmed Xcode is selected and licensed, the current machine is Apple Silicon, Chrome/Safari/VS Code/WeChat/DingTalk are installed, and no valid code signing identities are currently available.
+- `xcodebuild -checkFirstLaunchStatus` exited with 0 after selecting `/Applications/Xcode.app/Contents/Developer`, confirming Xcode first-launch authorization is complete.
+- Targeted `LoginItemServiceTests` passed with 3 tests and 0 failures after wiring launch-at-login registration.
+- Targeted `SettingsViewModelTests` passed with 2 tests and 0 failures after covering settings registration and error rollback.
 - Targeted `ClipboardDataClearServiceTests` passed with 1 test and 0 failures after extracting clear-all behavior into a service.
 - Targeted `DataCleanupServiceTests` passed with 5 tests and 0 failures after adding count-limit and storage-cap cleanup coverage.
 - Targeted `DataCleanupServiceTests` passed after reproducing and fixing expired image file cleanup.

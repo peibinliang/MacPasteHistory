@@ -24,6 +24,21 @@ struct SettingsView: View {
         } message: {
             Text("This will permanently delete all clipboard history records and image files. This action cannot be undone.")
         }
+        .alert(
+            "Launch at Login Failed",
+            isPresented: Binding(
+                get: { viewModel.launchAtStartupErrorMessage != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        viewModel.launchAtStartupErrorMessage = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.launchAtStartupErrorMessage ?? "")
+        }
     }
 
     // MARK: - Sections

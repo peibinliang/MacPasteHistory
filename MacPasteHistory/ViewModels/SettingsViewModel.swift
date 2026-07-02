@@ -12,8 +12,15 @@ final class SettingsViewModel: ObservableObject {
     @Published var maxImageHistoryCount = DefaultSettings.maxImageHistoryCount
     @Published var singleImageSizeLimit = 20
     @Published var totalStorageCap = DefaultSettings.totalStorageCapInBytes / (1024 * 1024)
+    @Published var launchAtStartupErrorMessage: String?
 
-    private var config = UserDefaultsConfig()
+    private var config: UserDefaultsConfig
+    private let loginItemService: LoginItemService
+
+    init(config: UserDefaultsConfig = UserDefaultsConfig(), loginItemService: LoginItemService? = nil) {
+        self.config = config
+        self.loginItemService = loginItemService ?? LoginItemService(config: config)
+    }
 
     func loadSettings() {
         shouldRecordText = config.shouldRecordText
@@ -36,7 +43,14 @@ final class SettingsViewModel: ObservableObject {
     }
 
     func updateLaunchAtStartup(_ value: Bool) {
-        config.launchAtStartup = value
+        do {
+            try loginItemService.setLaunchAtLoginEnabled(value)
+            launchAtStartup = config.launchAtStartup
+            launchAtStartupErrorMessage = nil
+        } catch {
+            launchAtStartup = config.launchAtStartup
+            launchAtStartupErrorMessage = "Unable to update the login item. Check macOS Login Items permissions and try again."
+        }
     }
 
     func updateShowDockIcon(_ value: Bool) {
