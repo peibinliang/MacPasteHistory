@@ -18,6 +18,7 @@
 - Added persisted total storage cap configuration for cleanup rules.
 - Added user guide and privacy policy drafts for release preparation.
 - Added XcodeGen-managed sandbox entitlements and Release build settings for local release validation.
+- Added a local Release smoke-test script for synthetic text and image clipboard capture validation.
 
 ### Fixed
 

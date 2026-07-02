@@ -75,6 +75,14 @@ xcodebuild -project MacPasteHistory.xcodeproj \
   build
 ```
 
+本机可重复验证：
+
+```bash
+scripts/release-smoke-test.sh
+```
+
+该脚本会构建 Release 包、确认沙盒 entitlement、启动应用、写入模拟文本和模拟 PNG 到剪贴板，并查询本地数据库确认捕获成功。详细说明见 `docs/release/local-release-smoke-test.md`。
+
 #### ⚠️ 已知风险
 
 | 风险 | 缓解措施 |
@@ -88,6 +96,7 @@ xcodebuild -project MacPasteHistory.xcodeproj \
 - [x] 项目已绑定 `MacPasteHistory/MacPasteHistory.entitlements`
 - [x] Release 构建成功，无本机签名错误
 - [x] Release 产物包含 `com.apple.security.app-sandbox = true`
+- [x] 本机 Release 冒烟测试通过
 - [ ] 沙盒下应用可正常启动、读取剪贴板、保存记录
 - [ ] 辅助功能权限请求正常弹出
 
@@ -228,6 +237,12 @@ ExportOptions.plist 内容：
 
 ```bash
 open ./build/export/MacPasteHistory.app
+```
+
+当前本机 Release 构建产物也可以直接预览：
+
+```bash
+open /Users/peibin/Library/Developer/Xcode/DerivedData/MacPasteHistory-awiwxtplxobenwdpvorbtrqhtjax/Build/Products/Release/MacPasteHistory.app
 ```
 
 确认以下行为：
