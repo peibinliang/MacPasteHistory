@@ -25,12 +25,15 @@
 - Stabilized image dimension tests by generating deterministic pixel-sized bitmap fixtures.
 - Added tests for total storage cap defaults and persistence.
 - Added release user guide and privacy policy drafts.
+- Added XcodeGen-managed entitlements wiring and Release build optimization/signing settings for local release validation.
 - Fixed main-list restore actions so mouse restore and Enter restore both write the selected item to the clipboard before showing feedback.
 
 ### Verification
 
 - `xcodebuild build` passed for `MacPasteHistory`.
 - `xcodebuild test` passed with 43 tests and 0 failures.
+- `xcodebuild -configuration Release build` passed and produced a locally signed Release app.
+- `codesign -d --entitlements :-` confirmed the Release app includes App Sandbox entitlements.
 - Targeted `ClipboardReaderTests` passed with 7 tests and 0 failures after adding Finder image file URL coverage.
 - Targeted `ClipboardReaderTests`, `ClipboardMonitorTests`, and `UserDefaultsConfigTests` passed with 14 tests and 0 failures after fixing image fixture dimensions and storage cap persistence.
 
@@ -40,4 +43,4 @@
 - Text history still needs manual GUI verification for real app copy, restart, restore, delete, and clear workflows.
 - History experience still needs manual GUI verification for large-list scroll smoothness and detail interaction polish.
 - Image history still needs manual GUI verification for screenshot capture, browser-copied images, and pasting restored images into real apps.
-- Release preparation still needs signed Release build, sandbox, compatibility, common-app QA, and screenshot verification.
+- Release preparation still needs Apple Developer signing certificates, sandbox runtime QA, compatibility, common-app QA, and screenshot verification.

@@ -23,9 +23,18 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.peibin.MacPasteHistory
         PRODUCT_NAME: MacPasteHistory
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: MacPasteHistory/MacPasteHistory.entitlements
         INFOPLIST_FILE: MacPasteHistory/Resources/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
+      configs:
+        Release:
+          SWIFT_OPTIMIZATION_LEVEL: -O
+          SWIFT_COMPILATION_MODE: wholemodule
+          COPY_PHASE_STRIP: YES
+          STRIP_STYLE: non-global
+          DEPLOYMENT_POSTPROCESSING: YES
+          ENABLE_DEBUG_DYLIB_SUPPORT: NO
   MacPasteHistoryTests:
     type: bundle.unit-test
     platform: macOS

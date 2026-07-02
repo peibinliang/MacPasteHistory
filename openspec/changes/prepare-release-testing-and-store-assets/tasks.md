@@ -4,14 +4,16 @@
   - 实现描述：在 Xcode entitlements 中启用 App Sandbox，并配置剪贴板、文件访问等首版所需能力。
   - 前置条件：核心功能已实现到可回归测试状态，目标分发方式已明确。
   - 验收条件：启用 Sandbox 后应用可构建，启动、记录、恢复和本地存储仍可工作。
+  - 当前进展：`project.yml` 已通过 `CODE_SIGN_ENTITLEMENTS` 绑定 `MacPasteHistory/MacPasteHistory.entitlements`，Release 产物已确认包含 `com.apple.security.app-sandbox = true`；仍需完成真实启动、记录、恢复和本地存储回归后才能关闭。
 - [ ] 1.2 Configure signing certificate settings.
   - 实现描述：配置开发或分发签名团队、证书、profile 和 bundle identifier。
   - 前置条件：Apple Developer 账号和证书资源已准备，项目 Bundle ID 已确定。
   - 验收条件：本机可完成签名构建；签名错误已清除或有明确处理记录。
-- [ ] 1.3 Configure Release build settings.
+- [x] 1.3 Configure Release build settings.
   - 实现描述：检查 Release 配置、优化选项、版本号、构建号和资源包含情况。
   - 前置条件：Debug 构建功能已通过主要验收。
   - 验收条件：Release 配置可成功编译，产物包含必要资源且无调试专用依赖。
+  - 当前进展：Release 配置已设置 `SWIFT_OPTIMIZATION_LEVEL = -O`、`SWIFT_COMPILATION_MODE = wholemodule`、`COPY_PHASE_STRIP = YES`、`STRIP_STYLE = non-global`、`DEPLOYMENT_POSTPROCESSING = YES`、`ENABLE_DEBUG_DYLIB_SUPPORT = NO`，并通过 `xcodebuild -configuration Release build` 验证。
 - [ ] 1.4 Produce a Release build and verify it launches.
   - 实现描述：生成 Release 应用包并在本机独立启动验证。
   - 前置条件：Sandbox、签名和 Release 设置已配置。

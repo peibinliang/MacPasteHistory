@@ -17,6 +17,7 @@
 - Added Finder image file copy detection for supported local image files.
 - Added persisted total storage cap configuration for cleanup rules.
 - Added user guide and privacy policy drafts for release preparation.
+- Added XcodeGen-managed sandbox entitlements and Release build settings for local release validation.
 
 ### Fixed
 

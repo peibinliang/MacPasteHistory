@@ -22,9 +22,11 @@
 
 **目标**: 在 entitlements 中启用沙盒并声明应用所需的能力。
 
+**当前项目状态**: `project.yml` 已通过 `CODE_SIGN_ENTITLEMENTS = MacPasteHistory/MacPasteHistory.entitlements` 绑定沙盒权限文件。`xcodebuild -configuration Release build` 已生成可本机运行的 Release 包，`codesign -d --entitlements :-` 已确认产物包含 `com.apple.security.app-sandbox = true`。
+
 #### 操作步骤
 
-1. 在 Xcode 中选中项目 → `MacPasteHistory` target → **Signing & Capabilities**。
+1. 如需通过 Xcode UI 复核，在 Xcode 中选中项目 → `MacPasteHistory` target → **Signing & Capabilities**。
 
 2. 点击 **+ Capability**，添加 **App Sandbox**。
 
@@ -83,8 +85,9 @@ xcodebuild -project MacPasteHistory.xcodeproj \
 
 #### ✅ 验收清单
 
-- [ ] Xcode 中 App Sandbox 已启用
-- [ ] Release 构建成功，无签名错误
+- [x] 项目已绑定 `MacPasteHistory/MacPasteHistory.entitlements`
+- [x] Release 构建成功，无本机签名错误
+- [x] Release 产物包含 `com.apple.security.app-sandbox = true`
 - [ ] 沙盒下应用可正常启动、读取剪贴板、保存记录
 - [ ] 辅助功能权限请求正常弹出
 
@@ -98,6 +101,13 @@ xcodebuild -project MacPasteHistory.xcodeproj \
 
 - Apple Developer Program 会员（$99/年）
 - 本机已安装开发证书或分发证书
+
+**当前机器状态（2026-07-02）**:
+
+- `xcode-select -p` 已指向 `/Applications/Xcode.app/Contents/Developer`。
+- `xcodebuild -checkFirstLaunchStatus` 和 `xcodebuild -license check` 已通过。
+- `security find-identity -p codesigning -v` 显示 `0 valid identities found`。
+- 当前 Release 包签名为 `Signature=adhoc`、`TeamIdentifier=not set`，只能用于本机运行验证，不能用于 Developer ID 分发或 App Store 上传。
 
 查看已有签名身份：
 
@@ -167,11 +177,11 @@ security find-identity -p codesigning -v
 
 #### ✅ 验收清单
 
-- [ ] Release 配置构建成功
-- [ ] `SWIFT_OPTIMIZATION_LEVEL = -O`
-- [ ] 无 `ENABLE_DEBUG_DYLIB_SUPPORT`
-- [ ] 版本号为 `0.1.0 (1)`
-- [ ] `LSUIElement = true`
+- [x] Release 配置构建成功
+- [x] `SWIFT_OPTIMIZATION_LEVEL = -O`
+- [x] `ENABLE_DEBUG_DYLIB_SUPPORT = NO`
+- [x] 版本号为 `0.1.0 (1)`
+- [x] `LSUIElement = true`
 
 ---
 
