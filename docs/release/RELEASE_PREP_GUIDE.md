@@ -589,27 +589,26 @@ MacPasteHistory **不收集任何个人身份信息**。
 | 13-inch MacBook (2022+) | 2560 × 1664 | 主截图 |
 | 16-inch MacBook (2021+) | 3456 × 2234 | 辅助截图 |
 
-#### 截图内容（建议 5 张）
+#### 截图内容（已准备 4 张）
 
-1. **历史列表** — 展示文本和图片记录混合列表
-2. **搜索过滤** — 展示关键词搜索效果
-3. **图片详情** — 展示图片预览面板
-4. **设置中心** — 展示录制开关和限制设置
-5. **快捷键提示** — 展示 ⌘⇧V 打开面板
+1. `docs/release/screenshots/01-history-overview.png` — 历史列表、搜索、过滤、收藏、恢复和删除入口
+2. `docs/release/screenshots/02-image-history.png` — 图片缩略图、图片详情、尺寸、格式和来源应用
+3. `docs/release/screenshots/03-settings-controls.png` — 录制开关、Launch at login、保留时间和存储限制
+4. `docs/release/screenshots/04-local-privacy.png` — 本地存储、暂停记录、敏感内容过滤和清空全部数据
 
 #### 截图制作建议
 
-- 使用 **截图 + Sketch/Figma 模板** 方式
-- 使用 **Skeleton Data**（骨架数据），不包含真实用户内容
+- 当前仓库提供可重复生成脚本：`scripts/generate-release-screenshots.swift`
+- 使用合成示例数据，不包含真实用户内容
 - macOS 模板框架使用 [App Store Marketing Guidelines](https://developer.apple.com/app-store/marketing/guidelines/) 的官方模板
 - 分辨率: 2x（确保 Retina 清晰）
-- 文件命名: `screenshot-01-history.png` ... `screenshot-05-settings.png`
+- 当前输出为 5760 × 3600 PNG，可按最终上架渠道要求裁切或导出目标尺寸
 
 #### ✅ 验收清单
 
-- [ ] 用户指南 (USER_GUIDE.md) 完成
-- [ ] 隐私政策 (PRIVACY_POLICY.md) 完成
-- [ ] 5 张已完成/已计划（用清单标记进度即可，不必在 OpenSpec 中强行打勾）
+- [x] 用户指南 `docs/user-guide.md` 完成
+- [x] 隐私政策 `docs/privacy-policy.md` 完成
+- [x] App Store 截图素材已生成并记录在 `docs/release/screenshots/README.md`
 
 ---
 
@@ -634,7 +633,7 @@ MacPasteHistory **不收集任何个人身份信息**。
 | 13 | 数据清理功能全部正确 | 3.7 | ⬜ |
 | 14 | 用户指南已完成 | 4.1 | ⬜ |
 | 15 | 隐私政策已完成 | 4.2 | ⬜ |
-| 16 | App Store 截图已准备（已规划或完成） | 4.3 | ⬜ |
+| 16 | App Store 截图已准备（已规划或完成） | 4.3 | ✅ |
 
 ### 发布决策
 
@@ -645,10 +644,10 @@ MacPasteHistory **不收集任何个人身份信息**。
 - **版本**: 0.1.0 (1)
 - **最低 macOS 版本**: 14.0 Sonoma
 - **分发渠道**: ☐ App Store  /  ⚩ 自有网站 + DMG
-- **截图规范**: 根据需要自行制作（本指南不做强制验收）
+- **截图规范**: 当前仓库提供 4 张 5760 × 3600 PNG 截图素材；最终上传前按目标渠道裁切或导出目标尺寸
 
 #### ✅ 最终验收清单
 
 - [ ] 本指南中阶段 1 至阶段 4 的所有验收清单全部完成
-- [ ] `prepare-release-testing-and-store-assets` 中唯一剩余的代码相关工作只有文档素材，无需在 OpenSpec 中打勾
+- [x] `prepare-release-testing-and-store-assets` 的截图素材已准备并在 OpenSpec 中记录
 - [ ] 最终产物可独立分发

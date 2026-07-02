@@ -25,6 +25,7 @@
 - Added cleanup regression tests for text count limits, image count limits, favorite preservation, and image storage limits.
 - Added service-level coverage for clearing all history records and image files.
 - Added system login item registration for the settings launch-at-login toggle, backed by service and ViewModel tests.
+- Added reproducible synthetic App Store screenshot assets for release preparation.
 
 ### Fixed
 

@@ -92,10 +92,11 @@
   - 实现描述：完善隐私政策，说明记录范围、本地存储、敏感过滤、黑名单、清空数据和无云同步。
   - 前置条件：隐私功能和数据处理方式已实现并确认。
   - 验收条件：隐私政策可用于发布审查，且不承诺应用未实现的能力。
-- [ ] 4.3 Prepare App Store screenshots.
+- [x] 4.3 Prepare App Store screenshots.
   - 实现描述：准备展示菜单栏、历史列表、搜索、图片预览、设置和隐私控制的截图素材。
   - 前置条件：Release UI 已基本稳定，测试数据可构造。
   - 验收条件：截图清晰、无敏感真实数据、覆盖首版核心价值。
+  - 当前进展：新增 `scripts/generate-release-screenshots.swift`，可使用合成示例数据生成 `docs/release/screenshots/01-history-overview.png`、`02-image-history.png`、`03-settings-controls.png`、`04-local-privacy.png`；已用 `file`、`sips` 和人工预览抽查确认 PNG 清晰、无真实隐私数据，并覆盖历史列表/搜索过滤、图片详情、设置控制、隐私和清理控制。
 - [ ] 4.4 Verify final release checklist is complete.
   - 实现描述：汇总构建、兼容性、功能 QA、文档、隐私政策和截图检查结果。
   - 前置条件：本阶段所有发布配置、测试和材料任务已完成。

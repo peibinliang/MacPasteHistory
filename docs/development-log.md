@@ -34,6 +34,7 @@
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
 - Added `ClipboardDataClearService` and unit coverage for clearing all database records plus image and thumbnail files.
 - Added `LoginItemService` using `SMAppService.mainApp` for the settings launch-at-login toggle, with service and ViewModel regression tests.
+- Added reproducible release screenshot generation with synthetic, non-private App Store screenshot assets under `docs/release/screenshots/`.
 - Fixed expired image cleanup so original and thumbnail files are removed before expired database rows are deleted.
 - Fixed cleanup count-limit eviction so favorites count toward the configured total limit while remaining protected from deletion.
 - Fixed main-list restore actions so mouse restore and Enter restore both write the selected item to the clipboard before showing feedback.
@@ -49,6 +50,7 @@
 - `xcodebuild -checkFirstLaunchStatus` exited with 0 after selecting `/Applications/Xcode.app/Contents/Developer`, confirming Xcode first-launch authorization is complete.
 - Targeted `LoginItemServiceTests` passed with 3 tests and 0 failures after wiring launch-at-login registration.
 - Targeted `SettingsViewModelTests` passed with 2 tests and 0 failures after covering settings registration and error rollback.
+- `scripts/generate-release-screenshots.swift` generated 4 PNG assets; `file`, `sips`, and visual QA confirmed readable 5760x3600 screenshots without real clipboard data.
 - Targeted `ClipboardDataClearServiceTests` passed with 1 test and 0 failures after extracting clear-all behavior into a service.
 - Targeted `DataCleanupServiceTests` passed with 5 tests and 0 failures after adding count-limit and storage-cap cleanup coverage.
 - Targeted `DataCleanupServiceTests` passed after reproducing and fixing expired image file cleanup.
