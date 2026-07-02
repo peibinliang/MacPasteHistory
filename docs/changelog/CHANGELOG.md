@@ -19,9 +19,11 @@
 - Added user guide and privacy policy drafts for release preparation.
 - Added XcodeGen-managed sandbox entitlements and Release build settings for local release validation.
 - Added a local Release smoke-test script for synthetic text and image clipboard capture validation.
+- Extended Release smoke validation to cover large text, large images, and expired image cleanup.
 
 ### Fixed
 
 - Stabilized image dimension tests across Retina and non-Retina environments.
 - Fixed cleanup storage-limit wiring to use the total storage cap instead of the single-image size limit.
+- Fixed expired image cleanup so original and thumbnail files are removed with expired database records.
 - Fixed main-list restore actions so mouse restore writes the selected item before showing feedback.

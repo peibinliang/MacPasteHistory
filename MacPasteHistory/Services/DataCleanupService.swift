@@ -51,6 +51,10 @@ struct DataCleanupService {
 
     private func cleanupExpiredRecords() throws {
         let retentionDays = settings.historyRetentionDays
+        let expiredImageRecords = try repository.expiredImageRecords(retentionDays: retentionDays)
+        for item in expiredImageRecords {
+            imageStorageService?.deleteImageFiles(for: item)
+        }
         let before = try repository.textRecordCount()
         try repository.deleteExpiredRecords(retentionDays: retentionDays)
         let removed = before - (try repository.textRecordCount())

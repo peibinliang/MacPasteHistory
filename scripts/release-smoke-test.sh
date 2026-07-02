@@ -150,6 +150,7 @@ require_command pbcopy
 require_command codesign
 require_command plutil
 require_command base64
+require_command python3
 
 echo "Generating Xcode project..."
 xcodegen generate >/dev/null
@@ -179,13 +180,53 @@ echo "Verified: Release app has App Sandbox entitlement"
 signature_summary="$(codesign -dvv "$app_path" 2>&1 | awk -F= '/^(Signature|TeamIdentifier)=/ {print $0}')"
 echo "$signature_summary"
 
-text_marker="MacPasteHistory release smoke $(date +%Y%m%d%H%M%S) $$"
+run_marker="MacPasteHistory release smoke $(date +%Y%m%d%H%M%S) $$"
+text_marker="$run_marker text"
+large_text_path="$(mktemp /tmp/macpastehistory-large-text.XXXXXX.txt)"
 image_path="$(mktemp /tmp/macpastehistory-smoke.XXXXXX.png)"
+large_image_path="$(mktemp /tmp/macpastehistory-large-image.XXXXXX.png)"
 image_id=""
+large_image_id=""
 
-trap 'quit_app; rm -f "$image_path"' EXIT
+trap 'quit_app; rm -f "$large_text_path" "$image_path" "$large_image_path"' EXIT
 
 printf "%s" "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l1sMngAAAABJRU5ErkJggg==" | base64 -D > "$image_path"
+python3 - "$large_text_path" "$large_image_path" "$run_marker" <<'PY'
+import binascii
+import pathlib
+import struct
+import sys
+import zlib
+
+text_path = pathlib.Path(sys.argv[1])
+image_path = pathlib.Path(sys.argv[2])
+run_marker = sys.argv[3]
+
+lines = [f"{run_marker} large text line {index:04d} sample content for release QA." for index in range(900)]
+text_path.write_text("\n".join(lines), encoding="utf-8")
+
+width = 1024
+height = 768
+seed = sum(run_marker.encode("utf-8")) % 256
+rows = []
+for y in range(height):
+    row = bytearray()
+    for x in range(width):
+        row.extend(((x + seed) % 256, (y + seed) % 256, (x + y + seed) % 256))
+    rows.append(b"\x00" + bytes(row))
+
+def chunk(chunk_type: bytes, data: bytes) -> bytes:
+    checksum = binascii.crc32(chunk_type + data) & 0xFFFFFFFF
+    return struct.pack(">I", len(data)) + chunk_type + data + struct.pack(">I", checksum)
+
+png = (
+    b"\x89PNG\r\n\x1a\n"
+    + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+    + chunk(b"IDAT", zlib.compress(b"".join(rows), 6))
+    + chunk(b"IEND", b"")
+)
+image_path.write_bytes(png)
+PY
 
 quit_app
 wait_for_exit || true
@@ -199,15 +240,73 @@ echo "Database: $db_path"
 echo "Writing test text to clipboard..."
 wait_for_text_capture "$db_path" "$text_marker"
 
+large_text_marker="$(cat "$large_text_path")"
+echo "Writing large test text to clipboard..."
+wait_for_text_capture "$db_path" "$large_text_marker"
+large_text_length="$(sqlite3 "$db_path" "SELECT text_length FROM clipboard_history WHERE text_content = '$(sql_escape "$large_text_marker")' LIMIT 1;")"
+if [[ "${large_text_length:-0}" -lt 50000 ]]; then
+    echo "Large text record was shorter than expected: ${large_text_length:-0}" >&2
+    exit 1
+fi
+echo "Verified: large text clipboard capture (${large_text_length} characters)"
+
 image_before_id="$(sqlite3 "$db_path" "SELECT COALESCE(MAX(id), 0) FROM clipboard_history WHERE content_type = 'image';")"
 echo "Writing test PNG to clipboard..."
 wait_for_image_capture "$db_path" "$image_path" "$image_before_id"
 image_id="$(sqlite3 "$db_path" "SELECT id FROM clipboard_history WHERE content_type = 'image' AND id > $image_before_id ORDER BY id DESC LIMIT 1;")"
+
+large_image_before_id="$(sqlite3 "$db_path" "SELECT COALESCE(MAX(id), 0) FROM clipboard_history WHERE content_type = 'image';")"
+echo "Writing large test PNG to clipboard..."
+wait_for_image_capture "$db_path" "$large_image_path" "$large_image_before_id"
+large_image_id="$(sqlite3 "$db_path" "SELECT id FROM clipboard_history WHERE content_type = 'image' AND id > $large_image_before_id ORDER BY id DESC LIMIT 1;")"
+large_image_dimensions="$(
+    sqlite3 "$db_path" \
+        "SELECT COALESCE(image_width, 0) || 'x' || COALESCE(image_height, 0) FROM clipboard_history WHERE id = $large_image_id;"
+)"
+if [[ "$large_image_dimensions" != "1024x768" ]]; then
+    echo "Large image dimensions were not persisted as expected: $large_image_dimensions" >&2
+    exit 1
+fi
+echo "Verified: large image clipboard capture ($large_image_dimensions)"
 
 echo "Quitting Release app..."
 quit_app
 wait_for_exit
 
 cleanup_test_records "$db_path" "$text_marker" "$image_id"
+cleanup_test_records "$db_path" "$large_text_marker" "$large_image_id"
+
+app_support_dir="$(dirname "$db_path")"
+expired_original="$app_support_dir/images/${run_marker// /_}_expired.png"
+expired_thumbnail="$app_support_dir/thumbnails/${run_marker// /_}_expired.png"
+mkdir -p "$(dirname "$expired_original")" "$(dirname "$expired_thumbnail")"
+printf "expired original" > "$expired_original"
+printf "expired thumbnail" > "$expired_thumbnail"
+expired_hash="expired-${run_marker//[^A-Za-z0-9]/-}"
+sqlite3 "$db_path" \
+    "INSERT INTO clipboard_history (content_type, file_path, thumbnail_path, content_hash, file_size, image_width, image_height, image_format, created_at, updated_at) VALUES ('image', '$(sql_escape "$expired_original")', '$(sql_escape "$expired_thumbnail")', '$(sql_escape "$expired_hash")', 16, 16, 16, 'png', datetime('now', '-31 days'), datetime('now', '-31 days'));"
+expired_id="$(sqlite3 "$db_path" "SELECT id FROM clipboard_history WHERE content_hash = '$(sql_escape "$expired_hash")' LIMIT 1;")"
+
+echo "Launching Release app for cleanup verification..."
+open -n "$app_path"
+wait_for_process
+for attempt in {1..30}; do
+    expired_count="$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE id = $expired_id;")"
+    if [[ "$expired_count" -eq 0 && ! -e "$expired_original" && ! -e "$expired_thumbnail" ]]; then
+        echo "Verified: expired image database record and files are cleaned on startup"
+        break
+    fi
+    sleep 1
+done
+if [[ -e "$expired_original" || -e "$expired_thumbnail" ]]; then
+    echo "Expired image files were not cleaned." >&2
+    exit 1
+fi
+if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM clipboard_history WHERE id = $expired_id;")" -ne 0 ]]; then
+    echo "Expired image database record was not cleaned." >&2
+    exit 1
+fi
+quit_app
+wait_for_exit
 
 echo "Release smoke test passed."

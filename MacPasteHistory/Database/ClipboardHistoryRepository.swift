@@ -201,6 +201,24 @@ final class ClipboardHistoryRepository {
         try database.execute(sql)
     }
 
+    /// Returns expired image records so callers can remove files before deleting database rows.
+    func expiredImageRecords(retentionDays: Int) throws -> [ClipboardHistoryItem] {
+        guard retentionDays > 0 else { return [] }
+        let sql = """
+        \(Self.selectHistorySQL)
+        WHERE content_type = ?
+          AND is_favorite = 0
+          AND datetime(created_at) < datetime('now', ?);
+        """
+        let statement = try database.prepare(sql)
+        defer { sqlite3_finalize(statement) }
+
+        try bindText(ClipboardContentType.image.rawValue, to: statement, index: 1)
+        try bindText("-\(retentionDays) days", to: statement, index: 2)
+
+        return try collectItems(from: statement)
+    }
+
     /// Returns IDs of text records exceeding `maxCount`, ordered oldest first (favorites preserved).
     func textRecordsExceeding(limit maxCount: Int) throws -> [Int64] {
         guard maxCount > 0 else { return [] }

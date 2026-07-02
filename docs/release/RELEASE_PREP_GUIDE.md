@@ -81,7 +81,7 @@ xcodebuild -project MacPasteHistory.xcodeproj \
 scripts/release-smoke-test.sh
 ```
 
-该脚本会构建 Release 包、确认沙盒 entitlement、启动应用、写入模拟文本和模拟 PNG 到剪贴板，并查询本地数据库确认捕获成功。详细说明见 `docs/release/local-release-smoke-test.md`。
+该脚本会构建 Release 包、确认沙盒 entitlement、启动应用、写入模拟文本/大文本/模拟 PNG/大尺寸 PNG 到剪贴板，并查询本地数据库确认捕获成功；脚本还会插入过期图片记录并重启 Release 包，验证数据库记录、原图和缩略图会一起清理。详细说明见 `docs/release/local-release-smoke-test.md`。
 
 #### ⚠️ 已知风险
 
