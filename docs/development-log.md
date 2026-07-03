@@ -33,6 +33,7 @@
 - Updated the Release smoke-test script to launch the Release app with an isolated temporary App Support directory so synthetic QA data does not touch the user's real history database.
 - Added an `ApplicationSupportService` override path for isolated release and test runs.
 - Added `scripts/preview-release-app.sh` for repeatable local Release preview, with optional isolated data mode for manual QA.
+- Added `scripts/seed-preview-data.sh` and `scripts/preview-release-app.sh --seed-preview-data` so local Release previews can launch with synthetic text and image history in an isolated App Support directory.
 - Added `docs/release/manual-qa-record.md` to capture manual release evidence that cannot be proven by automation.
 - Added `scripts/release-qa-baseline.sh` to generate Markdown baseline evidence for manual Release QA records.
 - Added `scripts/package-release-qa-build.sh` to create a zipped Release QA package, checksum, and manifest for cross-machine compatibility testing.
@@ -62,6 +63,7 @@
 - `codesign -d --entitlements :-` confirmed the Release app includes App Sandbox entitlements.
 - `scripts/release-smoke-test.sh` passed on the current Apple Silicon Mac with a temporary installed app copy, isolated App Support directory, synthetic clipboard text, large text, PNG, large PNG, oversized-image skip, restart persistence, expired image cleanup, count-limit cleanup, favorite preservation, and storage-cap cleanup data.
 - `scripts/preview-release-app.sh --help` and `scripts/preview-release-app.sh --build-only` passed, confirming the preview helper can build Release and print the current app path.
+- `scripts/seed-preview-data.sh build/preview-seed-verify.*` generated an isolated preview database with 4 text items, 2 image items, and matching image/thumbnail files.
 - `openspec validate prepare-release-testing-and-store-assets --strict` passed after adding the manual QA evidence template and final checklist corrections.
 - Targeted `ApplicationSupportServiceTests` passed with 1 test and 0 failures after adding isolated App Support override coverage.
 - Targeted `ImageStorageServiceTests` passed with 3 tests and 0 failures after adding dynamic single-image limit coverage.

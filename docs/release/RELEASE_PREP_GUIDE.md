@@ -302,13 +302,21 @@ scripts/preview-release-app.sh --build-only
 scripts/preview-release-app.sh --isolated-data
 ```
 
+如需在隔离目录中预置合成历史，打开后直接检查列表、搜索、收藏、图片详情和长文本详情：
+
+```bash
+scripts/preview-release-app.sh --seed-preview-data
+```
+
+该命令会调用 `scripts/seed-preview-data.sh`，写入 4 条合成文本记录和 2 条合成图片记录到临时 App Support 目录，不会修改真实历史数据库。
+
 确认以下行为：
 - 菜单栏出现剪贴板图标
 - 点击图标可打开历史窗口
 - 复制一段文本 → 历史窗口中出现记录
 - 重启应用后历史记录仍保留
 
-`scripts/release-smoke-test.sh` 已自动验证临时安装副本可启动、捕获文本/图片、退出并重启后历史仍保留；`scripts/preview-release-app.sh` 可用于后续人工确认菜单栏图标、窗口打开和恢复流程。
+`scripts/release-smoke-test.sh` 已自动验证临时安装副本可启动、捕获文本/图片、退出并重启后历史仍保留；`scripts/preview-release-app.sh --seed-preview-data` 可用于后续人工确认菜单栏图标、窗口打开、搜索、详情、恢复和清空流程。
 
 #### ✅ 验收清单
 

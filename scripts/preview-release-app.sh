@@ -9,6 +9,7 @@ CONTAINER_DATA_DIR="$HOME/Library/Containers/$BUNDLE_ID/Data"
 should_build=1
 should_open=1
 use_isolated_data=0
+seed_preview_data=0
 
 usage() {
     cat <<'EOF'
@@ -20,6 +21,8 @@ Options:
   --build-only     Build Release and print the app path without opening it.
   --no-build       Reuse the existing Release build.
   --isolated-data  Launch with a temporary isolated App Support directory.
+  --seed-preview-data
+                  Seed isolated preview data before launching. Implies --isolated-data.
   -h, --help       Show this help.
 EOF
 }
@@ -42,6 +45,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --isolated-data)
             use_isolated_data=1
+            ;;
+        --seed-preview-data)
+            use_isolated_data=1
+            seed_preview_data=1
             ;;
         -h|--help)
             usage
@@ -104,6 +111,10 @@ if [[ "$use_isolated_data" -eq 1 ]]; then
     mkdir -p "$CONTAINER_DATA_DIR"
     preview_data_dir="$(mktemp -d "$CONTAINER_DATA_DIR/manual-preview-data.XXXXXX")"
     echo "Using isolated preview data: $preview_data_dir"
+    if [[ "$seed_preview_data" -eq 1 ]]; then
+        echo "Seeding synthetic preview history..."
+        scripts/seed-preview-data.sh "$preview_data_dir"
+    fi
     open -n --env "MACPASTEHISTORY_APP_SUPPORT_DIR=$preview_data_dir" "$app_path"
 else
     open "$app_path"

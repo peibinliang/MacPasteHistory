@@ -150,7 +150,7 @@ Generated: $(date '+%Y-%m-%d %H:%M:%S %z')
 
 1. Review \`$baseline_path\` and copy build, signing, Sandbox, Xcode, macOS, and app availability values into \`$manual_record_path\`.
 2. Review \`$verification_path\` and copy the package verification result into \`$manual_record_path\`.
-3. Launch the packaged app from Finder, or use \`scripts/preview-release-app.sh --isolated-data\` for a local isolated-data preview.
+3. Launch the packaged app from Finder, or use \`scripts/preview-release-app.sh --seed-preview-data\` for a local isolated-data preview with synthetic history already loaded.
 4. Use files in \`$fixture_dir\` for Chrome, Safari, VS Code, WeChat, DingTalk, large-text, and image-copy scenarios.
 5. Fill every manual result in \`$manual_record_path\` with tester, date, environment, result, and screenshot or note references.
 6. After filling the record, run \`scripts/validate-manual-qa-record.sh "$manual_record_path"\`. Use \`--allow-adhoc\` only for internal QA before distribution signing exists.
