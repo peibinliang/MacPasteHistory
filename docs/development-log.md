@@ -45,6 +45,7 @@
 - Wired Xcode file-reference validation into Release preview, QA packaging, and Release smoke-test build entry points, with a lock around XcodeGen so concurrent release scripts do not corrupt or race project generation.
 - Added `scripts/release-readiness-report.sh` to aggregate Xcode file references, Xcode authorization, signing identities, release docs, screenshot assets, manual QA record validation, and git status into a final Markdown readiness report.
 - Added `scripts/prefill-manual-qa-record.sh` and wired it into manual Release QA session setup so objective build, package, signing, current-machine, and fixture fields are filled without marking manual QA scenarios as passed.
+- Added `scripts/scan-privacy-log-safety.sh`, switched the central Logger wrapper to OSLog private privacy by default, and wired the scan into the release readiness report.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
@@ -79,6 +80,7 @@
 - `scripts/validate-xcode-file-references.sh` passed after regenerating `MacPasteHistory.xcodeproj`, checking that all Swift references, including `MacPasteHistory/Services/PrivacyService.swift`, resolve to existing files.
 - `scripts/release-readiness-report.sh --output build/release-readiness-report.md` correctly failed on the current unfilled manual QA record and missing signing identities while passing Xcode, docs, and screenshot checks.
 - `scripts/release-readiness-report.sh --allow-adhoc --manual-record build/manual-qa-record-validate-pass.md --output build/release-readiness-pass.md` passed against a filled synthetic record, with missing signing identities downgraded to an internal-QA warning.
+- `scripts/scan-privacy-log-safety.sh` passed on current app sources, and a temporary violating Swift sample correctly failed for direct console logging and raw clipboard-content logging.
 - `scripts/preview-release-app.sh --build-only` and `scripts/package-release-qa-build.sh --output-dir build/release-qa-entry-verify` passed in parallel after wiring Xcode file-reference validation into release entry points and serializing XcodeGen.
 - `scripts/release-smoke-test.sh` passed after wiring Xcode file-reference validation into the Release smoke build entry point.
 - Targeted `ClipboardDataClearServiceTests` passed with 1 test and 0 failures after extracting clear-all behavior into a service.

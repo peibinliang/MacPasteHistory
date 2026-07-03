@@ -57,6 +57,14 @@ Generate synthetic, non-private copy fixtures for common-app and large-content t
 scripts/generate-manual-qa-fixtures.swift
 ```
 
+Before final approval, run the static log privacy scan:
+
+```bash
+scripts/scan-privacy-log-safety.sh
+```
+
+This checks app Swift sources for direct console logging, public OSLog messages, and obvious clipboard-content fields in log calls. It is an automated guardrail; the manual Logs row below still requires runtime review.
+
 ## Build Under Test
 
 | Field | Value |

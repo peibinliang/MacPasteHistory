@@ -134,6 +134,10 @@ if ! run_capture "Xcode file references" "${xcode_ref_args[@]}"; then
     add_blocker "Xcode project contains missing Swift file references."
 fi
 
+if ! run_capture "Privacy log safety" "$REPO_ROOT/scripts/scan-privacy-log-safety.sh"; then
+    add_blocker "App logging may expose clipboard content or sensitive data."
+fi
+
 xcode_path="$(xcode-select -p)"
 xcode_version="$(xcodebuild -version | tr '\n' ' ')"
 if xcodebuild -checkFirstLaunchStatus >/dev/null 2>&1; then
