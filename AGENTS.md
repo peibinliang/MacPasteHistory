@@ -24,6 +24,7 @@ Use OpenSpec to inspect and validate planning work:
 Current build and test commands:
 
 - `xcodegen generate`: regenerate `MacPasteHistory.xcodeproj` from `project.yml`.
+- `scripts/validate-xcode-file-references.sh`: regenerate the Xcode project and verify Swift file references resolve to real files.
 - `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project MacPasteHistory.xcodeproj -scheme MacPasteHistory -destination 'platform=macOS,arch=arm64' build`: build the macOS app.
 - `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project MacPasteHistory.xcodeproj -scheme MacPasteHistory -destination 'platform=macOS,arch=arm64' test`: run unit tests.
 
