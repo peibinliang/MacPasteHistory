@@ -32,6 +32,7 @@
 - Added reproducible synthetic App Store screenshot assets for release preparation.
 - Added double-click paste from the history list, including previous-app reactivation and Command+V dispatch after restore.
 - Added manual Release QA coverage for double-click paste and made the QA validator require that workflow row.
+- Added manual Release QA validation for required environment, common-app, and privacy/safety matrix rows.
 - Added Release install preflight coverage to the final release readiness report.
 - Added Release smoke-test coverage to the final release readiness report.
 

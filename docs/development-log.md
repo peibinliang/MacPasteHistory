@@ -50,6 +50,7 @@
 - Wired the Release install preflight into `scripts/release-readiness-report.sh` so the final readiness gate launches a copied Release app, verifies isolated local storage initialization, and confirms quit behavior by default.
 - Wired `scripts/release-smoke-test.sh` into `scripts/release-readiness-report.sh` so the final readiness gate also runs sandbox, synthetic clipboard capture, restart persistence, large-content, oversized-image, and cleanup checks by default.
 - Required explicit double-click paste evidence in the manual Release QA record and validator.
+- Required manual Release QA records to retain the expected environment, common-app, and privacy/safety evidence rows.
 - Added reproducible App Icon generation and verification scripts, generated the macOS AppIcon PNG set, and wired icon verification into the release readiness report.
 - Added double-click paste from the history list: a successful restore closes the history window, reactivates the previous foreground app, and sends `Command + V`.
 - Added `PasteCommandService` and tests for restore success/failure reporting plus paste command dispatch.
@@ -92,6 +93,7 @@
 - `scripts/release-readiness-report.sh` now includes the Release install preflight by default; final release remains blocked until signing identities and filled manual QA evidence are available.
 - `scripts/release-smoke-test.sh` now emits `Status: PASS`, and the readiness report includes it by default before running install preflight with the existing Release build.
 - `scripts/validate-manual-qa-record.sh --allow-adhoc build/manual-qa-record-validate-pass.md` correctly failed until the synthetic record included the required double-click paste workflow row.
+- `scripts/validate-manual-qa-record.sh --allow-adhoc build/manual-qa-record-missing-matrices.md` correctly failed when required environment, common-app, or privacy rows were removed.
 - `scripts/generate-app-icon.swift` generated all 10 macOS AppIcon PNG slots, and `scripts/verify-app-icon-assets.sh` confirmed unique filenames and expected pixel dimensions.
 - Targeted `ClipboardHistoryViewModelTests` and `PasteCommandServiceTests` passed with 9 tests and 0 failures after adding double-click paste support.
 - `scripts/preview-release-app.sh --build-only` and `scripts/package-release-qa-build.sh --output-dir build/release-qa-entry-verify` passed in parallel after wiring Xcode file-reference validation into release entry points and serializing XcodeGen.
