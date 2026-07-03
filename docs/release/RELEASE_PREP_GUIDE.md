@@ -712,11 +712,23 @@ MacPasteHistory **不收集任何个人身份信息**。
 - 分辨率: 2x（确保 Retina 清晰）
 - 当前输出为 5760 × 3600 PNG，可按最终上架渠道要求裁切或导出目标尺寸
 
+#### App Icon
+
+当前仓库提供可重复生成的 App Icon 脚本：
+
+```bash
+scripts/generate-app-icon.swift
+scripts/verify-app-icon-assets.sh
+```
+
+图标位于 `MacPasteHistory/Resources/Assets.xcassets/AppIcon.appiconset/`，覆盖 macOS 所需的 16、32、64、128、256、512、1024 像素 PNG，并由 `project.yml` 中的 `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon` 绑定到应用 target。
+
 #### ✅ 验收清单
 
 - [x] 用户指南 `docs/user-guide.md` 完成
 - [x] 隐私政策 `docs/privacy-policy.md` 完成
 - [x] App Store 截图素材已生成并记录在 `docs/release/screenshots/README.md`
+- [x] App Icon asset catalog 已生成并通过尺寸校验
 
 ---
 
@@ -728,7 +740,7 @@ MacPasteHistory **不收集任何个人身份信息**。
 scripts/release-readiness-report.sh --output build/release-readiness-report.md
 ```
 
-该报告会汇总 Xcode 文件引用、Xcode 授权、签名身份、用户文档、隐私政策、截图素材、人工 QA 记录和 git 工作区状态。正式分发前报告必须无 `Blockers`。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份降级为警告，不能作为最终分发验收依据。
+该报告会汇总 Xcode 文件引用、日志隐私扫描、App Icon 素材、Xcode 授权、签名身份、用户文档、隐私政策、截图素材、人工 QA 记录和 git 工作区状态。正式分发前报告必须无 `Blockers`。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份降级为警告，不能作为最终分发验收依据。
 
 最终报告也会运行日志隐私静态扫描：
 

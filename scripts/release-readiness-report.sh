@@ -138,6 +138,10 @@ if ! run_capture "Privacy log safety" "$REPO_ROOT/scripts/scan-privacy-log-safet
     add_blocker "App logging may expose clipboard content or sensitive data."
 fi
 
+if ! run_capture "App icon assets" "$REPO_ROOT/scripts/verify-app-icon-assets.sh"; then
+    add_blocker "App icon asset catalog is incomplete or has invalid PNG dimensions."
+fi
+
 xcode_path="$(xcode-select -p)"
 xcode_version="$(xcodebuild -version | tr '\n' ' ')"
 if xcodebuild -checkFirstLaunchStatus >/dev/null 2>&1; then

@@ -73,6 +73,12 @@ scripts/scan-privacy-log-safety.sh
 
 This checks app Swift sources for direct console logging, public OSLog messages, and obvious clipboard-content fields in log calls. It is an automated guardrail; the manual Logs row below still requires runtime review.
 
+Verify the App Icon asset catalog before release packaging:
+
+```bash
+scripts/verify-app-icon-assets.sh
+```
+
 ## Build Under Test
 
 | Field | Value |
