@@ -28,17 +28,18 @@ require_section() {
     fi
 }
 
-require_workflow_row() {
-    local scenario_name="$1"
-    if ! grep -qE "^\\|[[:space:]]*$scenario_name[[:space:]]*\\|" "$record_path"; then
-        add_blocker "Missing required Release App Workflow row: $scenario_name"
-    fi
-}
-
 require_named_row() {
     local group_name="$1"
     local row_name="$2"
-    if ! grep -qE "^\\|[[:space:]]*$row_name[[:space:]]*\\|" "$record_path"; then
+    local section_text
+    section_text="$(
+        awk -v section="$group_name" '
+            $0 == "## " section { in_section = 1; next }
+            in_section && /^## / { exit }
+            in_section { print }
+        ' "$record_path"
+    )"
+    if ! printf "%s\n" "$section_text" | grep -qE "^\\|[[:space:]]*$row_name[[:space:]]*\\|"; then
         add_blocker "Missing required $group_name row: $row_name"
     fi
 }
@@ -120,7 +121,7 @@ for section_name in "${required_sections[@]}"; do
 done
 
 for scenario_name in "${required_workflow_rows[@]}"; do
-    require_workflow_row "$scenario_name"
+    require_named_row "Release App Workflow" "$scenario_name"
 done
 
 for row_name in "${required_environment_rows[@]}"; do
