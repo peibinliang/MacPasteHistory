@@ -24,6 +24,7 @@
 - Extended Release smoke validation to cover oversized-image skip behavior without database or file residue.
 - Added an Application Support override path for isolated release smoke and test runs.
 - Added a Release preview helper script with optional isolated data mode for manual QA.
+- Added a manual release QA record template for device, common-app, restore, privacy, and final decision evidence.
 - Added a release environment report script and local environment snapshot for signing, Xcode, architecture, macOS, and common-app QA readiness.
 - Added cleanup regression tests for text count limits, image count limits, favorite preservation, and image storage limits.
 - Added service-level coverage for clearing all history records and image files.

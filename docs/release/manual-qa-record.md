@@ -1,0 +1,67 @@
+# Manual Release QA Record
+
+Use this file to record manual evidence that cannot be proven by local automation. Do not mark an OpenSpec task complete until the matching evidence below is filled in with tester, date, build path, environment, and result.
+
+## Build Under Test
+
+| Field | Value |
+|---|---|
+| Date | TBD |
+| Tester | TBD |
+| Git commit | TBD |
+| App path | TBD |
+| Version / build | `0.1.0 (1)` |
+| Signing identity | TBD |
+| Notes | TBD |
+
+## Environment Coverage
+
+| Item | Environment | Result | Evidence / Notes |
+|---|---|---|---|
+| Apple Silicon | TBD | ⬜ Not run | Release smoke covers local automation; manual menu bar and restore still needed. |
+| Intel Mac | TBD | ⬜ Not run | Required hardware or equivalent CI evidence. |
+| macOS 14.x | TBD | ⬜ Not run | Minimum supported version. |
+| macOS 15.x | TBD | ⬜ Not run | Additional supported version. |
+| Current macOS | TBD | ⬜ Not run | Record exact `sw_vers` output. |
+
+## Release App Workflow
+
+| Scenario | Steps | Expected Result | Result | Evidence / Notes |
+|---|---|---|---|---|
+| First launch | Open Release app from Finder or `scripts/preview-release-app.sh` | Menu bar icon appears and app stays running. | ⬜ Not run | TBD |
+| Open history | Click menu bar icon, choose Open History if needed | History window opens and is usable. | ⬜ Not run | TBD |
+| Quit and relaunch | Quit from menu, reopen Release app | App exits cleanly and relaunches. | ⬜ Not run | TBD |
+| Restart persistence | Copy sample text/image, quit, relaunch | Existing history remains visible. | ⬜ Not run | TBD |
+| Restore text | Click restore on a text item, paste into TextEdit | Pasted text matches source. | ⬜ Not run | TBD |
+| Restore image | Click restore on an image item, paste into Preview/Notes | Pasted image matches source. | ⬜ Not run | TBD |
+| Clear all data | Settings -> Clear All Data -> confirm | Database records and image files are removed; list refreshes. | ⬜ Not run | TBD |
+| Launch at login | Enable setting, log out/in or restart | App starts automatically if setting remains enabled. | ⬜ Not run | TBD |
+
+## Common App Copy Matrix
+
+| App | Text Copy | Image Copy | Restore Back | Notes |
+|---|---|---|---|---|
+| Google Chrome | ⬜ Not run | ⬜ Not run | ⬜ Not run | TBD |
+| Safari | ⬜ Not run | ⬜ Not run | ⬜ Not run | TBD |
+| VS Code | ⬜ Not run | N/A | ⬜ Not run | Verify code text preserves content. |
+| WeChat | ⬜ Not run | ⬜ Not run | ⬜ Not run | Use non-private test account/chat only. |
+| DingTalk | ⬜ Not run | ⬜ Not run | ⬜ Not run | Use non-private test account/chat only. |
+
+## Privacy And Safety Checks
+
+| Scenario | Expected Result | Result | Evidence / Notes |
+|---|---|---|---|
+| Pause recording | New clipboard content is not saved while paused. | ⬜ Not run | TBD |
+| Sensitive text | Password/token-like sample is skipped. | ⬜ Not run | TBD |
+| Blocked app | Content from blocked app is skipped. | ⬜ Not run | TBD |
+| Logs | Logs contain no full clipboard content or sensitive data. | ⬜ Not run | TBD |
+| Local storage | History and images stay under app Application Support. | ⬜ Not run | TBD |
+
+## Decision
+
+| Item | Value |
+|---|---|
+| Ready for distribution? | ⬜ No |
+| Blocking issues | TBD |
+| Follow-up issues | TBD |
+| Approver | TBD |

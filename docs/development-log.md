@@ -33,6 +33,7 @@
 - Updated the Release smoke-test script to launch the Release app with an isolated temporary App Support directory so synthetic QA data does not touch the user's real history database.
 - Added an `ApplicationSupportService` override path for isolated release and test runs.
 - Added `scripts/preview-release-app.sh` for repeatable local Release preview, with optional isolated data mode for manual QA.
+- Added `docs/release/manual-qa-record.md` to capture manual release evidence that cannot be proven by automation.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
@@ -52,6 +53,7 @@
 - `codesign -d --entitlements :-` confirmed the Release app includes App Sandbox entitlements.
 - `scripts/release-smoke-test.sh` passed on the current Apple Silicon Mac with a temporary installed app copy, isolated App Support directory, synthetic clipboard text, large text, PNG, large PNG, oversized-image skip, restart persistence, expired image cleanup, count-limit cleanup, favorite preservation, and storage-cap cleanup data.
 - `scripts/preview-release-app.sh --help` and `scripts/preview-release-app.sh --build-only` passed, confirming the preview helper can build Release and print the current app path.
+- `openspec validate prepare-release-testing-and-store-assets --strict` passed after adding the manual QA evidence template and final checklist corrections.
 - Targeted `ApplicationSupportServiceTests` passed with 1 test and 0 failures after adding isolated App Support override coverage.
 - Targeted `ImageStorageServiceTests` passed with 3 tests and 0 failures after adding dynamic single-image limit coverage.
 - `scripts/release-environment-report.sh` confirmed Xcode is selected and licensed, the current machine is Apple Silicon, Chrome/Safari/VS Code/WeChat/DingTalk are installed, and no valid code signing identities are currently available.

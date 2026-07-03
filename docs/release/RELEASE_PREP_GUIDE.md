@@ -91,6 +91,12 @@ scripts/release-environment-report.sh
 
 当前快照见 `docs/release/local-release-environment.md`。
 
+人工 QA 证据记录模板：
+
+```bash
+docs/release/manual-qa-record.md
+```
+
 #### ⚠️ 已知风险
 
 | 风险 | 缓解措施 |
@@ -636,8 +642,8 @@ MacPasteHistory **不收集任何个人身份信息**。
 | 2 | 签名配置正确 (Development + Distribution) | 1.2 | ⬜ |
 | 3 | Release 构建配置无误 | 1.3 | ⬜ |
 | 4 | Release 包可独立启动 | 1.4 | ⬜ |
-| 5 | Apple Silicon 兼容性通过 | 2.1 | ⬜ |
-| 6 | Intel Mac 已测试或已记录不可测试 | 2.2 | ⬜ |
+| 5 | Intel Mac 已测试或已记录不可测试 | 2.1 | ⬜ |
+| 6 | Apple Silicon 兼容性通过 | 2.2 | ⬜ |
 | 7 | macOS 14.0+ 兼容已验证 | 2.3 | ⬜ |
 | 8 | 安装/启动/退出/重启均正常 | 2.4 | ⬜ |
 | 9 | Chrome/Safari/VS Code 复制场景通过 | 3.1-3.3 | ⬜ |
@@ -645,8 +651,8 @@ MacPasteHistory **不收集任何个人身份信息**。
 | 11 | 大文本 (5MB) 正常处理 | 3.5 | ⬜ |
 | 12 | 大图片超限被正确跳过 | 3.6 | ✅ |
 | 13 | 数据清理功能全部正确 | 3.7 | ⬜ |
-| 14 | 用户指南已完成 | 4.1 | ⬜ |
-| 15 | 隐私政策已完成 | 4.2 | ⬜ |
+| 14 | 用户指南已完成 | 4.1 | ✅ |
+| 15 | 隐私政策已完成 | 4.2 | ✅ |
 | 16 | App Store 截图已准备（已规划或完成） | 4.3 | ✅ |
 
 ### 发布决策
