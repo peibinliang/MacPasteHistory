@@ -27,7 +27,7 @@
   - 实现描述：在 Intel Mac 或等价测试环境运行 Release 包，执行核心功能回归。
   - 前置条件：可访问 Intel 测试设备；Release 包已生成。
   - 验收条件：启动、菜单栏、文本/图片记录、恢复和退出行为通过；无法测试时记录原因。
-  - 当前进展：`scripts/release-environment-report.sh` 已确认当前机器为 `arm64` Apple Silicon；本机无法提供 Intel 实机证据，仍需 Intel Mac 或等价 CI/虚拟化环境。
+  - 当前进展：`scripts/release-environment-report.sh` 已确认当前机器为 `arm64` Apple Silicon；新增 `scripts/package-release-qa-build.sh` 可生成带 manifest 和 SHA-256 的 Release QA zip，便于传到 Intel Mac 或等价 CI/虚拟化环境补充证据；本机仍无法提供 Intel 实机通过结果。
 - [ ] 2.2 Test on Apple Silicon Mac where available.
   - 实现描述：在 Apple Silicon Mac 运行 Release 包，执行核心功能回归。
   - 前置条件：可访问 Apple Silicon 测试设备；Release 包已生成。
@@ -37,7 +37,7 @@
   - 实现描述：在目标支持的 macOS 版本上验证安装、启动和核心功能。
   - 前置条件：已确定最低和主要支持 macOS 版本，测试设备或虚拟环境可用。
   - 验收条件：每个已测版本结果有记录；不兼容版本有明确最低版本说明。
-  - 当前进展：本机发布环境报告记录当前可测系统为 macOS `26.5.1 (25F80)`；macOS 14.0+ 目标范围仍需额外设备或虚拟环境覆盖。
+  - 当前进展：本机发布环境报告记录当前可测系统为 macOS `26.5.1 (25F80)`；新增 QA zip 打包脚本可为其他 macOS 设备提供一致测试包；macOS 14.0+ 目标范围仍需额外设备或虚拟环境实际覆盖。
 - [ ] 2.4 Verify install, startup, quit, and restart behavior.
   - 实现描述：验证应用首次安装、普通启动、退出、重启后历史加载和设置恢复。
   - 前置条件：Release 包可运行，已有测试数据或可现场生成。
@@ -101,4 +101,4 @@
   - 实现描述：汇总构建、兼容性、功能 QA、文档、隐私政策和截图检查结果。
   - 前置条件：本阶段所有发布配置、测试和材料任务已完成。
   - 验收条件：文档阶段 9 的验收标准全部通过，未完成项有明确记录和处理决定。
-  - 当前进展：新增 `docs/release/manual-qa-record.md` 作为人工发布 QA 证据模板，用于记录真实设备、真实应用复制/恢复、菜单栏、Clear All Data、Launch at login 和隐私场景的 tester/date/build/evidence；新增 `scripts/release-qa-baseline.sh` 可生成当前构建、机器、Xcode、签名、Sandbox 和常见应用安装情况的 Markdown 基线，便于填入人工记录；最终验收仍需这些记录实际填写并通过后才能关闭。
+  - 当前进展：新增 `docs/release/manual-qa-record.md` 作为人工发布 QA 证据模板，用于记录真实设备、真实应用复制/恢复、菜单栏、Clear All Data、Launch at login 和隐私场景的 tester/date/build/evidence；新增 `scripts/release-qa-baseline.sh` 可生成当前构建、机器、Xcode、签名、Sandbox 和常见应用安装情况的 Markdown 基线，便于填入人工记录；新增 `scripts/package-release-qa-build.sh` 可生成跨机器 QA zip、SHA-256 和 manifest；最终验收仍需这些记录实际填写并通过后才能关闭。

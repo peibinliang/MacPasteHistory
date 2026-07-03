@@ -35,6 +35,7 @@
 - Added `scripts/preview-release-app.sh` for repeatable local Release preview, with optional isolated data mode for manual QA.
 - Added `docs/release/manual-qa-record.md` to capture manual release evidence that cannot be proven by automation.
 - Added `scripts/release-qa-baseline.sh` to generate Markdown baseline evidence for manual Release QA records.
+- Added `scripts/package-release-qa-build.sh` to create a zipped Release QA package, checksum, and manifest for cross-machine compatibility testing.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.

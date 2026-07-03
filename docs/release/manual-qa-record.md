@@ -10,6 +10,12 @@ scripts/release-qa-baseline.sh --build
 
 Copy the generated build, environment, signing, sandbox, and common-app availability values into the tables below, then replace each `Not run` result only after direct manual evidence exists.
 
+For QA on another Mac, create a zip package and use the generated manifest:
+
+```bash
+scripts/package-release-qa-build.sh
+```
+
 ## Build Under Test
 
 | Field | Value |
@@ -20,6 +26,7 @@ Copy the generated build, environment, signing, sandbox, and common-app availabi
 | App path | TBD |
 | Version / build | `0.1.0 (1)` |
 | Signing identity | TBD |
+| Package SHA-256 | TBD |
 | Notes | TBD |
 
 ## Environment Coverage

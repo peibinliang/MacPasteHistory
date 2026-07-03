@@ -105,6 +105,14 @@ scripts/release-qa-baseline.sh --build
 
 该脚本输出 Markdown 证据片段，包含 git commit、Release app 路径、版本号、签名状态、Sandbox entitlement、Xcode 授权状态、当前 macOS/架构和常见测试应用安装情况。它不会替代人工验收；菜单栏、窗口、真实复制/恢复、Clear All Data、Launch at login、Intel Mac 和多 macOS 版本仍需在 `docs/release/manual-qa-record.md` 中记录实际结果。
 
+生成可交给其他 Mac 做兼容性测试的 QA 分发包：
+
+```bash
+scripts/package-release-qa-build.sh
+```
+
+输出位于 `build/release-qa/`，包含 `.app` 副本、`.zip`、`.sha256` 和 manifest。将 zip 交给 Intel Mac 或其他 macOS 测试设备时，同时把 manifest 中的版本、commit、签名、架构和 SHA-256 填入 `docs/release/manual-qa-record.md`。
+
 #### ⚠️ 已知风险
 
 | 风险 | 缓解措施 |
@@ -299,6 +307,14 @@ scripts/preview-release-app.sh --isolated-data
 ---
 
 ## 阶段 2: 兼容性测试
+
+开始跨机器测试前，先生成 QA 分发包：
+
+```bash
+scripts/package-release-qa-build.sh
+```
+
+在目标机器解压 zip 后运行 `.app`，并把 manifest 与实际测试结果一起记录到 `docs/release/manual-qa-record.md`。当前没有有效分发证书时，zip 内应用仍可能是 ad-hoc 签名，只能作为本地/内部 QA 包，不可作为正式分发物。
 
 ### 2.1 Apple Silicon Mac 测试
 

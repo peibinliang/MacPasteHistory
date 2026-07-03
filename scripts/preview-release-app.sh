@@ -76,7 +76,14 @@ if [[ "$should_build" -eq 1 ]]; then
         build >/tmp/macpastehistory-preview-release-build.log
 fi
 
-build_settings="$(xcodebuild -project MacPasteHistory.xcodeproj -scheme "$SCHEME" -configuration Release -showBuildSettings)"
+build_settings="$(
+    xcodebuild \
+        -project MacPasteHistory.xcodeproj \
+        -scheme "$SCHEME" \
+        -configuration Release \
+        -destination 'platform=macOS,arch=arm64' \
+        -showBuildSettings
+)"
 built_products_dir="$(printf "%s\n" "$build_settings" | awk -F ' = ' '/^[[:space:]]*BUILT_PRODUCTS_DIR = / {print $2; exit}')"
 full_product_name="$(printf "%s\n" "$build_settings" | awk -F ' = ' '/^[[:space:]]*FULL_PRODUCT_NAME = / {print $2; exit}')"
 app_path="$built_products_dir/$full_product_name"
