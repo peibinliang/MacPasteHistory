@@ -7,6 +7,7 @@ output_path=""
 allow_adhoc=0
 skip_xcodegen=0
 skip_install_preflight=0
+skip_release_smoke=0
 
 usage() {
     cat <<'EOF'
@@ -22,6 +23,7 @@ Options:
   --skip-xcodegen       Validate the existing Xcode project without regenerating it.
   --skip-install-preflight
                         Skip launching a copied Release app during readiness checks.
+  --skip-release-smoke  Skip the synthetic Release smoke test during readiness checks.
   -h, --help            Show this help.
 EOF
 }
@@ -72,6 +74,9 @@ while [[ $# -gt 0 ]]; do
             ;;
         --skip-install-preflight)
             skip_install_preflight=1
+            ;;
+        --skip-release-smoke)
+            skip_release_smoke=1
             ;;
         -h|--help)
             usage
@@ -148,11 +153,24 @@ if ! run_capture "App icon assets" "$REPO_ROOT/scripts/verify-app-icon-assets.sh
     add_blocker "App icon asset catalog is incomplete or has invalid PNG dimensions."
 fi
 
+if [[ "$skip_release_smoke" -eq 1 ]]; then
+    check_rows+=("| Release smoke test | SKIP | Skipped by --skip-release-smoke. |")
+    add_warning "Release smoke test was skipped; run scripts/release-smoke-test.sh before final release."
+else
+    if ! run_capture "Release smoke test" "$REPO_ROOT/scripts/release-smoke-test.sh"; then
+        add_blocker "Release smoke test failed for sandbox, clipboard capture, persistence, large content, or cleanup behavior."
+    fi
+fi
+
 if [[ "$skip_install_preflight" -eq 1 ]]; then
     check_rows+=("| Release install preflight | SKIP | Skipped by --skip-install-preflight. |")
     add_warning "Release install preflight was skipped; run scripts/release-install-preflight.sh before final release."
 else
-    if ! run_capture "Release install preflight" "$REPO_ROOT/scripts/release-install-preflight.sh"; then
+    install_preflight_args=("$REPO_ROOT/scripts/release-install-preflight.sh")
+    if [[ "$skip_release_smoke" -eq 0 ]]; then
+        install_preflight_args+=("--no-build")
+    fi
+    if ! run_capture "Release install preflight" "${install_preflight_args[@]}"; then
         add_blocker "Copied Release app failed install-copy launch, local storage initialization, or quit preflight."
     fi
 fi
@@ -265,6 +283,7 @@ Generated: $(date '+%Y-%m-%d %H:%M:%S %z')
 | Developer directory | \`$(escape_table_cell "$xcode_path")\` |
 | Manual QA record | \`$(escape_table_cell "$manual_record_display")\` |
 | Internal ad-hoc mode | \`$([[ "$allow_adhoc" -eq 1 ]] && printf "yes" || printf "no")\` |
+| Release smoke skipped | \`$([[ "$skip_release_smoke" -eq 1 ]] && printf "yes" || printf "no")\` |
 | Install preflight skipped | \`$([[ "$skip_install_preflight" -eq 1 ]] && printf "yes" || printf "no")\` |
 
 ## Automated Checks

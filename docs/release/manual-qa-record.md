@@ -65,7 +65,7 @@ The final readiness report runs the same install preflight by default:
 scripts/release-readiness-report.sh --output build/release-readiness-report.md
 ```
 
-Use `--skip-install-preflight` only for temporary diagnostics, not for final release approval.
+The final readiness report also runs the synthetic Release smoke test by default. Use `--skip-release-smoke` or `--skip-install-preflight` only for temporary diagnostics, not for final release approval.
 
 Generate synthetic, non-private copy fixtures for common-app and large-content testing:
 

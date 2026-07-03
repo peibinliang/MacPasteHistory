@@ -627,3 +627,4 @@ wait_for_exit
 restore_cleanup_defaults
 
 echo "Release smoke test passed."
+echo "Status: PASS"

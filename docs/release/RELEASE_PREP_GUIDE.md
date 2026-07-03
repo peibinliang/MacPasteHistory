@@ -740,12 +740,12 @@ scripts/verify-app-icon-assets.sh
 scripts/release-readiness-report.sh --output build/release-readiness-report.md
 ```
 
-该报告会汇总 Xcode 文件引用、日志隐私扫描、App Icon 素材、Release 安装副本预检、Xcode 授权、签名身份、用户文档、隐私政策、截图素材、人工 QA 记录和 git 工作区状态。默认运行时会构建 Release 包、复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份降级为警告，不能作为最终分发验收依据。
+该报告会汇总 Xcode 文件引用、日志隐私扫描、App Icon 素材、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、用户文档、隐私政策、截图素材、人工 QA 记录和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份降级为警告，不能作为最终分发验收依据。
 
-如果只需要临时检查静态材料，可使用 `--skip-install-preflight` 跳过安装副本启动；最终发布验收不得跳过：
+如果只需要临时检查静态材料，可使用 `--skip-release-smoke` 和 `--skip-install-preflight` 跳过启动类检查；最终发布验收不得跳过：
 
 ```bash
-scripts/release-readiness-report.sh --skip-install-preflight --output build/release-readiness-report.md
+scripts/release-readiness-report.sh --skip-release-smoke --skip-install-preflight --output build/release-readiness-report.md
 ```
 
 最终报告也会运行日志隐私静态扫描：
@@ -791,6 +791,7 @@ scripts/validate-manual-qa-record.sh --allow-adhoc docs/release/manual-qa-record
 | 15 | 隐私政策已完成 | 4.2 | ✅ |
 | 16 | App Store 截图已准备（已规划或完成） | 4.3 | ✅ |
 | 17 | 最终 readiness report 默认安装副本预检通过 | 4.4 | ⬜ |
+| 18 | 最终 readiness report 默认 Release smoke test 通过 | 4.4 | ⬜ |
 
 ### 发布决策
 

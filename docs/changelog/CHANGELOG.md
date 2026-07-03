@@ -32,6 +32,7 @@
 - Added reproducible synthetic App Store screenshot assets for release preparation.
 - Added double-click paste from the history list, including previous-app reactivation and Command+V dispatch after restore.
 - Added Release install preflight coverage to the final release readiness report.
+- Added Release smoke-test coverage to the final release readiness report.
 
 ### Fixed
 
