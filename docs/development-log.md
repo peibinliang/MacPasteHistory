@@ -37,6 +37,7 @@
 - Added `scripts/release-qa-baseline.sh` to generate Markdown baseline evidence for manual Release QA records.
 - Added `scripts/package-release-qa-build.sh` to create a zipped Release QA package, checksum, and manifest for cross-machine compatibility testing.
 - Added `scripts/verify-release-qa-package.sh` to validate QA package checksums, app bundle metadata, architectures, signing, and Sandbox entitlement before manual testing.
+- Added `scripts/generate-manual-qa-fixtures.swift` to create synthetic text, code, chat, large-text, and image fixtures for manual common-app Release QA.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.

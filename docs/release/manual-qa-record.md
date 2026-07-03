@@ -22,6 +22,12 @@ Verify the received QA zip before testing:
 scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
 ```
 
+Generate synthetic, non-private copy fixtures for common-app and large-content testing:
+
+```bash
+scripts/generate-manual-qa-fixtures.swift
+```
+
 ## Build Under Test
 
 | Field | Value |
@@ -34,6 +40,7 @@ scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
 | Signing identity | TBD |
 | Package SHA-256 | TBD |
 | Package verification | TBD |
+| Fixture directory | TBD |
 | Notes | TBD |
 
 ## Environment Coverage

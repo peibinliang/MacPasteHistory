@@ -328,6 +328,14 @@ scripts/package-release-qa-build.sh
 scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
 ```
 
+生成人工功能 QA 的无隐私测试样本：
+
+```bash
+scripts/generate-manual-qa-fixtures.swift
+```
+
+默认输出到 `build/manual-qa-fixtures/`，包含浏览器文本、VS Code 代码、聊天应用文本、大文本、标准图片和大尺寸图片。使用这些样本执行 3.1-3.6 的复制、搜索、预览和恢复验证，并把真实结果记录到 `docs/release/manual-qa-record.md`。
+
 ### 2.1 Apple Silicon Mac 测试
 
 **当前开发环境**: macOS 26.5.1 (Apple Silicon)
@@ -401,6 +409,14 @@ scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
 ---
 
 ## 阶段 3: 功能 QA
+
+本阶段推荐先生成统一测试样本：
+
+```bash
+scripts/generate-manual-qa-fixtures.swift
+```
+
+样本位于 `build/manual-qa-fixtures/`，均为合成内容，不包含真实剪贴板数据。执行下面每个场景时，用这些文件作为复制源，并在 `docs/release/manual-qa-record.md` 记录实际结果、目标应用、系统版本和截图/录屏路径。
 
 ### 3.1 Chrome 中文本/图片复制测试
 

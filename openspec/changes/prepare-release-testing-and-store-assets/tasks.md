@@ -50,32 +50,32 @@
   - 实现描述：在 Chrome 中复制文本和图片，验证历史记录、预览和恢复。
   - 前置条件：Chrome 已安装，Release 应用运行中。
   - 验收条件：文本和支持的图片复制场景按预期记录；不支持场景有说明。
-  - 当前进展：发布环境报告已确认 `/Applications/Google Chrome.app` 存在；实际复制/预览/恢复仍需人工 QA。
+  - 当前进展：发布环境报告已确认 `/Applications/Google Chrome.app` 存在；新增 `scripts/generate-manual-qa-fixtures.swift` 可生成无隐私浏览器文本和图片样本用于 Chrome 复制测试；实际复制/预览/恢复仍需人工 QA。
 - [ ] 3.2 Test text and image copy from Safari.
   - 实现描述：在 Safari 中复制文本和图片，验证历史记录、预览和恢复。
   - 前置条件：Safari 可用，Release 应用运行中。
   - 验收条件：文本和支持的图片复制场景按预期记录；不支持场景有说明。
-  - 当前进展：发布环境报告已确认 `/Applications/Safari.app` 存在；实际复制/预览/恢复仍需人工 QA。
+  - 当前进展：发布环境报告已确认 `/Applications/Safari.app` 存在；新增无隐私浏览器文本、标准图片和大尺寸图片样本用于 Safari 复制测试；实际复制/预览/恢复仍需人工 QA。
 - [ ] 3.3 Test text copy from VS Code.
   - 实现描述：在 VS Code 中复制代码和普通文本，验证文本历史、搜索和恢复。
   - 前置条件：VS Code 已安装或可用，Release 应用运行中。
   - 验收条件：复制代码可记录和搜索，恢复后格式按纯文本策略保持内容一致。
-  - 当前进展：发布环境报告已确认 `/Applications/Visual Studio Code.app` 存在；实际代码复制、搜索和恢复仍需人工 QA。
+  - 当前进展：发布环境报告已确认 `/Applications/Visual Studio Code.app` 存在；新增合成 Swift 代码样本用于 VS Code 复制、搜索和恢复测试；实际代码复制、搜索和恢复仍需人工 QA。
 - [ ] 3.4 Test common chat app copy flows such as WeChat and DingTalk.
   - 实现描述：在微信、钉钉等聊天应用中测试文本和可支持图片的复制/恢复。
   - 前置条件：测试账号和应用环境可用，隐私黑名单设置已确认。
   - 验收条件：非黑名单场景按预期记录；黑名单场景按预期跳过；结果有记录。
-  - 当前进展：发布环境报告已确认 `/Applications/WeChat.app` 和 `/Applications/DingTalk.app` 存在；测试账号、真实会话复制和黑名单场景仍需人工 QA。
+  - 当前进展：发布环境报告已确认 `/Applications/WeChat.app` 和 `/Applications/DingTalk.app` 存在；新增无隐私聊天复制样本用于测试账号/测试群复制流程；测试账号、真实会话复制和黑名单场景仍需人工 QA。
 - [ ] 3.5 Test large text copy.
   - 实现描述：复制大段文本，观察捕获、存储、列表预览、详情、搜索和恢复表现。
   - 前置条件：大文本测试样本已准备，性能优化已完成。
   - 验收条件：应用不崩溃，UI 不明显卡死，超大内容按限制策略处理。
-  - 当前进展：`scripts/release-smoke-test.sh` 已在 Release 包中验证 92,699 字符模拟文本可捕获并持久化；列表预览、详情、搜索、恢复和人工 UI 卡顿观察仍待验证。
+  - 当前进展：`scripts/release-smoke-test.sh` 已在 Release 包中验证 92,699 字符模拟文本可捕获并持久化；新增 `04-large-text-sample.txt` 作为人工大文本复制、列表预览、详情、搜索、恢复和 UI 卡顿观察样本；人工 UI 结果仍待验证。
 - [ ] 3.6 Test large image copy.
   - 实现描述：复制大尺寸或大文件图片，验证大小限制、缩略图、存储和恢复策略。
   - 前置条件：大图片测试样本已准备，图片大小限制设置可用。
   - 验收条件：未超限图片正常处理；超限图片被跳过且无残留文件。
-  - 当前进展：`scripts/release-smoke-test.sh` 已在 Release 包中验证 1024x768 模拟 PNG 可捕获，且原图、缩略图路径和尺寸元数据已持久化；新增超限图片验证会临时降低 `config.maxImageSizeInBytes`，复制独立 PNG，并确认不会新增图片数据库记录、原图文件或缩略图文件；图片恢复到真实目标应用仍待人工验证。
+  - 当前进展：`scripts/release-smoke-test.sh` 已在 Release 包中验证 1024x768 模拟 PNG 可捕获，且原图、缩略图路径和尺寸元数据已持久化；新增超限图片验证会临时降低 `config.maxImageSizeInBytes`，复制独立 PNG，并确认不会新增图片数据库记录、原图文件或缩略图文件；新增标准 PNG 和 2400x1600 大尺寸 PNG 人工复制样本；图片恢复到真实目标应用仍待人工验证。
 - [ ] 3.7 Test data cleanup behavior in Release build.
   - 实现描述：在 Release 环境验证过期清理、数量限制、空间限制和清空全部数据。
   - 前置条件：清理功能已实现，测试数据可控。
@@ -101,4 +101,4 @@
   - 实现描述：汇总构建、兼容性、功能 QA、文档、隐私政策和截图检查结果。
   - 前置条件：本阶段所有发布配置、测试和材料任务已完成。
   - 验收条件：文档阶段 9 的验收标准全部通过，未完成项有明确记录和处理决定。
-  - 当前进展：新增 `docs/release/manual-qa-record.md` 作为人工发布 QA 证据模板，用于记录真实设备、真实应用复制/恢复、菜单栏、Clear All Data、Launch at login 和隐私场景的 tester/date/build/evidence；新增 `scripts/release-qa-baseline.sh` 可生成当前构建、机器、Xcode、签名、Sandbox 和常见应用安装情况的 Markdown 基线，便于填入人工记录；新增 `scripts/package-release-qa-build.sh` 可生成跨机器 QA zip、SHA-256 和 manifest；新增 `scripts/verify-release-qa-package.sh` 可校验 QA 包完整性、架构、签名和 Sandbox entitlement；最终验收仍需这些记录实际填写并通过后才能关闭。
+  - 当前进展：新增 `docs/release/manual-qa-record.md` 作为人工发布 QA 证据模板，用于记录真实设备、真实应用复制/恢复、菜单栏、Clear All Data、Launch at login 和隐私场景的 tester/date/build/evidence；新增 `scripts/release-qa-baseline.sh` 可生成当前构建、机器、Xcode、签名、Sandbox 和常见应用安装情况的 Markdown 基线，便于填入人工记录；新增 `scripts/package-release-qa-build.sh` 可生成跨机器 QA zip、SHA-256 和 manifest；新增 `scripts/verify-release-qa-package.sh` 可校验 QA 包完整性、架构、签名和 Sandbox entitlement；新增 `scripts/generate-manual-qa-fixtures.swift` 可生成无隐私人工功能 QA 样本；最终验收仍需这些记录实际填写并通过后才能关闭。
