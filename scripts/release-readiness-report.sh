@@ -157,6 +157,10 @@ if ! run_capture "Screenshot assets" "$REPO_ROOT/scripts/verify-release-screensh
     add_blocker "Required release screenshot assets are missing or have invalid PNG dimensions."
 fi
 
+if ! run_capture "Manual QA fixtures" "$REPO_ROOT/scripts/verify-manual-qa-fixtures.sh"; then
+    add_blocker "Manual QA fixtures failed generation or validation."
+fi
+
 if [[ "$skip_release_smoke" -eq 1 ]]; then
     check_rows+=("| Release smoke test | SKIP | Skipped by --skip-release-smoke. |")
     add_warning "Release smoke test was skipped; run scripts/release-smoke-test.sh before final release."

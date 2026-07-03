@@ -448,9 +448,12 @@ scripts/generate-manual-qa-fixtures.swift
 
 ```bash
 scripts/generate-manual-qa-fixtures.swift
+scripts/verify-manual-qa-fixtures.sh
 ```
 
 样本位于 `build/manual-qa-fixtures/`，均为合成内容，不包含真实剪贴板数据。执行下面每个场景时，用这些文件作为复制源，并在 `docs/release/manual-qa-record.md` 记录实际结果、目标应用、系统版本和截图/录屏路径。
+
+`scripts/verify-manual-qa-fixtures.sh` 会在临时目录重新生成样本并校验文本标记、大文本体量、PNG 尺寸和 README，可用于确认 QA 输入材料完整；它不替代真实 Chrome、Safari、VS Code、微信、钉钉里的人工复制结果。
 
 如果已经运行 `scripts/start-manual-release-qa-session.sh`，优先使用会话目录中的 `fixtures/` 和 `manual-qa-record.md`，避免多次生成样本后记录路径不一致。
 
@@ -742,7 +745,7 @@ scripts/verify-release-screenshot-assets.sh
 scripts/release-readiness-report.sh --output build/release-readiness-report.md
 ```
 
-该报告会汇总 Xcode 文件引用、日志隐私扫描、App Icon 素材、截图 PNG 尺寸、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、用户文档、隐私政策、人工 QA 记录和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份降级为警告，不能作为最终分发验收依据。
+该报告会汇总 Xcode 文件引用、日志隐私扫描、App Icon 素材、截图 PNG 尺寸、人工 QA 样本生成校验、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、用户文档、隐私政策、人工 QA 记录和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份降级为警告，不能作为最终分发验收依据。
 
 如果只需要临时检查静态材料，可使用 `--skip-release-smoke` 和 `--skip-install-preflight` 跳过启动类检查；最终发布验收不得跳过：
 

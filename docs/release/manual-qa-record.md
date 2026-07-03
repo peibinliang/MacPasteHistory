@@ -71,6 +71,7 @@ Generate synthetic, non-private copy fixtures for common-app and large-content t
 
 ```bash
 scripts/generate-manual-qa-fixtures.swift
+scripts/verify-manual-qa-fixtures.sh
 ```
 
 Before final approval, run the static log privacy scan:

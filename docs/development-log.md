@@ -54,6 +54,7 @@
 - Scoped manual Release QA required-row validation to the matching Markdown sections so misplaced rows do not satisfy the checklist.
 - Added reproducible App Icon generation and verification scripts, generated the macOS AppIcon PNG set, and wired icon verification into the release readiness report.
 - Added `scripts/verify-release-screenshot-assets.sh` and wired screenshot PNG dimension validation into the release readiness report.
+- Added `scripts/verify-manual-qa-fixtures.sh` and wired synthetic manual QA fixture generation validation into the release readiness report.
 - Added double-click paste from the history list: a successful restore closes the history window, reactivates the previous foreground app, and sends `Command + V`.
 - Added `PasteCommandService` and tests for restore success/failure reporting plus paste command dispatch.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
@@ -99,6 +100,7 @@
 - `scripts/validate-manual-qa-record.sh --allow-adhoc build/manual-qa-record-wrong-section-row.md` correctly failed when a required common-app row appeared outside the Common App Copy Matrix section.
 - `scripts/generate-app-icon.swift` generated all 10 macOS AppIcon PNG slots, and `scripts/verify-app-icon-assets.sh` confirmed unique filenames and expected pixel dimensions.
 - `scripts/verify-release-screenshot-assets.sh` confirmed all 4 release screenshots are readable 5760x3600 PNG files.
+- `scripts/verify-manual-qa-fixtures.sh` generated and validated the browser, VS Code, chat, large-text, standard-image, large-image, and README fixtures.
 - Targeted `ClipboardHistoryViewModelTests` and `PasteCommandServiceTests` passed with 9 tests and 0 failures after adding double-click paste support.
 - `scripts/preview-release-app.sh --build-only` and `scripts/package-release-qa-build.sh --output-dir build/release-qa-entry-verify` passed in parallel after wiring Xcode file-reference validation into release entry points and serializing XcodeGen.
 - `scripts/release-smoke-test.sh` passed after wiring Xcode file-reference validation into the Release smoke build entry point.
