@@ -42,7 +42,7 @@
   - 实现描述：验证应用首次安装、普通启动、退出、重启后历史加载和设置恢复。
   - 前置条件：Release 包可运行，已有测试数据或可现场生成。
   - 验收条件：安装/启动/退出/重启无异常，历史和设置符合预期。
-  - 当前进展：`scripts/release-smoke-test.sh` 已将 Release 包复制到临时安装目录启动，验证捕获后的历史在退出并重启后仍可查询；Launch at login 已接入 `SMAppService.mainApp.register()` / `unregister()`，并通过 `LoginItemServiceTests` 和 `SettingsViewModelTests` 验证注册、失败回滚和设置状态同步；设置窗口、开机启动注销/登录后的真实行为和真实安装路径仍需人工验证。
+  - 当前进展：`scripts/release-smoke-test.sh` 已将 Release 包复制到临时安装目录启动，验证捕获后的历史在退出并重启后仍可查询；新增 `scripts/release-install-preflight.sh`，可将 Release app 复制到临时安装目录，从副本启动，确认沙盒容器内隔离 SQLite 数据库和核心表已创建，并确认退出后进程结束；Launch at login 已接入 `SMAppService.mainApp.register()` / `unregister()`，并通过 `LoginItemServiceTests` 和 `SettingsViewModelTests` 验证注册、失败回滚和设置状态同步；设置窗口、开机启动注销/登录后的真实行为和真实安装路径仍需人工验证。
 
 ## 3. Functional QA
 

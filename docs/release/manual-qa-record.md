@@ -51,6 +51,14 @@ Verify the received QA zip before testing:
 scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
 ```
 
+Run the install preflight before manual workflow testing:
+
+```bash
+scripts/release-install-preflight.sh
+```
+
+This launches a copied Release app from a temporary install directory, verifies isolated local storage initialization, and confirms quit behavior. Manual menu bar, restore, clear-all, and login-item checks still require direct tester evidence.
+
 Generate synthetic, non-private copy fixtures for common-app and large-content testing:
 
 ```bash

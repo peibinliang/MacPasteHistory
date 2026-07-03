@@ -320,6 +320,14 @@ scripts/preview-release-app.sh --seed-preview-data
 
 `scripts/release-smoke-test.sh` 已自动验证临时安装副本可启动、捕获文本/图片、退出并重启后历史仍保留；`scripts/preview-release-app.sh --seed-preview-data` 可用于后续人工确认菜单栏图标、窗口打开、搜索、详情、恢复和清空流程。
 
+如需在人工 QA 前快速验证安装副本启动、隔离 App Support 初始化和退出行为：
+
+```bash
+scripts/release-install-preflight.sh
+```
+
+该脚本会构建或复用 Release app，将 `.app` 复制到临时安装目录，从副本启动，确认沙盒容器中的隔离数据库和核心表已创建，然后退出应用。它不替代菜单栏图标、窗口打开、恢复或 Launch at login 的人工验证。
+
 #### ✅ 验收清单
 
 - [ ] Archive 成功

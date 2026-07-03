@@ -158,11 +158,12 @@ Generated: $(date '+%Y-%m-%d %H:%M:%S %z')
 
 1. Review the prefilled build, signing, Sandbox, Xcode, macOS, package, and fixture values in \`$manual_record_path\`.
 2. Cross-check \`$baseline_path\` and \`$verification_path\` if any prefilled value needs review.
-3. Launch the packaged app from Finder, or use \`scripts/preview-release-app.sh --seed-preview-data\` for a local isolated-data preview with synthetic history already loaded.
-4. Use files in \`$fixture_dir\` for Chrome, Safari, VS Code, WeChat, DingTalk, large-text, and image-copy scenarios.
-5. Fill every manual result in \`$manual_record_path\` with tester, date, environment, result, and screenshot or note references.
-6. After filling the record, run \`scripts/validate-manual-qa-record.sh "$manual_record_path"\`. Use \`--allow-adhoc\` only for internal QA before distribution signing exists.
-7. Keep OpenSpec release tasks unchecked until the corresponding manual evidence is actually filled, validated, and reviewed.
+3. Run \`scripts/release-install-preflight.sh --no-build\` to verify a copied Release app can launch, initialize isolated local storage, and quit.
+4. Launch the packaged app from Finder, or use \`scripts/preview-release-app.sh --seed-preview-data\` for a local isolated-data preview with synthetic history already loaded.
+5. Use files in \`$fixture_dir\` for Chrome, Safari, VS Code, WeChat, DingTalk, large-text, and image-copy scenarios.
+6. Fill every manual result in \`$manual_record_path\` with tester, date, environment, result, and screenshot or note references.
+7. After filling the record, run \`scripts/validate-manual-qa-record.sh "$manual_record_path"\`. Use \`--allow-adhoc\` only for internal QA before distribution signing exists.
+8. Keep OpenSpec release tasks unchecked until the corresponding manual evidence is actually filled, validated, and reviewed.
 
 ## Important Boundaries
 
