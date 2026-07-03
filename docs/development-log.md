@@ -46,6 +46,7 @@
 - Added `scripts/release-readiness-report.sh` to aggregate Xcode file references, Xcode authorization, signing identities, release docs, screenshot assets, manual QA record validation, and git status into a final Markdown readiness report.
 - Added `scripts/prefill-manual-qa-record.sh` and wired it into manual Release QA session setup so objective build, package, signing, current-machine, and fixture fields are filled without marking manual QA scenarios as passed.
 - Added `scripts/scan-privacy-log-safety.sh`, switched the central Logger wrapper to OSLog private privacy by default, and wired the scan into the release readiness report.
+- Added `scripts/verify-privacy-usage-descriptions.sh` and wired Info.plist privacy usage description validation into the release readiness report.
 - Added `scripts/release-install-preflight.sh` to copy a Release app into a temporary install directory, launch it with isolated sandbox-container data, verify SQLite schema initialization, and confirm quit behavior.
 - Wired the Release install preflight into `scripts/release-readiness-report.sh` so the final readiness gate launches a copied Release app, verifies isolated local storage initialization, and confirms quit behavior by default.
 - Wired `scripts/release-smoke-test.sh` into `scripts/release-readiness-report.sh` so the final readiness gate also runs sandbox, synthetic clipboard capture, restart persistence, large-content, oversized-image, and cleanup checks by default.
@@ -92,6 +93,7 @@
 - `scripts/release-readiness-report.sh --output build/release-readiness-report.md` correctly failed on the current unfilled manual QA record and missing signing identities while passing Xcode, docs, and screenshot checks.
 - `scripts/release-readiness-report.sh --allow-adhoc --manual-record build/manual-qa-record-validate-pass.md --output build/release-readiness-pass.md` passed against a filled synthetic record, with missing signing identities downgraded to an internal-QA warning.
 - `scripts/scan-privacy-log-safety.sh` passed on current app sources, and a temporary violating Swift sample correctly failed for direct console logging and raw clipboard-content logging.
+- `scripts/verify-privacy-usage-descriptions.sh` passed, confirming Info.plist includes non-placeholder pasteboard and accessibility usage descriptions.
 - `scripts/release-install-preflight.sh --no-build` passed, confirming a copied Release app can launch from a temporary install directory, create isolated local storage in the app sandbox container, and quit cleanly.
 - `scripts/release-readiness-report.sh` now includes the Release install preflight by default; final release remains blocked until signing identities and filled manual QA evidence are available.
 - `scripts/release-smoke-test.sh` now emits `Status: PASS`, and the readiness report includes it by default before running install preflight with the existing Release build.

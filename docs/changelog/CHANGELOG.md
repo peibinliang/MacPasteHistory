@@ -36,6 +36,7 @@
 - Added section-scoped manual Release QA row validation so misplaced required rows are rejected.
 - Added release screenshot asset verification for expected PNG dimensions.
 - Added synthetic manual QA fixture verification for common-app and large-content testing inputs.
+- Added Info.plist privacy usage description verification to release readiness checks.
 - Added Release install preflight coverage to the final release readiness report.
 - Added Release smoke-test coverage to the final release readiness report.
 

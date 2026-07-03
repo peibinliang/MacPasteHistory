@@ -78,6 +78,7 @@ Before final approval, run the static log privacy scan:
 
 ```bash
 scripts/scan-privacy-log-safety.sh
+scripts/verify-privacy-usage-descriptions.sh
 ```
 
 This checks app Swift sources for direct console logging, public OSLog messages, and obvious clipboard-content fields in log calls. It is an automated guardrail; the manual Logs row below still requires runtime review.
