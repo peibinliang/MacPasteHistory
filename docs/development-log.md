@@ -38,6 +38,7 @@
 - Added `scripts/package-release-qa-build.sh` to create a zipped Release QA package, checksum, and manifest for cross-machine compatibility testing.
 - Added `scripts/verify-release-qa-package.sh` to validate QA package checksums, app bundle metadata, architectures, signing, and Sandbox entitlement before manual testing.
 - Added `scripts/generate-manual-qa-fixtures.swift` to create synthetic text, code, chat, large-text, and image fixtures for manual common-app Release QA.
+- Added `scripts/start-manual-release-qa-session.sh` to prepare a timestamped manual Release QA session workspace with package artifacts, verification output, baseline evidence, fixtures, and a QA record copy.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
@@ -65,6 +66,7 @@
 - Targeted `LoginItemServiceTests` passed with 3 tests and 0 failures after wiring launch-at-login registration.
 - Targeted `SettingsViewModelTests` passed with 2 tests and 0 failures after covering settings registration and error rollback.
 - `scripts/generate-release-screenshots.swift` generated 4 PNG assets; `file`, `sips`, and visual QA confirmed readable 5760x3600 screenshots without real clipboard data.
+- `scripts/start-manual-release-qa-session.sh --help` and `scripts/start-manual-release-qa-session.sh --no-build --output-dir build/manual-release-qa-session-verify` passed, confirming the manual QA session helper can prepare package artifacts, verification output, baseline evidence, fixtures, and a QA record copy from the current Release build.
 - Targeted `ClipboardDataClearServiceTests` passed with 1 test and 0 failures after extracting clear-all behavior into a service.
 - Targeted `DataCleanupServiceTests` passed with 5 tests and 0 failures after adding count-limit and storage-cap cleanup coverage.
 - Targeted `DataCleanupServiceTests` passed after reproducing and fixing expired image file cleanup.

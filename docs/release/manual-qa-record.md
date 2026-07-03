@@ -10,6 +10,14 @@ scripts/release-qa-baseline.sh --build
 
 Copy the generated build, environment, signing, sandbox, and common-app availability values into the tables below, then replace each `Not run` result only after direct manual evidence exists.
 
+Recommended one-command session setup:
+
+```bash
+scripts/start-manual-release-qa-session.sh
+```
+
+This creates a timestamped directory under `build/manual-release-qa-session/` with a QA package, package verification, baseline, synthetic fixtures, this record template, and a session `README.md`. Use the generated files as evidence inputs only; manual results still require direct tester confirmation.
+
 For QA on another Mac, create a zip package and use the generated manifest:
 
 ```bash

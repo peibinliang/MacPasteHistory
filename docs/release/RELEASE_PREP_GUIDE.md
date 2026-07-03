@@ -119,6 +119,14 @@ scripts/package-release-qa-build.sh
 scripts/verify-release-qa-package.sh build/release-qa/MacPasteHistory-*.zip
 ```
 
+如需一次性准备人工 QA 会话目录，推荐使用：
+
+```bash
+scripts/start-manual-release-qa-session.sh
+```
+
+该脚本会在 `build/manual-release-qa-session/<timestamp>-<commit>/` 下生成 Release QA 包、包校验报告、当前机器/构建基线、无隐私功能测试样本和 `manual-qa-record.md` 副本。脚本只负责准备证据输入，不会替代菜单栏、恢复、Clear All Data、Launch at login、Intel Mac 或多 macOS 版本的人工结果。
+
 #### ⚠️ 已知风险
 
 | 风险 | 缓解措施 |
@@ -314,6 +322,14 @@ scripts/preview-release-app.sh --isolated-data
 
 ## 阶段 2: 兼容性测试
 
+推荐先生成完整人工 QA 会话目录：
+
+```bash
+scripts/start-manual-release-qa-session.sh
+```
+
+目录中的 `README.md` 会列出包、校验报告、基线、样本和记录模板路径。后续测试结果应填写到该目录的 `manual-qa-record.md`，确认无误后再同步到仓库内发布记录。
+
 开始跨机器测试前，先生成 QA 分发包：
 
 ```bash
@@ -417,6 +433,8 @@ scripts/generate-manual-qa-fixtures.swift
 ```
 
 样本位于 `build/manual-qa-fixtures/`，均为合成内容，不包含真实剪贴板数据。执行下面每个场景时，用这些文件作为复制源，并在 `docs/release/manual-qa-record.md` 记录实际结果、目标应用、系统版本和截图/录屏路径。
+
+如果已经运行 `scripts/start-manual-release-qa-session.sh`，优先使用会话目录中的 `fixtures/` 和 `manual-qa-record.md`，避免多次生成样本后记录路径不一致。
 
 ### 3.1 Chrome 中文本/图片复制测试
 
