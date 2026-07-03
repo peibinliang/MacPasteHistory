@@ -43,10 +43,12 @@
 		A9608B93A43BB52D98F327AC /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBFB2FF0430D2E76216AFDFB /* AppDelegate.swift */; };
 		AA1C10D6831D38ABDFCDBF2C /* DatabaseConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 731F5A4FD87B6D86CEC3FCF0 /* DatabaseConnection.swift */; };
 		AEE680C63F09BD5BF264371C /* ClipboardReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0708A6AE053FF672A9AA3F81 /* ClipboardReader.swift */; };
+		C31DD94AC6018F6598D13BDD /* PasteCommandServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1020A653220EFFBC5ACAA2E3 /* PasteCommandServiceTests.swift */; };
 		C671291185ECF90066323DD1 /* ClipboardMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70152E6843F0A38D02981D98 /* ClipboardMonitorTests.swift */; };
 		C7DD814F1D07B66090A4EA6A /* HistoryQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 548547071FD81AC03035F12B /* HistoryQuery.swift */; };
 		CD8035321EA2EC09F7BFB2CA /* LoginItemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C42979051F78EB5C5490EB0D /* LoginItemService.swift */; };
 		D0343A7EFD403E45E0BB102A /* RecordingSettingsProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 660DF8A3E084F5528CDA0377 /* RecordingSettingsProvider.swift */; };
+		DB7516515C2D20BBBA657FBA /* PasteCommandService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1FB76BFCE8E190C38BA03E2 /* PasteCommandService.swift */; };
 		DC8D0956E6285A2FCA834E32 /* ClipboardWriterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3A11A0FCB0A7321DF42DE6 /* ClipboardWriterTests.swift */; };
 		DFD5429305E3E20BD782BC47 /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E55F424CA92901CF8D4CEE9 /* SettingsViewModelTests.swift */; };
 		E03AC9DDE858B563279B518B /* HistoryDisplayFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32AEDC1E96FB4037FDB80C48 /* HistoryDisplayFormatterTests.swift */; };
@@ -79,6 +81,7 @@
 		0708A6AE053FF672A9AA3F81 /* ClipboardReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardReader.swift; sourceTree = "<group>"; };
 		0CE48E59FEF9C13008A8ECB0 /* HistoryDisplayFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDisplayFormatter.swift; sourceTree = "<group>"; };
 		0F41BE278810E2DD572202D9 /* PrivacyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyService.swift; sourceTree = "<group>"; };
+		1020A653220EFFBC5ACAA2E3 /* PasteCommandServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteCommandServiceTests.swift; sourceTree = "<group>"; };
 		27C11A578184EFF27D18A9F1 /* LoginItemServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemServiceTests.swift; sourceTree = "<group>"; };
 		2E55F424CA92901CF8D4CEE9 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
 		32AEDC1E96FB4037FDB80C48 /* HistoryDisplayFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDisplayFormatterTests.swift; sourceTree = "<group>"; };
@@ -126,6 +129,7 @@
 		D5D7232AB046B2CD2E4D7FBF /* ClipboardHistoryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistoryViewModel.swift; sourceTree = "<group>"; };
 		DC22C0FBF11262EEF86116E6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DF9519F036C97A9264A2759F /* TextHashServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextHashServiceTests.swift; sourceTree = "<group>"; };
+		E1FB76BFCE8E190C38BA03E2 /* PasteCommandService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteCommandService.swift; sourceTree = "<group>"; };
 		E6E4FA64682900B660E3D556 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		E7321BADEEC59E2320F4C3F2 /* UserDefaultsConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsConfig.swift; sourceTree = "<group>"; };
 		EB9D1A51C599E31B32062B14 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
@@ -170,6 +174,7 @@
 				32AEDC1E96FB4037FDB80C48 /* HistoryDisplayFormatterTests.swift */,
 				CA0C921950775062031F5338 /* ImageStorageServiceTests.swift */,
 				27C11A578184EFF27D18A9F1 /* LoginItemServiceTests.swift */,
+				1020A653220EFFBC5ACAA2E3 /* PasteCommandServiceTests.swift */,
 				2E55F424CA92901CF8D4CEE9 /* SettingsViewModelTests.swift */,
 				DF9519F036C97A9264A2759F /* TextHashServiceTests.swift */,
 				FB6F4680A83FC93FC8C83231 /* UserDefaultsConfigTests.swift */,
@@ -231,6 +236,7 @@
 				F7E6205E6E9C67B90AAA6E2D /* DataCleanupService.swift */,
 				372CFB32FB2BB2F592282F06 /* ImageStorageService.swift */,
 				C42979051F78EB5C5490EB0D /* LoginItemService.swift */,
+				E1FB76BFCE8E190C38BA03E2 /* PasteCommandService.swift */,
 				0F41BE278810E2DD572202D9 /* PrivacyService.swift */,
 				660DF8A3E084F5528CDA0377 /* RecordingSettingsProvider.swift */,
 				BED5FD8B43422A0E656B4B92 /* ShortcutService.swift */,
@@ -416,6 +422,7 @@
 				E03AC9DDE858B563279B518B /* HistoryDisplayFormatterTests.swift in Sources */,
 				91F5BFFC202182E5FC7733FE /* ImageStorageServiceTests.swift in Sources */,
 				10D680D50B0CC4B9A4FCDAAF /* LoginItemServiceTests.swift in Sources */,
+				C31DD94AC6018F6598D13BDD /* PasteCommandServiceTests.swift in Sources */,
 				DFD5429305E3E20BD782BC47 /* SettingsViewModelTests.swift in Sources */,
 				515A00C1AE85C7AC851E5D76 /* TextHashServiceTests.swift in Sources */,
 				1C6F097CA9FFBFC7592C27B8 /* UserDefaultsConfigTests.swift in Sources */,
@@ -453,6 +460,7 @@
 				9E33297BA6AD31D24783AA4B /* MacPasteHistoryApp.swift in Sources */,
 				E3DD6B6E5D7E3785194C2662 /* MainPanelView.swift in Sources */,
 				A0901342E1D5D85884011DE6 /* MigrationManager.swift in Sources */,
+				DB7516515C2D20BBBA657FBA /* PasteCommandService.swift in Sources */,
 				499C45159CAEE137B0CAF84A /* PasteboardProviding.swift in Sources */,
 				E7C64CAA955DDED488FE4F82 /* PrivacyService.swift in Sources */,
 				D0343A7EFD403E45E0BB102A /* RecordingSettingsProvider.swift in Sources */,

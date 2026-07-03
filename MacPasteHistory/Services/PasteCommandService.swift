@@ -1,0 +1,51 @@
+import AppKit
+import ApplicationServices
+import Carbon
+import Foundation
+
+protocol PasteCommandSending {
+    func sendCommandVPaste()
+}
+
+final class PasteCommandService {
+    private let sender: PasteCommandSending
+
+    init(sender: PasteCommandSending = SystemPasteCommandSender()) {
+        self.sender = sender
+    }
+
+    func sendPasteCommand() {
+        sender.sendCommandVPaste()
+    }
+}
+
+private final class SystemPasteCommandSender: PasteCommandSending {
+    func sendCommandVPaste() {
+        guard accessibilityPermissionIsGrantedOrRequested() else {
+            return
+        }
+
+        let keyCode = CGKeyCode(kVK_ANSI_V)
+        guard let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: false) else {
+            return
+        }
+
+        keyDown.flags = .maskCommand
+        keyUp.flags = .maskCommand
+        keyDown.post(tap: .cghidEventTap)
+        keyUp.post(tap: .cghidEventTap)
+    }
+
+    private func accessibilityPermissionIsGrantedOrRequested() -> Bool {
+        guard AXIsProcessTrusted() == false else {
+            return true
+        }
+
+        let options = [
+            "AXTrustedCheckOptionPrompt": true
+        ] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+        return false
+    }
+}

@@ -76,17 +76,18 @@ final class ClipboardHistoryViewModel: ObservableObject {
         }
     }
 
-    func restore(_ item: ClipboardHistoryItem) {
+    @discardableResult
+    func restore(_ item: ClipboardHistoryItem) -> Bool {
         if item.contentType == .image {
-            restoreImage(item)
-            return
+            return restoreImage(item)
         }
 
         guard writer.writeText(item.textContent) else {
             errorMessage = "Failed to restore text to clipboard."
-            return
+            return false
         }
         errorMessage = nil
+        return true
     }
 
     func delete(_ item: ClipboardHistoryItem) {
@@ -129,13 +130,14 @@ final class ClipboardHistoryViewModel: ObservableObject {
         )
     }
 
-    private func restoreImage(_ item: ClipboardHistoryItem) {
+    private func restoreImage(_ item: ClipboardHistoryItem) -> Bool {
         guard let filePath = item.filePath,
               let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)),
               writer.writeImage(data) else {
             errorMessage = "Failed to restore image to clipboard."
-            return
+            return false
         }
         errorMessage = nil
+        return true
     }
 }

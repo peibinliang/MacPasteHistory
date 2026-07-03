@@ -101,9 +101,29 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         let pngData = try makePNGData()
         let item = try saveImageRecord(pngData: pngData)
 
-        viewModel.restore(item)
+        XCTAssertTrue(viewModel.restore(item))
 
         XCTAssertEqual(pasteboard.data(forType: .png), pngData)
+    }
+
+    func testRestore_whenTextWriteSucceeds_shouldReturnTrue() throws {
+        let item = try repository.saveText("double click paste text", sourceApp: nil, sourceBundleID: nil)
+
+        let didRestore = viewModel.restore(item)
+
+        XCTAssertTrue(didRestore)
+        XCTAssertEqual(pasteboard.string(forType: .string), "double click paste text")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testRestore_whenTextWriteFails_shouldReturnFalseAndExposeError() throws {
+        let item = try repository.saveText("unwritable text", sourceApp: nil, sourceBundleID: nil)
+        pasteboard.shouldFailStringWrites = true
+
+        let didRestore = viewModel.restore(item)
+
+        XCTAssertFalse(didRestore)
+        XCTAssertEqual(viewModel.errorMessage, "Failed to restore text to clipboard.")
     }
 
     func testDelete_whenItemIsImage_shouldRemoveDatabaseRecordAndImageFiles() throws {
@@ -147,6 +167,7 @@ private enum TestImageError: Error {
 private final class FakePasteboard: PasteboardProviding {
     private var values: [NSPasteboard.PasteboardType: String] = [:]
     private var dataValues: [NSPasteboard.PasteboardType: Data] = [:]
+    var shouldFailStringWrites = false
     private(set) var changeCount = 0
 
     func data(forType dataType: NSPasteboard.PasteboardType) -> Data? {
@@ -182,6 +203,9 @@ private final class FakePasteboard: PasteboardProviding {
     }
 
     func setString(_ string: String, forType dataType: NSPasteboard.PasteboardType) -> Bool {
+        guard shouldFailStringWrites == false else {
+            return false
+        }
         values[dataType] = string
         changeCount += 1
         return true

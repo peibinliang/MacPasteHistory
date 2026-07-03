@@ -10,7 +10,7 @@ Text history is the first user-facing clipboard workflow. It records accepted pl
 - Read plain text only, skip empty or whitespace-only content, and sanitize control characters.
 - Store text records in SQLite through `ClipboardHistoryRepository`.
 - Deduplicate text by normalized SHA-256 content hash.
-- Display, search, restore, delete, and clear text history in the main panel.
+- Display, search, restore, double-click paste, delete, and clear text history in the main panel.
 
 ## Flow
 
@@ -28,6 +28,7 @@ Text history is the first user-facing clipboard workflow. It records accepted pl
 | `ClipboardMonitor` | Polls pasteboard changes and coordinates text capture. |
 | `ClipboardReader` | Reads sanitized plain text from a pasteboard. |
 | `ClipboardWriter` | Restores selected text to the system clipboard. |
+| `PasteCommandService` | Sends Command+V after a successful double-click restore. |
 | `ClipboardHistoryRepository` | Performs SQLite CRUD with bound parameters. |
 | `ClipboardHistoryViewModel` | Manages main panel history state and user actions. |
 | `MainPanelView` | Displays search, text previews, time, restore, delete, and clear actions. |
@@ -51,5 +52,6 @@ Automated tests cover:
 - monitor change detection, no-change skipping, source metadata, and restore skipping
 - SQLite save, dedupe, search, delete, and text length metadata
 - clipboard restore guard state
+- restore success/failure reporting and paste command dispatch
 
-Manual verification still needs to cover visible menu bar behavior, copying from real apps, restart persistence, and using restore from the main panel.
+Manual verification still needs to cover visible menu bar behavior, copying from real apps, restart persistence, using restore from the main panel, and double-click paste after Accessibility permission is granted.

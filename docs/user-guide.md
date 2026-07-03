@@ -16,7 +16,9 @@ The main history window shows text and image records in newest-first order. Use 
 
 ## Restore Items
 
-Select a record and click the restore button, or use keyboard selection and press `Enter`. The app writes the selected text or image back to the system clipboard. It does not automatically paste into the foreground app.
+Select a record and click the restore button, or use keyboard selection and press `Enter`. The app writes the selected text or image back to the system clipboard. Double-click a history row to restore that item, close the history window, return focus to the app that was active before opening history, and send `Command + V`.
+
+The first double-click paste may ask for macOS Accessibility permission because the app must send a keyboard shortcut to another app. After granting permission in System Settings, reopen history and double-click the item again.
 
 ## Manage Data
 

@@ -48,6 +48,8 @@
 - Added `scripts/scan-privacy-log-safety.sh`, switched the central Logger wrapper to OSLog private privacy by default, and wired the scan into the release readiness report.
 - Added `scripts/release-install-preflight.sh` to copy a Release app into a temporary install directory, launch it with isolated sandbox-container data, verify SQLite schema initialization, and confirm quit behavior.
 - Added reproducible App Icon generation and verification scripts, generated the macOS AppIcon PNG set, and wired icon verification into the release readiness report.
+- Added double-click paste from the history list: a successful restore closes the history window, reactivates the previous foreground app, and sends `Command + V`.
+- Added `PasteCommandService` and tests for restore success/failure reporting plus paste command dispatch.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
@@ -85,6 +87,7 @@
 - `scripts/scan-privacy-log-safety.sh` passed on current app sources, and a temporary violating Swift sample correctly failed for direct console logging and raw clipboard-content logging.
 - `scripts/release-install-preflight.sh --no-build` passed, confirming a copied Release app can launch from a temporary install directory, create isolated local storage in the app sandbox container, and quit cleanly.
 - `scripts/generate-app-icon.swift` generated all 10 macOS AppIcon PNG slots, and `scripts/verify-app-icon-assets.sh` confirmed unique filenames and expected pixel dimensions.
+- Targeted `ClipboardHistoryViewModelTests` and `PasteCommandServiceTests` passed with 9 tests and 0 failures after adding double-click paste support.
 - `scripts/preview-release-app.sh --build-only` and `scripts/package-release-qa-build.sh --output-dir build/release-qa-entry-verify` passed in parallel after wiring Xcode file-reference validation into release entry points and serializing XcodeGen.
 - `scripts/release-smoke-test.sh` passed after wiring Xcode file-reference validation into the Release smoke build entry point.
 - Targeted `ClipboardDataClearServiceTests` passed with 1 test and 0 failures after extracting clear-all behavior into a service.

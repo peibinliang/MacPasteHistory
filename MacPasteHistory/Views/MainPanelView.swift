@@ -2,6 +2,8 @@ import SwiftUI
 
 struct MainPanelView: View {
     @StateObject private var viewModel: ClipboardHistoryViewModel
+    private let pasteCommandService: PasteCommandService
+    private let pasteTargetApplication: NSRunningApplication?
     @State private var selectedItem: ClipboardHistoryItem?
     @State private var selectedFilter: HistoryContentFilter = .all
     @State private var selectedKeyboardItem: Int64?
@@ -10,8 +12,14 @@ struct MainPanelView: View {
     @State private var toastMessage = ""
     @Environment(\.dismiss) private var dismiss
 
-    init(viewModel: ClipboardHistoryViewModel) {
+    init(
+        viewModel: ClipboardHistoryViewModel,
+        pasteCommandService: PasteCommandService = PasteCommandService(),
+        pasteTargetApplication: NSRunningApplication? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.pasteCommandService = pasteCommandService
+        self.pasteTargetApplication = pasteTargetApplication
     }
 
     var body: some View {
@@ -118,6 +126,18 @@ struct MainPanelView: View {
         showCopyToast()
     }
 
+    private func pasteIntoPreviousApplication(_ item: ClipboardHistoryItem) {
+        guard viewModel.restore(item) else {
+            return
+        }
+        closePanel()
+        pasteTargetApplication?.activate(options: [])
+        Task {
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            pasteCommandService.sendPasteCommand()
+        }
+    }
+
     private var filterBar: some View {
         HStack(spacing: 12) {
             Toggle(isOn: $viewModel.isFavoritesOnly) {
@@ -162,6 +182,9 @@ struct MainPanelView: View {
                         },
                         restoreAction: {
                             restoreAndShowFeedback(item)
+                        },
+                        pasteAction: {
+                            pasteIntoPreviousApplication(item)
                         },
                         deleteAction: {
                             viewModel.delete(item)
@@ -235,26 +258,42 @@ private struct HistoryRowView: View {
     let detailAction: () -> Void
     let favoriteAction: () -> Void
     let restoreAction: () -> Void
+    let pasteAction: () -> Void
     let deleteAction: () -> Void
 
     private let formatter = HistoryDisplayFormatter()
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            if item.contentType == .image {
-                HistoryImagePreview(path: item.thumbnailPath, size: NSSize(width: 64, height: 48))
-            }
+            HStack(alignment: .center, spacing: 12) {
+                if item.contentType == .image {
+                    HistoryImagePreview(path: item.thumbnailPath, size: NSSize(width: 64, height: 48))
+                }
 
-            VStack(alignment: .leading, spacing: 6) {
-                metadataLine
-                Text(previewText)
-                    .font(.body)
-                    .lineLimit(3, reservesSpace: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
+                VStack(alignment: .leading, spacing: 6) {
+                    metadataLine
+                    Text(previewText)
+                        .font(.body)
+                        .lineLimit(3, reservesSpace: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
             }
             .contentShape(Rectangle())
-            .onTapGesture(perform: detailAction)
+            .gesture(
+                ExclusiveGesture(
+                    TapGesture(count: 2),
+                    TapGesture(count: 1)
+                )
+                .onEnded { value in
+                    switch value {
+                    case .first:
+                        pasteAction()
+                    case .second:
+                        detailAction()
+                    }
+                }
+            )
 
             Spacer()
 

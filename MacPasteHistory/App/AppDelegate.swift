@@ -145,6 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             logger.error("Cannot open history before local storage is initialized")
             return
         }
+        let pasteTargetApplication = Self.currentPasteTargetApplication()
         let viewModel = ClipboardHistoryViewModel(
             repository: clipboardHistoryRepository,
             writer: clipboardWriter,
@@ -152,11 +153,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         let controller = mainWindowController ?? createWindowController(
             title: "Clipboard History",
-            rootView: MainPanelView(viewModel: viewModel),
+            rootView: MainPanelView(
+                viewModel: viewModel,
+                pasteTargetApplication: pasteTargetApplication
+            ),
             size: NSSize(width: 520, height: 640)
         )
+        if let hostingView = controller.window?.contentView as? NSHostingView<MainPanelView> {
+            hostingView.rootView = MainPanelView(
+                viewModel: viewModel,
+                pasteTargetApplication: pasteTargetApplication
+            )
+        }
         mainWindowController = controller
         showWindow(controller)
+    }
+
+    private static func currentPasteTargetApplication() -> NSRunningApplication? {
+        let frontmostApplication = NSWorkspace.shared.frontmostApplication
+        guard frontmostApplication?.bundleIdentifier != Bundle.main.bundleIdentifier else {
+            return nil
+        }
+        return frontmostApplication
     }
 
     @objc private func openSettings() {
