@@ -44,6 +44,7 @@
 - Added `scripts/validate-xcode-file-references.sh` to regenerate the Xcode project and verify Swift file references resolve to real files.
 - Wired Xcode file-reference validation into Release preview, QA packaging, and Release smoke-test build entry points, with a lock around XcodeGen so concurrent release scripts do not corrupt or race project generation.
 - Added `scripts/release-readiness-report.sh` to aggregate Xcode file references, Xcode authorization, signing identities, release docs, screenshot assets, manual QA record validation, and git status into a final Markdown readiness report.
+- Added `scripts/prefill-manual-qa-record.sh` and wired it into manual Release QA session setup so objective build, package, signing, current-machine, and fixture fields are filled without marking manual QA scenarios as passed.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
@@ -73,6 +74,7 @@
 - Targeted `SettingsViewModelTests` passed with 2 tests and 0 failures after covering settings registration and error rollback.
 - `scripts/generate-release-screenshots.swift` generated 4 PNG assets; `file`, `sips`, and visual QA confirmed readable 5760x3600 screenshots without real clipboard data.
 - `scripts/start-manual-release-qa-session.sh --help` and `scripts/start-manual-release-qa-session.sh --no-build --output-dir build/manual-release-qa-session-verify` passed, confirming the manual QA session helper can prepare package artifacts, verification output, baseline evidence, fixtures, and a QA record copy from the current Release build.
+- `scripts/start-manual-release-qa-session.sh --no-build --output-dir build/manual-release-qa-session-prefill-verify` generated a prefilled QA record copy, and `scripts/validate-manual-qa-record.sh` correctly kept it failing because manual scenarios and distribution signing remain incomplete.
 - `scripts/validate-manual-qa-record.sh docs/release/manual-qa-record.md` correctly failed on the unfilled template, and the same script passed against a filled synthetic record in `build/manual-qa-record-validate-pass.md`.
 - `scripts/validate-xcode-file-references.sh` passed after regenerating `MacPasteHistory.xcodeproj`, checking that all Swift references, including `MacPasteHistory/Services/PrivacyService.swift`, resolve to existing files.
 - `scripts/release-readiness-report.sh --output build/release-readiness-report.md` correctly failed on the current unfilled manual QA record and missing signing identities while passing Xcode, docs, and screenshot checks.

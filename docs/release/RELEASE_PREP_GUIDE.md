@@ -127,6 +127,8 @@ scripts/start-manual-release-qa-session.sh
 
 该脚本会在 `build/manual-release-qa-session/<timestamp>-<commit>/` 下生成 Release QA 包、包校验报告、当前机器/构建基线、无隐私功能测试样本和 `manual-qa-record.md` 副本。脚本只负责准备证据输入，不会替代菜单栏、恢复、Clear All Data、Launch at login、Intel Mac 或多 macOS 版本的人工结果。
 
+会话内的 `manual-qa-record.md` 会通过 `scripts/prefill-manual-qa-record.sh` 自动预填构建、包校验、签名、当前机器和样本路径等客观字段；所有人工场景仍保持 `Not run`，必须由测试人员实际执行后填写。
+
 #### ⚠️ 已知风险
 
 | 风险 | 缓解措施 |

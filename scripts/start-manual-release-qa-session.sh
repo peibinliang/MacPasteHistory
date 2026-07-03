@@ -127,6 +127,14 @@ echo "Generating Release QA baseline..."
 scripts/release-qa-baseline.sh --app "$package_app_path" >"$baseline_path"
 
 cp docs/release/manual-qa-record.md "$manual_record_path"
+scripts/prefill-manual-qa-record.sh \
+    --record "$manual_record_path" \
+    --baseline "$baseline_path" \
+    --verification "$verification_path" \
+    --checksum "$checksum_path" \
+    --fixture-dir "$fixture_dir" \
+    --notes "Session prefilled from generated package, baseline, verification, and fixtures; manual results still required." \
+    >/tmp/macpastehistory-prefill-manual-qa-record.log
 
 cat >"$readme_path" <<EOF
 # Manual Release QA Session
@@ -148,8 +156,8 @@ Generated: $(date '+%Y-%m-%d %H:%M:%S %z')
 
 ## Recommended Order
 
-1. Review \`$baseline_path\` and copy build, signing, Sandbox, Xcode, macOS, and app availability values into \`$manual_record_path\`.
-2. Review \`$verification_path\` and copy the package verification result into \`$manual_record_path\`.
+1. Review the prefilled build, signing, Sandbox, Xcode, macOS, package, and fixture values in \`$manual_record_path\`.
+2. Cross-check \`$baseline_path\` and \`$verification_path\` if any prefilled value needs review.
 3. Launch the packaged app from Finder, or use \`scripts/preview-release-app.sh --seed-preview-data\` for a local isolated-data preview with synthetic history already loaded.
 4. Use files in \`$fixture_dir\` for Chrome, Safari, VS Code, WeChat, DingTalk, large-text, and image-copy scenarios.
 5. Fill every manual result in \`$manual_record_path\` with tester, date, environment, result, and screenshot or note references.

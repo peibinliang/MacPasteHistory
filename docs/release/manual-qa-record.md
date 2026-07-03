@@ -18,6 +18,19 @@ scripts/start-manual-release-qa-session.sh
 
 This creates a timestamped directory under `build/manual-release-qa-session/` with a QA package, package verification, baseline, synthetic fixtures, this record template, and a session `README.md`. Use the generated files as evidence inputs only; manual results still require direct tester confirmation.
 
+The session command pre-fills objective build, package, signing, current-machine, and fixture fields in the generated record copy. To pre-fill another record manually, run:
+
+```bash
+scripts/prefill-manual-qa-record.sh \
+  --record /path/to/manual-qa-record.md \
+  --baseline /path/to/release-qa-baseline.md \
+  --verification /path/to/package-verification.md \
+  --checksum /path/to/MacPasteHistory.zip.sha256 \
+  --fixture-dir /path/to/fixtures
+```
+
+Pre-fill does not change any manual scenario result from `Not run`.
+
 After filling this record, validate that no obvious placeholders or final-approval blockers remain:
 
 ```bash
