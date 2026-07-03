@@ -113,6 +113,12 @@ scripts/package-release-qa-build.sh
 
 输出位于 `build/release-qa/`，包含 `.app` 副本、`.zip`、`.sha256` 和 manifest。将 zip 交给 Intel Mac 或其他 macOS 测试设备时，同时把 manifest 中的版本、commit、签名、架构和 SHA-256 填入 `docs/release/manual-qa-record.md`。
 
+收到 QA zip 后，可先在目标机器校验包完整性、架构、签名和 Sandbox entitlement：
+
+```bash
+scripts/verify-release-qa-package.sh build/release-qa/MacPasteHistory-*.zip
+```
+
 #### ⚠️ 已知风险
 
 | 风险 | 缓解措施 |
@@ -315,6 +321,12 @@ scripts/package-release-qa-build.sh
 ```
 
 在目标机器解压 zip 后运行 `.app`，并把 manifest 与实际测试结果一起记录到 `docs/release/manual-qa-record.md`。当前没有有效分发证书时，zip 内应用仍可能是 ad-hoc 签名，只能作为本地/内部 QA 包，不可作为正式分发物。
+
+运行人工测试前先校验 QA 包：
+
+```bash
+scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
+```
 
 ### 2.1 Apple Silicon Mac 测试
 

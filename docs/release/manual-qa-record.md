@@ -16,6 +16,12 @@ For QA on another Mac, create a zip package and use the generated manifest:
 scripts/package-release-qa-build.sh
 ```
 
+Verify the received QA zip before testing:
+
+```bash
+scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
+```
+
 ## Build Under Test
 
 | Field | Value |
@@ -27,6 +33,7 @@ scripts/package-release-qa-build.sh
 | Version / build | `0.1.0 (1)` |
 | Signing identity | TBD |
 | Package SHA-256 | TBD |
+| Package verification | TBD |
 | Notes | TBD |
 
 ## Environment Coverage

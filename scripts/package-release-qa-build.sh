@@ -154,7 +154,10 @@ echo "Creating zip..."
     ditto -c -k --keepParent "$package_app_name" "$zip_name"
 )
 
-shasum -a 256 "$zip_path" >"$checksum_path"
+(
+    cd "$OUTPUT_DIR"
+    shasum -a 256 "$zip_name" >"$(basename "$checksum_path")"
+)
 
 {
     echo "# Release QA Package"
