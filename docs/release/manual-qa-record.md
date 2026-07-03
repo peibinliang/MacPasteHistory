@@ -2,6 +2,14 @@
 
 Use this file to record manual evidence that cannot be proven by local automation. Do not mark an OpenSpec task complete until the matching evidence below is filled in with tester, date, build path, environment, and result.
 
+Generate a current machine/build baseline before testing:
+
+```bash
+scripts/release-qa-baseline.sh --build
+```
+
+Copy the generated build, environment, signing, sandbox, and common-app availability values into the tables below, then replace each `Not run` result only after direct manual evidence exists.
+
 ## Build Under Test
 
 | Field | Value |

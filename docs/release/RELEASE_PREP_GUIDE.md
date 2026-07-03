@@ -97,6 +97,14 @@ scripts/release-environment-report.sh
 docs/release/manual-qa-record.md
 ```
 
+生成当前构建与机器环境基线：
+
+```bash
+scripts/release-qa-baseline.sh --build
+```
+
+该脚本输出 Markdown 证据片段，包含 git commit、Release app 路径、版本号、签名状态、Sandbox entitlement、Xcode 授权状态、当前 macOS/架构和常见测试应用安装情况。它不会替代人工验收；菜单栏、窗口、真实复制/恢复、Clear All Data、Launch at login、Intel Mac 和多 macOS 版本仍需在 `docs/release/manual-qa-record.md` 中记录实际结果。
+
 #### ⚠️ 已知风险
 
 | 风险 | 缓解措施 |
