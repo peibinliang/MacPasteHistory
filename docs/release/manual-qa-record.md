@@ -59,6 +59,14 @@ scripts/release-install-preflight.sh
 
 This launches a copied Release app from a temporary install directory, verifies isolated local storage initialization, and confirms quit behavior. Manual menu bar, restore, clear-all, and login-item checks still require direct tester evidence.
 
+The final readiness report runs the same install preflight by default:
+
+```bash
+scripts/release-readiness-report.sh --output build/release-readiness-report.md
+```
+
+Use `--skip-install-preflight` only for temporary diagnostics, not for final release approval.
+
 Generate synthetic, non-private copy fixtures for common-app and large-content testing:
 
 ```bash

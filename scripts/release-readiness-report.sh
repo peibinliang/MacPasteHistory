@@ -6,6 +6,7 @@ manual_record="$REPO_ROOT/docs/release/manual-qa-record.md"
 output_path=""
 allow_adhoc=0
 skip_xcodegen=0
+skip_install_preflight=0
 
 usage() {
     cat <<'EOF'
@@ -19,6 +20,8 @@ Options:
   --output PATH         Write the report to PATH as well as stdout.
   --allow-adhoc         Allow ad-hoc or missing signing for internal QA only.
   --skip-xcodegen       Validate the existing Xcode project without regenerating it.
+  --skip-install-preflight
+                        Skip launching a copied Release app during readiness checks.
   -h, --help            Show this help.
 EOF
 }
@@ -66,6 +69,9 @@ while [[ $# -gt 0 ]]; do
             ;;
         --skip-xcodegen)
             skip_xcodegen=1
+            ;;
+        --skip-install-preflight)
+            skip_install_preflight=1
             ;;
         -h|--help)
             usage
@@ -140,6 +146,15 @@ fi
 
 if ! run_capture "App icon assets" "$REPO_ROOT/scripts/verify-app-icon-assets.sh"; then
     add_blocker "App icon asset catalog is incomplete or has invalid PNG dimensions."
+fi
+
+if [[ "$skip_install_preflight" -eq 1 ]]; then
+    check_rows+=("| Release install preflight | SKIP | Skipped by --skip-install-preflight. |")
+    add_warning "Release install preflight was skipped; run scripts/release-install-preflight.sh before final release."
+else
+    if ! run_capture "Release install preflight" "$REPO_ROOT/scripts/release-install-preflight.sh"; then
+        add_blocker "Copied Release app failed install-copy launch, local storage initialization, or quit preflight."
+    fi
 fi
 
 xcode_path="$(xcode-select -p)"
@@ -250,6 +265,7 @@ Generated: $(date '+%Y-%m-%d %H:%M:%S %z')
 | Developer directory | \`$(escape_table_cell "$xcode_path")\` |
 | Manual QA record | \`$(escape_table_cell "$manual_record_display")\` |
 | Internal ad-hoc mode | \`$([[ "$allow_adhoc" -eq 1 ]] && printf "yes" || printf "no")\` |
+| Install preflight skipped | \`$([[ "$skip_install_preflight" -eq 1 ]] && printf "yes" || printf "no")\` |
 
 ## Automated Checks
 
