@@ -12,7 +12,7 @@ scripts/release-smoke-test.sh
 
 The script performs these steps:
 
-1. Regenerates `MacPasteHistory.xcodeproj` with XcodeGen.
+1. Regenerates `MacPasteHistory.xcodeproj` with XcodeGen and validates that Swift file references resolve to real files.
 2. Builds the `MacPasteHistory` scheme in Release mode for Apple Silicon.
 3. Confirms the built app contains the App Sandbox entitlement.
 4. Copies the built app to a temporary install directory.

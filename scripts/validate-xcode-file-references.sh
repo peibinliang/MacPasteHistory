@@ -4,6 +4,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_PATH="$REPO_ROOT/MacPasteHistory.xcodeproj"
 should_generate=1
+lock_dir=""
+lock_acquired=0
 
 usage() {
     cat <<'EOF'
@@ -23,6 +25,30 @@ require_command() {
         echo "Missing required command: $command_name" >&2
         exit 1
     fi
+}
+
+cleanup_lock() {
+    if [[ "$lock_acquired" -eq 1 && -n "$lock_dir" ]]; then
+        rm -rf "$lock_dir"
+    fi
+}
+
+acquire_xcodegen_lock() {
+    local attempt
+    mkdir -p "$REPO_ROOT/build"
+    lock_dir="$REPO_ROOT/build/xcodegen.lock"
+
+    for attempt in {1..150}; do
+        if mkdir "$lock_dir" 2>/dev/null; then
+            lock_acquired=1
+            trap cleanup_lock EXIT
+            return 0
+        fi
+        sleep 0.2
+    done
+
+    echo "Timed out waiting for XcodeGen lock: $lock_dir" >&2
+    exit 1
 }
 
 while [[ $# -gt 0 ]]; do
@@ -49,6 +75,7 @@ cd "$REPO_ROOT"
 
 if [[ "$should_generate" -eq 1 ]]; then
     require_command xcodegen
+    acquire_xcodegen_lock
     xcodegen generate --spec project.yml >/tmp/macpastehistory-xcode-file-reference-xcodegen.log
 fi
 

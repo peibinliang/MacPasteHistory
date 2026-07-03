@@ -98,8 +98,8 @@ require_command xcodegen
 cd "$REPO_ROOT"
 
 if [[ "$should_build" -eq 1 ]]; then
-    echo "Generating Xcode project..."
-    xcodegen generate >/dev/null
+    echo "Validating Xcode file references..."
+    scripts/validate-xcode-file-references.sh
 
     echo "Building generic Release app..."
     xcodebuild \

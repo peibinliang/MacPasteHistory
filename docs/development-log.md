@@ -41,6 +41,7 @@
 - Added `scripts/start-manual-release-qa-session.sh` to prepare a timestamped manual Release QA session workspace with package artifacts, verification output, baseline evidence, fixtures, and a QA record copy.
 - Added `scripts/validate-manual-qa-record.sh` to catch incomplete manual Release QA records before final release approval.
 - Added `scripts/validate-xcode-file-references.sh` to regenerate the Xcode project and verify Swift file references resolve to real files.
+- Wired Xcode file-reference validation into Release preview, QA packaging, and Release smoke-test build entry points, with a lock around XcodeGen so concurrent release scripts do not corrupt or race project generation.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
 - Added `DataCleanupServiceTests` coverage for expired image file cleanup.
 - Added `DataCleanupServiceTests` coverage for text count limits, image count limits, favorite-preserving image count limits, and image storage cap cleanup.
@@ -71,6 +72,8 @@
 - `scripts/start-manual-release-qa-session.sh --help` and `scripts/start-manual-release-qa-session.sh --no-build --output-dir build/manual-release-qa-session-verify` passed, confirming the manual QA session helper can prepare package artifacts, verification output, baseline evidence, fixtures, and a QA record copy from the current Release build.
 - `scripts/validate-manual-qa-record.sh docs/release/manual-qa-record.md` correctly failed on the unfilled template, and the same script passed against a filled synthetic record in `build/manual-qa-record-validate-pass.md`.
 - `scripts/validate-xcode-file-references.sh` passed after regenerating `MacPasteHistory.xcodeproj`, checking that all Swift references, including `MacPasteHistory/Services/PrivacyService.swift`, resolve to existing files.
+- `scripts/preview-release-app.sh --build-only` and `scripts/package-release-qa-build.sh --output-dir build/release-qa-entry-verify` passed in parallel after wiring Xcode file-reference validation into release entry points and serializing XcodeGen.
+- `scripts/release-smoke-test.sh` passed after wiring Xcode file-reference validation into the Release smoke build entry point.
 - Targeted `ClipboardDataClearServiceTests` passed with 1 test and 0 failures after extracting clear-all behavior into a service.
 - Targeted `DataCleanupServiceTests` passed with 5 tests and 0 failures after adding count-limit and storage-cap cleanup coverage.
 - Targeted `DataCleanupServiceTests` passed after reproducing and fixing expired image file cleanup.

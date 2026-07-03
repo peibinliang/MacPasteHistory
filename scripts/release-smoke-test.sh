@@ -320,8 +320,8 @@ require_command defaults
 require_command killall
 require_command launchctl
 
-echo "Generating Xcode project..."
-xcodegen generate >/dev/null
+echo "Validating Xcode file references..."
+scripts/validate-xcode-file-references.sh
 
 echo "Building Release app..."
 xcodebuild \

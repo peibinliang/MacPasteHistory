@@ -19,7 +19,7 @@
   - 实现描述：生成 Release 应用包并在本机独立启动验证。
   - 前置条件：Sandbox、签名和 Release 设置已配置。
   - 验收条件：Release 包可启动、显示菜单栏图标、打开窗口并执行基本复制历史流程。
-  - 当前进展：`scripts/release-smoke-test.sh` 已验证 Release app 临时安装副本可启动、捕获模拟文本/图片、写入沙盒数据库、正常退出并在重启后保留历史；菜单栏图标、窗口打开和恢复流程仍需人工 UI 验证。
+  - 当前进展：`scripts/release-smoke-test.sh` 已验证 Release app 临时安装副本可启动、捕获模拟文本/图片、写入沙盒数据库、正常退出并在重启后保留历史；`scripts/preview-release-app.sh`、`scripts/package-release-qa-build.sh` 和 `scripts/release-smoke-test.sh` 已接入 `scripts/validate-xcode-file-references.sh`，构建前会重生成工程并校验 Swift 引用可解析到真实文件，避免陈旧 Xcode 引用导致 Release 构建入口失败；菜单栏图标、窗口打开和恢复流程仍需人工 UI 验证。
 
 ## 2. Compatibility Testing
 
