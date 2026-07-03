@@ -153,6 +153,10 @@ if ! run_capture "App icon assets" "$REPO_ROOT/scripts/verify-app-icon-assets.sh
     add_blocker "App icon asset catalog is incomplete or has invalid PNG dimensions."
 fi
 
+if ! run_capture "Screenshot assets" "$REPO_ROOT/scripts/verify-release-screenshot-assets.sh"; then
+    add_blocker "Required release screenshot assets are missing or have invalid PNG dimensions."
+fi
+
 if [[ "$skip_release_smoke" -eq 1 ]]; then
     check_rows+=("| Release smoke test | SKIP | Skipped by --skip-release-smoke. |")
     add_warning "Release smoke test was skipped; run scripts/release-smoke-test.sh before final release."
@@ -222,25 +226,6 @@ if [[ "${#missing_docs[@]}" -eq 0 ]]; then
 else
     check_rows+=("| Release docs | FAIL | Missing or empty: \`$(escape_table_cell "${missing_docs[*]}")\` |")
     add_blocker "Required release documentation is missing or empty."
-fi
-
-required_screenshots=(
-    "docs/release/screenshots/01-history-overview.png"
-    "docs/release/screenshots/02-image-history.png"
-    "docs/release/screenshots/03-settings-controls.png"
-    "docs/release/screenshots/04-local-privacy.png"
-)
-missing_screenshots=()
-for relative_path in "${required_screenshots[@]}"; do
-    if [[ ! -s "$REPO_ROOT/$relative_path" ]]; then
-        missing_screenshots+=("$relative_path")
-    fi
-done
-if [[ "${#missing_screenshots[@]}" -eq 0 ]]; then
-    check_rows+=("| Screenshot assets | PASS | Four required release screenshots exist. |")
-else
-    check_rows+=("| Screenshot assets | FAIL | Missing or empty: \`$(escape_table_cell "${missing_screenshots[*]}")\` |")
-    add_blocker "Required release screenshot assets are missing or empty."
 fi
 
 manual_args=("$REPO_ROOT/scripts/validate-manual-qa-record.sh")

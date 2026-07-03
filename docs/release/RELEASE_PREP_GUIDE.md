@@ -711,6 +711,7 @@ MacPasteHistory **不收集任何个人身份信息**。
 - macOS 模板框架使用 [App Store Marketing Guidelines](https://developer.apple.com/app-store/marketing/guidelines/) 的官方模板
 - 分辨率: 2x（确保 Retina 清晰）
 - 当前输出为 5760 × 3600 PNG，可按最终上架渠道要求裁切或导出目标尺寸
+- 使用 `scripts/verify-release-screenshot-assets.sh` 校验 4 张 PNG 均存在、可读取且尺寸为 5760 × 3600
 
 #### App Icon
 
@@ -719,6 +720,7 @@ MacPasteHistory **不收集任何个人身份信息**。
 ```bash
 scripts/generate-app-icon.swift
 scripts/verify-app-icon-assets.sh
+scripts/verify-release-screenshot-assets.sh
 ```
 
 图标位于 `MacPasteHistory/Resources/Assets.xcassets/AppIcon.appiconset/`，覆盖 macOS 所需的 16、32、64、128、256、512、1024 像素 PNG，并由 `project.yml` 中的 `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon` 绑定到应用 target。
@@ -740,7 +742,7 @@ scripts/verify-app-icon-assets.sh
 scripts/release-readiness-report.sh --output build/release-readiness-report.md
 ```
 
-该报告会汇总 Xcode 文件引用、日志隐私扫描、App Icon 素材、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、用户文档、隐私政策、截图素材、人工 QA 记录和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份降级为警告，不能作为最终分发验收依据。
+该报告会汇总 Xcode 文件引用、日志隐私扫描、App Icon 素材、截图 PNG 尺寸、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、用户文档、隐私政策、人工 QA 记录和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份降级为警告，不能作为最终分发验收依据。
 
 如果只需要临时检查静态材料，可使用 `--skip-release-smoke` 和 `--skip-install-preflight` 跳过启动类检查；最终发布验收不得跳过：
 

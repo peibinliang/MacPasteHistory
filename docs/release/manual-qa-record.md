@@ -87,6 +87,12 @@ Verify the App Icon asset catalog before release packaging:
 scripts/verify-app-icon-assets.sh
 ```
 
+Verify generated screenshot assets before release packaging:
+
+```bash
+scripts/verify-release-screenshot-assets.sh
+```
+
 ## Build Under Test
 
 | Field | Value |
