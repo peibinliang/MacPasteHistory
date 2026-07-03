@@ -251,7 +251,19 @@ open ./build/export/MacPasteHistory.app
 当前本机 Release 构建产物也可以直接预览：
 
 ```bash
-open /Users/peibin/Library/Developer/Xcode/DerivedData/MacPasteHistory-awiwxtplxobenwdpvorbtrqhtjax/Build/Products/Release/MacPasteHistory.app
+scripts/preview-release-app.sh
+```
+
+如需只构建并打印产物路径：
+
+```bash
+scripts/preview-release-app.sh --build-only
+```
+
+如需使用临时隔离数据目录预览，避免写入真实历史数据库：
+
+```bash
+scripts/preview-release-app.sh --isolated-data
 ```
 
 确认以下行为：
@@ -260,7 +272,7 @@ open /Users/peibin/Library/Developer/Xcode/DerivedData/MacPasteHistory-awiwxtplx
 - 复制一段文本 → 历史窗口中出现记录
 - 重启应用后历史记录仍保留
 
-`scripts/release-smoke-test.sh` 已自动验证临时安装副本可启动、捕获文本/图片、退出并重启后历史仍保留；菜单栏图标、窗口打开和恢复仍需人工确认。
+`scripts/release-smoke-test.sh` 已自动验证临时安装副本可启动、捕获文本/图片、退出并重启后历史仍保留；`scripts/preview-release-app.sh` 可用于后续人工确认菜单栏图标、窗口打开和恢复流程。
 
 #### ✅ 验收清单
 
