@@ -121,6 +121,7 @@ scripts/verify-app-icon-assets.sh
 | Quit and relaunch | Quit from menu, reopen Release app | App exits cleanly and relaunches. | ⬜ Not run | TBD |
 | Restart persistence | Copy sample text/image, quit, relaunch | Existing history remains visible. | ⬜ Not run | TBD |
 | Restore text | Click restore on a text item, paste into TextEdit | Pasted text matches source. | ⬜ Not run | TBD |
+| Double-click paste | Open history from a text-field app, double-click a text history item | History window closes, focus returns to the original app, and matching text is pasted; grant Accessibility permission first if prompted. | ⬜ Not run | TBD |
 | Restore image | Click restore on an image item, paste into Preview/Notes | Pasted image matches source. | ⬜ Not run | TBD |
 | Clear all data | Settings -> Clear All Data -> confirm | Database records and image files are removed; list refreshes. | ⬜ Not run | TBD |
 | Launch at login | Enable setting, log out/in or restart | App starts automatically if setting remains enabled. | ⬜ Not run | TBD |

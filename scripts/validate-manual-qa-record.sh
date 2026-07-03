@@ -28,6 +28,13 @@ require_section() {
     fi
 }
 
+require_workflow_row() {
+    local scenario_name="$1"
+    if ! grep -qE "^\\|[[:space:]]*$scenario_name[[:space:]]*\\|" "$record_path"; then
+        add_blocker "Missing required Release App Workflow row: $scenario_name"
+    fi
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --allow-adhoc)
@@ -64,8 +71,24 @@ required_sections=(
     "Decision"
 )
 
+required_workflow_rows=(
+    "First launch"
+    "Open history"
+    "Quit and relaunch"
+    "Restart persistence"
+    "Restore text"
+    "Double-click paste"
+    "Restore image"
+    "Clear all data"
+    "Launch at login"
+)
+
 for section_name in "${required_sections[@]}"; do
     require_section "$section_name"
+done
+
+for scenario_name in "${required_workflow_rows[@]}"; do
+    require_workflow_row "$scenario_name"
 done
 
 placeholder_lines="$(grep -nE '^\|.*TBD|^\|.*Not run' "$record_path" || true)"
@@ -92,6 +115,7 @@ echo "| Field | Value |"
 echo "|---|---|"
 echo "| Record | \`$record_path\` |"
 echo "| Required sections | \`${#required_sections[@]}\` |"
+echo "| Required workflow rows | \`${#required_workflow_rows[@]}\` |"
 echo "| TBD / Not run lines | \`$(printf "%s\n" "$placeholder_lines" | sed '/^$/d' | wc -l | tr -d ' ')\` |"
 echo "| Ad-hoc allowed | \`$([[ "$allow_adhoc" -eq 1 ]] && printf "yes" || printf "no")\` |"
 echo
