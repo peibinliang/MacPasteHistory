@@ -704,6 +704,20 @@ MacPasteHistory **不收集任何个人身份信息**。
 
 ## 阶段 5: 最终验收
 
+人工记录填写完成后，先运行最终记录校验：
+
+```bash
+scripts/validate-manual-qa-record.sh docs/release/manual-qa-record.md
+```
+
+如果仍处于内部 QA、尚未安装分发证书，可临时使用：
+
+```bash
+scripts/validate-manual-qa-record.sh --allow-adhoc docs/release/manual-qa-record.md
+```
+
+`--allow-adhoc` 只用于内部 QA，不得作为最终分发签名验收依据。该脚本会检查必需章节、`TBD`、`Not run`、最终发布决定和签名/Team ID 明显缺口。
+
 ### 汇总检查
 
 | # | 检查项 | 阶段 | 状态 |
