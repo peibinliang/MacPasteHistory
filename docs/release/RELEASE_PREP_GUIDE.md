@@ -704,6 +704,14 @@ MacPasteHistory **不收集任何个人身份信息**。
 
 ## 阶段 5: 最终验收
 
+先生成发布就绪汇总报告：
+
+```bash
+scripts/release-readiness-report.sh --output build/release-readiness-report.md
+```
+
+该报告会汇总 Xcode 文件引用、Xcode 授权、签名身份、用户文档、隐私政策、截图素材、人工 QA 记录和 git 工作区状态。正式分发前报告必须无 `Blockers`。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份降级为警告，不能作为最终分发验收依据。
+
 人工记录填写完成后，先运行最终记录校验：
 
 ```bash
