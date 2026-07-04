@@ -158,6 +158,16 @@ if [[ -d "$fixture_dir" ]]; then
     fi
 fi
 
+manifest_status="not checked"
+if [[ -s "$manifest_path" ]]; then
+    if scripts/verify-release-qa-manifest.sh "$manifest_path" >/tmp/macpastehistory-session-manifest.log 2>&1; then
+        manifest_status="passed"
+    else
+        manifest_status="failed"
+        add_violation "Release QA manifest verification failed."
+    fi
+fi
+
 if [[ -s "$verification_path" ]] && ! grep -q "# Release QA Package Verification" "$verification_path"; then
     add_violation "Package verification report does not look like scripts/verify-release-qa-package.sh output."
 fi
@@ -188,6 +198,7 @@ echo "| Packaged app | \`${package_app_path:-missing}\` |"
 echo "| QA zip | \`${zip_path:-missing}\` |"
 echo "| SHA-256 file | \`${checksum_path:-missing}\` |"
 echo "| Package manifest | \`${manifest_path:-missing}\` |"
+echo "| Package manifest verification | \`$manifest_status\` |"
 echo "| Package verification | \`$verification_path\` |"
 echo "| Release baseline | \`$baseline_path\` |"
 echo "| Release baseline verification | \`$baseline_status\` |"
@@ -227,6 +238,15 @@ if [[ -s /tmp/macpastehistory-session-baseline.log ]]; then
     echo
     echo '```text'
     cat /tmp/macpastehistory-session-baseline.log
+    echo '```'
+fi
+
+if [[ -s /tmp/macpastehistory-session-manifest.log ]]; then
+    echo
+    echo "## Manifest Output"
+    echo
+    echo '```text'
+    cat /tmp/macpastehistory-session-manifest.log
     echo '```'
 fi
 

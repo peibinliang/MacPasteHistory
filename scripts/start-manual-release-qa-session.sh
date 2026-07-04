@@ -167,6 +167,7 @@ Generated: $(date '+%Y-%m-%d %H:%M:%S %z')
    - \`scripts/verify-release-screenshot-assets.sh\`
    - \`scripts/verify-manual-qa-fixtures.sh\`
    - \`scripts/verify-release-qa-baseline.sh "$baseline_path"\`
+   - \`scripts/verify-release-qa-manifest.sh "$manifest_path"\`
    - \`scripts/verify-signing-identities.sh --allow-adhoc\` for internal QA, or without the flag for final distribution
    - \`scripts/verify-release-app-signature.sh --allow-adhoc\` for internal QA, or without the flag for final distribution
 4. Run \`scripts/release-install-preflight.sh --no-build\` to verify a copied Release app can launch, initialize isolated local storage, and quit.

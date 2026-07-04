@@ -30,6 +30,12 @@ This also validates `release-qa-baseline.md`. To check only the baseline evidenc
 scripts/verify-release-qa-baseline.sh build/manual-release-qa-session/<session>/release-qa-baseline.md
 ```
 
+To check only the package manifest and its embedded baseline, run:
+
+```bash
+scripts/verify-release-qa-manifest.sh build/manual-release-qa-session/<session>/package/MacPasteHistory-*-manifest.md
+```
+
 The session command pre-fills objective build, package, signing, current-machine, and fixture fields in the generated record copy. To pre-fill another record manually, run:
 
 ```bash
