@@ -47,6 +47,7 @@
 - Added release entitlement boundary verification to release readiness checks.
 - Added release identity verification to release readiness checks.
 - Added explicit Xcode authorization verification to release readiness checks.
+- Added explicit signing identity verification with internal QA ad-hoc warnings.
 
 ### Fixed
 

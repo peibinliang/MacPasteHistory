@@ -152,15 +152,21 @@ run_capture() {
     output="$(cat "$tmp_file")"
     rm -f "$tmp_file"
 
-    local label
-    if [[ "$status" -eq 0 ]]; then
-        label="PASS"
-    else
-        label="FAIL"
-    fi
-
     local summary
     summary="$(printf "%s\n" "$output" | awk '/^Status:/ {sub(/^Status:[[:space:]]*/, ""); print; found=1} END {if (!found) print "See detailed output."}' | tail -1)"
+    local label
+    case "$summary" in
+        PASS|WARN|SKIP|FAIL)
+            label="$summary"
+            ;;
+        *)
+            if [[ "$status" -eq 0 ]]; then
+                label="PASS"
+            else
+                label="FAIL"
+            fi
+            ;;
+    esac
     add_check_row "$check_name" "$label" "$summary"
 
     detailed_sections+=("## $check_name"$'\n\n```text\n'"$output"$'\n```')
@@ -249,20 +255,18 @@ if ! run_capture "Xcode authorization" "$REPO_ROOT/scripts/verify-xcode-authoriz
     add_blocker "Xcode developer directory, first-launch authorization, or license acceptance is incomplete."
 fi
 
-identity_output="$(security find-identity -v -p codesigning 2>/dev/null || true)"
-identity_count="$(printf "%s\n" "$identity_output" | awk '/valid identities found/ {print $1; found=1} END {if (!found) print 0}')"
-if [[ "$identity_count" -eq 0 ]]; then
-    if [[ "$allow_adhoc" -eq 1 ]]; then
-        add_check_row "Signing identities" "WARN" "No valid identities found; allowed only for internal QA."
-        add_warning "No valid code signing identities are installed; formal distribution remains blocked."
-    else
-        add_check_row "Signing identities" "FAIL" "No valid code signing identities found."
-        add_blocker "Install an Apple Development, Apple Distribution, or Developer ID Application signing identity."
-    fi
-else
-    add_check_row "Signing identities" "PASS" "Valid code signing identities: \`$identity_count\`"
+signing_identity_args=("$REPO_ROOT/scripts/verify-signing-identities.sh")
+if [[ "$allow_adhoc" -eq 1 ]]; then
+    signing_identity_args+=("--allow-adhoc")
 fi
-detailed_sections+=("## Signing Identities"$'\n\n```text\n'"$identity_output"$'\n```')
+if ! run_capture "Signing identities" "${signing_identity_args[@]}"; then
+    add_blocker "Install an Apple Development, Apple Distribution, or Developer ID Application signing identity."
+else
+    last_check_index=$((${#check_statuses[@]} - 1))
+    if [[ "${check_statuses[$last_check_index]}" == "WARN" ]]; then
+        add_warning "No valid code signing identities are installed; formal distribution remains blocked."
+    fi
+fi
 
 required_docs=(
     "docs/user-guide.md"
