@@ -268,6 +268,19 @@ else
     fi
 fi
 
+release_app_signature_args=("$REPO_ROOT/scripts/verify-release-app-signature.sh")
+if [[ "$allow_adhoc" -eq 1 ]]; then
+    release_app_signature_args+=("--allow-adhoc")
+fi
+if ! run_capture "Release app signature" "${release_app_signature_args[@]}"; then
+    add_blocker "Release app is not signed with a distribution-capable Team ID or failed code-signature verification."
+else
+    last_check_index=$((${#check_statuses[@]} - 1))
+    if [[ "${check_statuses[$last_check_index]}" == "WARN" ]]; then
+        add_warning "Release app is ad-hoc signed; formal distribution remains blocked until a Team-signed app is produced."
+    fi
+fi
+
 required_docs=(
     "docs/user-guide.md"
     "docs/privacy-policy.md"
