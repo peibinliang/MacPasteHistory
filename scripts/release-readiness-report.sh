@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 manual_record="$REPO_ROOT/docs/release/manual-qa-record.md"
+qa_session=""
 output_path=""
 json_output_path=""
 allow_adhoc=0
@@ -20,6 +21,7 @@ manual QA evidence.
 
 Options:
   --manual-record PATH  Manual QA record to validate.
+  --qa-session PATH     Validate a generated manual QA session directory.
   --output PATH         Write the report to PATH as well as stdout.
   --json-output PATH    Write a machine-readable readiness summary to PATH.
   --allow-adhoc         Allow ad-hoc or missing signing for internal QA only.
@@ -60,6 +62,14 @@ while [[ $# -gt 0 ]]; do
                 exit 2
             fi
             manual_record="$2"
+            shift
+            ;;
+        --qa-session)
+            if [[ $# -lt 2 ]]; then
+                echo "--qa-session requires a path" >&2
+                exit 2
+            fi
+            qa_session="$2"
             shift
             ;;
         --output)
@@ -217,6 +227,15 @@ if ! run_capture "Manual QA fixtures" "$REPO_ROOT/scripts/verify-manual-qa-fixtu
     add_blocker "Manual QA fixtures failed generation or validation."
 fi
 
+if [[ -n "$qa_session" ]]; then
+    if ! run_capture "Manual QA session" "$REPO_ROOT/scripts/verify-manual-release-qa-session.sh" "$qa_session"; then
+        add_blocker "Manual Release QA session directory is incomplete."
+    fi
+else
+    add_check_row "Manual QA session" "SKIP" "No --qa-session provided."
+    add_warning "Manual Release QA session directory was not validated; run scripts/start-manual-release-qa-session.sh and pass --qa-session before final release."
+fi
+
 if [[ "$skip_release_smoke" -eq 1 ]]; then
     add_check_row "Release smoke test" "SKIP" "Skipped by --skip-release-smoke."
     add_warning "Release smoke test was skipped; run scripts/release-smoke-test.sh before final release."
@@ -326,6 +345,11 @@ macos_version="$(sw_vers -productVersion)"
 macos_build="$(sw_vers -buildVersion)"
 git_commit="$(git rev-parse --short HEAD)"
 manual_record_display="$(cd "$REPO_ROOT" && python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], os.getcwd()))' "$manual_record" 2>/dev/null || printf "%s" "$manual_record")"
+if [[ -n "$qa_session" ]]; then
+    qa_session_display="$(cd "$REPO_ROOT" && python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], os.getcwd()))' "$qa_session" 2>/dev/null || printf "%s" "$qa_session")"
+else
+    qa_session_display="not provided"
+fi
 generated_at="$(date '+%Y-%m-%d %H:%M:%S %z')"
 
 emit_report() {
@@ -343,6 +367,7 @@ Generated: $generated_at
 | Xcode | \`$(escape_table_cell "$xcode_version")\` |
 | Developer directory | \`$(escape_table_cell "$xcode_path")\` |
 | Manual QA record | \`$(escape_table_cell "$manual_record_display")\` |
+| Manual QA session | \`$(escape_table_cell "$qa_session_display")\` |
 | Internal ad-hoc mode | \`$([[ "$allow_adhoc" -eq 1 ]] && printf "yes" || printf "no")\` |
 | Release smoke skipped | \`$([[ "$skip_release_smoke" -eq 1 ]] && printf "yes" || printf "no")\` |
 | Install preflight skipped | \`$([[ "$skip_install_preflight" -eq 1 ]] && printf "yes" || printf "no")\` |
@@ -459,6 +484,7 @@ payload = {
         "licenseStatus": "$license_status",
     },
     "manualQaRecord": "$manual_record_display",
+    "manualQaSession": "$qa_session_display",
     "internalAdhocMode": bool($allow_adhoc),
     "releaseSmokeSkipped": bool($skip_release_smoke),
     "installPreflightSkipped": bool($skip_install_preflight),

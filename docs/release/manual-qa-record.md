@@ -68,7 +68,10 @@ This launches a copied Release app from a temporary install directory, verifies 
 The final readiness report runs the same install preflight by default:
 
 ```bash
-scripts/release-readiness-report.sh --output build/release-readiness-report.md
+scripts/release-readiness-report.sh \
+  --manual-record build/manual-release-qa-session/<session>/manual-qa-record.md \
+  --qa-session build/manual-release-qa-session/<session> \
+  --output build/release-readiness-report.md
 ```
 
 The final readiness report also runs the synthetic Release smoke test by default. Use `--skip-release-smoke` or `--skip-install-preflight` only for temporary diagnostics, not for final release approval.
