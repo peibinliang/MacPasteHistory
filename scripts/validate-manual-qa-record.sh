@@ -77,6 +77,25 @@ build_field_value() {
     ' "$record_path"
 }
 
+markdown_table_value() {
+    local file_path="$1"
+    local field_name="$2"
+    awk -F'|' -v field="$field_name" '
+        function trim(value) {
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+            gsub(/^`|`$/, "", value)
+            return value
+        }
+        $2 {
+            key = trim($2)
+            if (key == field) {
+                print trim($3)
+                exit
+            }
+        }
+    ' "$file_path"
+}
+
 resolve_record_path() {
     local raw_path="$1"
     local record_dir
@@ -88,6 +107,19 @@ resolve_record_path() {
         printf "%s" "$REPO_ROOT/$raw_path"
     else
         printf "%s" "$record_dir/$raw_path"
+    fi
+}
+
+resolve_manifest_path() {
+    local raw_path="$1"
+    local manifest_dir="$2"
+
+    if [[ "$raw_path" = /* ]]; then
+        printf "%s" "$raw_path"
+    elif [[ -e "$REPO_ROOT/$raw_path" ]]; then
+        printf "%s" "$REPO_ROOT/$raw_path"
+    else
+        printf "%s" "$manifest_dir/$raw_path"
     fi
 }
 
@@ -119,6 +151,7 @@ fi
 
 blockers=()
 manifest_status="not checked"
+package_sha_status="not checked"
 rm -f /tmp/macpastehistory-manual-record-manifest.log
 required_sections=(
     "Build Under Test"
@@ -237,6 +270,32 @@ else
     fi
 fi
 
+if [[ "$manifest_status" == "passed" ]]; then
+    package_sha_value="$(build_field_value "Package SHA-256" | tr '[:upper:]' '[:lower:]')"
+    checksum_value="$(markdown_table_value "$manifest_path" "SHA-256 file")"
+    if [[ -z "$checksum_value" || "$checksum_value" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
+        package_sha_status="missing checksum"
+        add_blocker "Package manifest does not list a SHA-256 file."
+    else
+        checksum_path="$(resolve_manifest_path "$checksum_value" "$(cd "$(dirname "$manifest_path")" && pwd)")"
+        if [[ ! -s "$checksum_path" ]]; then
+            package_sha_status="missing checksum"
+            add_blocker "Package SHA-256 checksum file is missing or empty: $checksum_value"
+        else
+            expected_package_sha="$(awk 'NF {print tolower($1); exit}' "$checksum_path")"
+            if [[ -z "$package_sha_value" || -z "$expected_package_sha" ]]; then
+                package_sha_status="missing"
+                add_blocker "Package SHA-256 value is missing from the record or checksum file."
+            elif [[ "$package_sha_value" == "$expected_package_sha" ]]; then
+                package_sha_status="passed"
+            else
+                package_sha_status="mismatch"
+                add_blocker "Package SHA-256 does not match the manifest checksum file."
+            fi
+        fi
+    fi
+fi
+
 echo "# Manual QA Record Validation"
 echo
 echo "| Field | Value |"
@@ -250,6 +309,7 @@ echo "| Required common app rows | \`${#required_common_app_rows[@]}\` |"
 echo "| Required privacy rows | \`${#required_privacy_rows[@]}\` |"
 echo "| TBD / Not run lines | \`$(printf "%s\n" "$placeholder_lines" | sed '/^$/d' | wc -l | tr -d ' ')\` |"
 echo "| Package manifest verification | \`$manifest_status\` |"
+echo "| Package SHA-256 match | \`$package_sha_status\` |"
 echo "| Ad-hoc allowed | \`$([[ "$allow_adhoc" -eq 1 ]] && printf "yes" || printf "no")\` |"
 echo
 

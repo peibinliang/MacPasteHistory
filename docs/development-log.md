@@ -72,6 +72,7 @@
 - Added `scripts/verify-release-qa-manifest.sh` and wired manual QA session verification to validate package manifest fields, artifact paths, SHA-256 integrity, and embedded baseline evidence.
 - Added the package manifest to manual QA record prefill and validation so final records reference the exact QA package manifest under test.
 - Wired manual QA record validation to verify the referenced Package manifest file instead of only checking that the field is present.
+- Wired manual QA record validation to compare the recorded Package SHA-256 against the checksum file referenced by the Package manifest.
 - Added OpenSpec release-change progress to `scripts/release-readiness-report.sh` so readiness reports and JSON output list the exact remaining release tasks.
 - Added double-click paste from the history list: a successful restore closes the history window, reactivates the previous foreground app, and sends `Command + V`.
 - Added `PasteCommandService` and tests for restore success/failure reporting plus paste command dispatch.
@@ -140,6 +141,7 @@
 - `scripts/verify-release-qa-manifest.sh <manifest.md>` passed for a generated internal QA manifest and failed against an intentionally incomplete sample.
 - `scripts/validate-manual-qa-record.sh --allow-adhoc build/manual-qa-record-double-click-pass.md` now fails when the required Package manifest field is absent.
 - `scripts/validate-manual-qa-record.sh --allow-adhoc <record>` now fails when Package manifest points to a missing file and passes when it points to a valid generated manifest.
+- `scripts/validate-manual-qa-record.sh --allow-adhoc <record>` now fails when Package SHA-256 differs from the manifest checksum file and passes when both values match.
 - `scripts/release-readiness-report.sh --json-output build/release-readiness-openspec-green.json ...` produced `openSpecProgress` as 4/19 with 15 remaining tasks and an OpenSpec progress warning.
 - Targeted `ClipboardHistoryViewModelTests` and `PasteCommandServiceTests` passed with 9 tests and 0 failures after adding double-click paste support.
 - `scripts/preview-release-app.sh --build-only` and `scripts/package-release-qa-build.sh --output-dir build/release-qa-entry-verify` passed in parallel after wiring Xcode file-reference validation into release entry points and serializing XcodeGen.

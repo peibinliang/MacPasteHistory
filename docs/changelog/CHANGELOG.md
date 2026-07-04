@@ -55,6 +55,7 @@
 - Added Release QA package manifest verification.
 - Added Package manifest tracking to manual Release QA records.
 - Added Package manifest file validation to manual Release QA record checks.
+- Added Package SHA-256 cross-checking for manual Release QA records.
 - Added OpenSpec remaining-task reporting to release readiness summaries.
 
 ### Fixed
