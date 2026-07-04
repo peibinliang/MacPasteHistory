@@ -135,6 +135,10 @@ check_rows=()
 check_names=()
 check_statuses=()
 check_notes=()
+openspec_progress_total=0
+openspec_progress_complete=0
+openspec_progress_remaining=0
+openspec_remaining_tasks=()
 
 add_check_row() {
     local check_name="$1"
@@ -181,6 +185,64 @@ run_capture() {
 
     detailed_sections+=("## $check_name"$'\n\n```text\n'"$output"$'\n```')
     return "$status"
+}
+
+collect_openspec_progress() {
+    local tmp_file
+    tmp_file="$(mktemp)"
+
+    if ! command -v openspec >/dev/null 2>&1; then
+        add_check_row "OpenSpec progress" "WARN" "openspec CLI is not available."
+        add_warning "OpenSpec release change progress was not included because openspec CLI is unavailable."
+        rm -f "$tmp_file"
+        return
+    fi
+
+    if ! openspec instructions apply --change prepare-release-testing-and-store-assets --json >"$tmp_file" 2>/tmp/macpastehistory-openspec-readiness.log; then
+        add_check_row "OpenSpec progress" "WARN" "Could not read OpenSpec change progress."
+        add_warning "OpenSpec release change progress could not be read; inspect prepare-release-testing-and-store-assets manually."
+        rm -f "$tmp_file"
+        return
+    fi
+
+    openspec_summary=()
+    while IFS= read -r line; do
+        openspec_summary+=("$line")
+    done < <(python3 - "$tmp_file" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    payload = json.load(handle)
+
+progress = payload["progress"]
+print(progress["total"])
+print(progress["complete"])
+print(progress["remaining"])
+for task in payload["tasks"]:
+    if not task["done"]:
+        print(f"{task['id']}\t{task['description']}")
+PY
+    )
+
+    openspec_progress_total="${openspec_summary[0]:-0}"
+    openspec_progress_complete="${openspec_summary[1]:-0}"
+    openspec_progress_remaining="${openspec_summary[2]:-0}"
+    openspec_remaining_tasks=()
+
+    local index
+    for ((index = 3; index < ${#openspec_summary[@]}; index++)); do
+        openspec_remaining_tasks+=("${openspec_summary[$index]}")
+    done
+
+    if [[ "$openspec_progress_remaining" -eq 0 ]]; then
+        add_check_row "OpenSpec progress" "PASS" "$openspec_progress_complete/$openspec_progress_total tasks complete."
+    else
+        add_check_row "OpenSpec progress" "WARN" "$openspec_progress_complete/$openspec_progress_total tasks complete; $openspec_progress_remaining remaining."
+        add_warning "OpenSpec release change still has $openspec_progress_remaining pending tasks."
+    fi
+
+    rm -f "$tmp_file"
 }
 
 xcode_ref_args=("$REPO_ROOT/scripts/validate-xcode-file-references.sh")
@@ -336,6 +398,8 @@ else
     detailed_sections+=("## Git Status"$'\n\n```text\n'"$git_status"$'\n```')
 fi
 
+collect_openspec_progress
+
 if [[ "$strict_final" -eq 1 && "${#warnings[@]}" -gt 0 ]]; then
     add_blocker "Strict final mode requires zero warnings; resolve all warnings before distribution approval."
 fi
@@ -414,6 +478,28 @@ EOF
 
     cat <<'EOF'
 
+## OpenSpec Remaining Tasks
+
+EOF
+
+    echo "| Progress | Value |"
+    echo "|---|---|"
+    echo "| Complete | \`$openspec_progress_complete/$openspec_progress_total\` |"
+    echo "| Remaining | \`$openspec_progress_remaining\` |"
+    echo
+
+    if [[ "${#openspec_remaining_tasks[@]}" -eq 0 ]]; then
+        echo "- None."
+    else
+        for row in "${openspec_remaining_tasks[@]}"; do
+            task_id="${row%%$'\t'*}"
+            task_description="${row#*$'\t'}"
+            printf -- "- %s: %s\n" "$task_id" "$task_description"
+        done
+    fi
+
+    cat <<'EOF'
+
 ## Manual Evidence Still Required
 
 - Signed Release build with the intended distribution certificate and Team ID.
@@ -436,6 +522,7 @@ emit_json_summary() {
     local checks_path="$tmp_dir/checks.tsv"
     local blockers_path="$tmp_dir/blockers.txt"
     local warnings_path="$tmp_dir/warnings.txt"
+    local openspec_tasks_path="$tmp_dir/openspec-tasks.tsv"
 
     local index
     for index in "${!check_names[@]}"; do
@@ -452,13 +539,18 @@ emit_json_summary() {
     else
         : >"$warnings_path"
     fi
+    if [[ "${#openspec_remaining_tasks[@]}" -gt 0 ]]; then
+        printf "%s\n" "${openspec_remaining_tasks[@]}" >"$openspec_tasks_path"
+    else
+        : >"$openspec_tasks_path"
+    fi
 
     mkdir -p "$(dirname "$json_output_path")"
-    python3 - "$json_output_path" "$checks_path" "$blockers_path" "$warnings_path" <<PY
+    python3 - "$json_output_path" "$checks_path" "$blockers_path" "$warnings_path" "$openspec_tasks_path" <<PY
 import json
 import sys
 
-json_path, checks_path, blockers_path, warnings_path = sys.argv[1:5]
+json_path, checks_path, blockers_path, warnings_path, openspec_tasks_path = sys.argv[1:6]
 
 checks = []
 with open(checks_path, encoding="utf-8") as handle:
@@ -469,6 +561,17 @@ with open(checks_path, encoding="utf-8") as handle:
 def read_lines(path):
     with open(path, encoding="utf-8") as handle:
         return [line.rstrip("\n") for line in handle if line.strip()]
+
+def read_openspec_tasks(path):
+    tasks = []
+    with open(path, encoding="utf-8") as handle:
+        for line in handle:
+            line = line.rstrip("\n")
+            if not line:
+                continue
+            task_id, description = line.split("\t", 1)
+            tasks.append({"id": task_id, "description": description})
+    return tasks
 
 payload = {
     "status": "fail" if read_lines(blockers_path) else "pass",
@@ -489,6 +592,13 @@ payload = {
     "releaseSmokeSkipped": bool($skip_release_smoke),
     "installPreflightSkipped": bool($skip_install_preflight),
     "strictFinalMode": bool($strict_final),
+    "openSpecProgress": {
+        "change": "prepare-release-testing-and-store-assets",
+        "total": int("$openspec_progress_total"),
+        "complete": int("$openspec_progress_complete"),
+        "remaining": int("$openspec_progress_remaining"),
+    },
+    "openSpecRemainingTasks": read_openspec_tasks(openspec_tasks_path),
     "checks": checks,
     "blockers": read_lines(blockers_path),
     "warnings": read_lines(warnings_path),

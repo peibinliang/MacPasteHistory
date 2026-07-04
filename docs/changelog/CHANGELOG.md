@@ -52,6 +52,7 @@
 - Added manual Release QA session directory verification.
 - Added release readiness validation for generated manual QA session directories.
 - Added Release QA baseline evidence verification.
+- Added OpenSpec remaining-task reporting to release readiness summaries.
 
 ### Fixed
 
