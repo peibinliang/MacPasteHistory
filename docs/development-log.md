@@ -63,6 +63,7 @@
 - Added `scripts/verify-release-version-build.sh` and wired it into release readiness checks to keep Info.plist, release docs, and manual QA version/build declarations aligned.
 - Added `scripts/verify-release-entitlements.sh` and wired it into release readiness checks to keep App Sandbox enabled while broad network, USB, and user-selected file access entitlements remain disabled.
 - Added `scripts/verify-release-identity.sh` and wired it into release readiness checks to keep Bundle ID, product name, Info.plist path, and menu bar app identity aligned.
+- Added `scripts/verify-xcode-authorization.sh` and wired release readiness Xcode authorization to its real PASS/FAIL status instead of reporting authorization as PASS when blockers exist.
 - Added double-click paste from the history list: a successful restore closes the history window, reactivates the previous foreground app, and sends `Command + V`.
 - Added `PasteCommandService` and tests for restore success/failure reporting plus paste command dispatch.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
@@ -121,6 +122,7 @@
 - `scripts/release-readiness-report.sh --json-output build/release-readiness-entitlements.json --output build/release-readiness-entitlements.md --skip-release-smoke --skip-install-preflight --allow-adhoc --manual-record build/manual-qa-record-double-click-pass.md` produced a valid `pass` JSON summary with the Release entitlements check included.
 - `scripts/verify-release-identity.sh` passed, confirming `com.peibin.MacPasteHistory`, `MacPasteHistory`, the handwritten Info.plist path, and `LSUIElement = true`.
 - `scripts/release-readiness-report.sh --json-output build/release-readiness-identity.json --output build/release-readiness-identity.md --skip-release-smoke --skip-install-preflight --allow-adhoc --manual-record build/manual-qa-record-double-click-pass.md` produced a valid `pass` JSON summary with the Release identity check included.
+- `scripts/verify-xcode-authorization.sh` passed, confirming `/Applications/Xcode.app/Contents/Developer`, Xcode first-launch authorization, and Xcode license acceptance.
 - Targeted `ClipboardHistoryViewModelTests` and `PasteCommandServiceTests` passed with 9 tests and 0 failures after adding double-click paste support.
 - `scripts/preview-release-app.sh --build-only` and `scripts/package-release-qa-build.sh --output-dir build/release-qa-entry-verify` passed in parallel after wiring Xcode file-reference validation into release entry points and serializing XcodeGen.
 - `scripts/release-smoke-test.sh` passed after wiring Xcode file-reference validation into the Release smoke build entry point.

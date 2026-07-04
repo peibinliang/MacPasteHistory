@@ -172,6 +172,12 @@ scripts/start-manual-release-qa-session.sh
 - 当前 Release 包签名为 `Signature=adhoc`、`TeamIdentifier=not set`，只能用于本机运行验证，不能用于 Developer ID 分发或 App Store 上传。
 - `scripts/release-environment-report.sh` 会生成签名身份、Xcode 状态、设备架构和常见测试应用安装情况报告。
 
+单独校验 Xcode developer directory、first-launch 授权和 license 状态：
+
+```bash
+scripts/verify-xcode-authorization.sh
+```
+
 查看已有签名身份：
 
 ```bash

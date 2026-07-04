@@ -233,21 +233,21 @@ else
     fi
 fi
 
-xcode_path="$(xcode-select -p)"
-xcode_version="$(xcodebuild -version | tr '\n' ' ')"
+xcode_path="$(xcode-select -p 2>/dev/null || printf "unknown")"
+xcode_version="$(xcodebuild -version 2>/dev/null | tr '\n' ' ' || printf "unknown")"
 if xcodebuild -checkFirstLaunchStatus >/dev/null 2>&1; then
     first_launch_status="passed"
 else
     first_launch_status="not complete"
-    add_blocker "Xcode first-launch authorization is not complete."
 fi
 if xcodebuild -license status >/dev/null 2>&1; then
     license_status="accepted"
 else
     license_status="not accepted"
-    add_blocker "Xcode license is not accepted."
 fi
-add_check_row "Xcode authorization" "PASS" "Developer dir: \`$xcode_path\`; first launch: \`$first_launch_status\`; license: \`$license_status\`"
+if ! run_capture "Xcode authorization" "$REPO_ROOT/scripts/verify-xcode-authorization.sh"; then
+    add_blocker "Xcode developer directory, first-launch authorization, or license acceptance is incomplete."
+fi
 
 identity_output="$(security find-identity -v -p codesigning 2>/dev/null || true)"
 identity_count="$(printf "%s\n" "$identity_output" | awk '/valid identities found/ {print $1; found=1} END {if (!found) print 0}')"
