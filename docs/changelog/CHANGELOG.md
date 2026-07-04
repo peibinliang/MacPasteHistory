@@ -51,6 +51,7 @@
 - Added explicit Release app signature verification with formal distribution blocking.
 - Added manual Release QA session directory verification.
 - Added release readiness validation for generated manual QA session directories.
+- Added Release QA baseline evidence verification.
 
 ### Fixed
 

@@ -138,6 +138,16 @@ if [[ -s "$checksum_path" ]]; then
     fi
 fi
 
+baseline_status="not checked"
+if [[ -s "$baseline_path" ]]; then
+    if scripts/verify-release-qa-baseline.sh "$baseline_path" >/tmp/macpastehistory-session-baseline.log 2>&1; then
+        baseline_status="passed"
+    else
+        baseline_status="failed"
+        add_violation "Release QA baseline verification failed."
+    fi
+fi
+
 fixture_status="not checked"
 if [[ -d "$fixture_dir" ]]; then
     if scripts/verify-manual-qa-fixtures.sh --fixture-dir "$fixture_dir" >/tmp/macpastehistory-session-fixtures.log 2>&1; then
@@ -180,6 +190,7 @@ echo "| SHA-256 file | \`${checksum_path:-missing}\` |"
 echo "| Package manifest | \`${manifest_path:-missing}\` |"
 echo "| Package verification | \`$verification_path\` |"
 echo "| Release baseline | \`$baseline_path\` |"
+echo "| Release baseline verification | \`$baseline_status\` |"
 echo "| Fixture directory | \`$fixture_dir\` |"
 echo "| Fixture verification | \`$fixture_status\` |"
 echo "| Checksum verification | \`$checksum_status\` |"
@@ -207,6 +218,15 @@ if [[ -s /tmp/macpastehistory-session-checksum.log ]]; then
     echo
     echo '```text'
     cat /tmp/macpastehistory-session-checksum.log
+    echo '```'
+fi
+
+if [[ -s /tmp/macpastehistory-session-baseline.log ]]; then
+    echo
+    echo "## Baseline Output"
+    echo
+    echo '```text'
+    cat /tmp/macpastehistory-session-baseline.log
     echo '```'
 fi
 

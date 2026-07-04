@@ -140,6 +140,12 @@ scripts/start-manual-release-qa-session.sh
 scripts/verify-manual-release-qa-session.sh build/manual-release-qa-session/<timestamp>-<commit>
 ```
 
+如需单独校验会话中的构建、机器、Xcode、签名、Sandbox 和常见应用基线，可运行：
+
+```bash
+scripts/verify-release-qa-baseline.sh build/manual-release-qa-session/<timestamp>-<commit>/release-qa-baseline.md
+```
+
 会话内的 `manual-qa-record.md` 会通过 `scripts/prefill-manual-qa-record.sh` 自动预填构建、包校验、签名、当前机器和样本路径等客观字段；所有人工场景仍保持 `Not run`，必须由测试人员实际执行后填写。
 
 #### ⚠️ 已知风险

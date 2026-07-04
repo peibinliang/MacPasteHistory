@@ -24,6 +24,12 @@ Verify a generated session directory before manual testing:
 scripts/verify-manual-release-qa-session.sh build/manual-release-qa-session/<session>
 ```
 
+This also validates `release-qa-baseline.md`. To check only the baseline evidence file, run:
+
+```bash
+scripts/verify-release-qa-baseline.sh build/manual-release-qa-session/<session>/release-qa-baseline.md
+```
+
 The session command pre-fills objective build, package, signing, current-machine, and fixture fields in the generated record copy. To pre-fill another record manually, run:
 
 ```bash
