@@ -183,6 +183,10 @@ if ! run_capture "Privacy usage descriptions" "$REPO_ROOT/scripts/verify-privacy
     add_blocker "Info.plist privacy usage descriptions are missing or incomplete."
 fi
 
+if ! run_capture "Supported macOS targets" "$REPO_ROOT/scripts/verify-supported-macos-targets.sh"; then
+    add_blocker "Supported macOS target declarations or QA matrix rows are inconsistent."
+fi
+
 if ! run_capture "App icon assets" "$REPO_ROOT/scripts/verify-app-icon-assets.sh"; then
     add_blocker "App icon asset catalog is incomplete or has invalid PNG dimensions."
 fi

@@ -42,6 +42,7 @@
 - Added ordered static-check and readiness-report guidance to generated manual Release QA session READMEs.
 - Added machine-readable JSON output support for release readiness reports.
 - Added strict final release readiness mode that treats warnings as blockers.
+- Added supported macOS target consistency verification to release readiness checks.
 
 ### Fixed
 
