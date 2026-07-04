@@ -88,6 +88,7 @@ baseline_path="$OUTPUT_DIR/release-qa-baseline.md"
 fixture_log_path="$OUTPUT_DIR/fixture-generation.log"
 manual_record_path="$OUTPUT_DIR/manual-qa-record.md"
 readme_path="$OUTPUT_DIR/README.md"
+session_verification_path="$OUTPUT_DIR/session-verification.md"
 
 mkdir -p "$package_dir" "$fixture_dir"
 
@@ -153,6 +154,7 @@ Generated: $(date '+%Y-%m-%d %H:%M:%S %z')
 | Release baseline | \`$baseline_path\` |
 | Fixture directory | \`$fixture_dir\` |
 | Manual QA record copy | \`$manual_record_path\` |
+| Session verification | \`$session_verification_path\` |
 
 ## Recommended Order
 
@@ -164,6 +166,8 @@ Generated: $(date '+%Y-%m-%d %H:%M:%S %z')
    - \`scripts/verify-app-icon-assets.sh\`
    - \`scripts/verify-release-screenshot-assets.sh\`
    - \`scripts/verify-manual-qa-fixtures.sh\`
+   - \`scripts/verify-signing-identities.sh --allow-adhoc\` for internal QA, or without the flag for final distribution
+   - \`scripts/verify-release-app-signature.sh --allow-adhoc\` for internal QA, or without the flag for final distribution
 4. Run \`scripts/release-install-preflight.sh --no-build\` to verify a copied Release app can launch, initialize isolated local storage, and quit.
 5. Launch the packaged app from Finder, or use \`scripts/preview-release-app.sh --seed-preview-data\` for a local isolated-data preview with synthetic history already loaded.
 6. Use files in \`$fixture_dir\` for Chrome, Safari, VS Code, WeChat, DingTalk, large-text, and image-copy scenarios.
@@ -178,9 +182,13 @@ Generated: $(date '+%Y-%m-%d %H:%M:%S %z')
 - Current ad-hoc signed packages are suitable for local/internal QA only. Formal distribution still needs a valid Apple signing identity.
 EOF
 
+echo "Verifying manual Release QA session directory..."
+scripts/verify-manual-release-qa-session.sh "$OUTPUT_DIR" >"$session_verification_path"
+
 echo
 echo "Manual Release QA session prepared:"
 echo "  Directory:    $OUTPUT_DIR"
 echo "  README:       $readme_path"
+echo "  Verification: $session_verification_path"
 echo "  QA record:    $manual_record_path"
 echo "  Package zip:  $zip_path"

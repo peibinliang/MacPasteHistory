@@ -18,6 +18,12 @@ scripts/start-manual-release-qa-session.sh
 
 This creates a timestamped directory under `build/manual-release-qa-session/` with a QA package, package verification, baseline, synthetic fixtures, this record template, and a session `README.md`. Use the generated files as evidence inputs only; manual results still require direct tester confirmation.
 
+Verify a generated session directory before manual testing:
+
+```bash
+scripts/verify-manual-release-qa-session.sh build/manual-release-qa-session/<session>
+```
+
 The session command pre-fills objective build, package, signing, current-machine, and fixture fields in the generated record copy. To pre-fill another record manually, run:
 
 ```bash

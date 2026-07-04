@@ -66,6 +66,7 @@
 - Added `scripts/verify-xcode-authorization.sh` and wired release readiness Xcode authorization to its real PASS/FAIL status instead of reporting authorization as PASS when blockers exist.
 - Added `scripts/verify-signing-identities.sh` and wired release readiness signing checks to report formal distribution failures and internal QA ad-hoc warnings consistently.
 - Added `scripts/verify-release-app-signature.sh` and wired release readiness to verify the built Release app's signature, Team ID, Bundle ID, and Sandbox entitlement.
+- Added `scripts/verify-manual-release-qa-session.sh` and wired manual QA session creation to generate `session-verification.md` for package, checksum, manifest, baseline, fixture, record, and README completeness.
 - Added double-click paste from the history list: a successful restore closes the history window, reactivates the previous foreground app, and sends `Command + V`.
 - Added `PasteCommandService` and tests for restore success/failure reporting plus paste command dispatch.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.
@@ -127,6 +128,7 @@
 - `scripts/verify-xcode-authorization.sh` passed, confirming `/Applications/Xcode.app/Contents/Developer`, Xcode first-launch authorization, and Xcode license acceptance.
 - `scripts/verify-signing-identities.sh --allow-adhoc` returned `WARN`, confirming the current machine still has `0 valid identities found` and formal distribution remains blocked until an Apple signing identity is installed.
 - `scripts/verify-release-app-signature.sh --allow-adhoc` returned `WARN`, confirming the current Release app is `Signature=adhoc`, `TeamIdentifier=not set`, and Sandbox-entitled for internal QA only.
+- `scripts/verify-manual-release-qa-session.sh <session-dir>` passed for a generated internal QA session, confirming package, checksum, manifest, package verification, baseline, fixtures, manual record copy, and README are present before manual testing.
 - Targeted `ClipboardHistoryViewModelTests` and `PasteCommandServiceTests` passed with 9 tests and 0 failures after adding double-click paste support.
 - `scripts/preview-release-app.sh --build-only` and `scripts/package-release-qa-build.sh --output-dir build/release-qa-entry-verify` passed in parallel after wiring Xcode file-reference validation into release entry points and serializing XcodeGen.
 - `scripts/release-smoke-test.sh` passed after wiring Xcode file-reference validation into the Release smoke build entry point.
