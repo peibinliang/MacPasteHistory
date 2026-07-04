@@ -195,6 +195,10 @@ if ! run_capture "Release entitlements" "$REPO_ROOT/scripts/verify-release-entit
     add_blocker "Release entitlement configuration is inconsistent or too broad."
 fi
 
+if ! run_capture "Release identity" "$REPO_ROOT/scripts/verify-release-identity.sh"; then
+    add_blocker "Release bundle identity or menu-bar app declarations are inconsistent."
+fi
+
 if ! run_capture "App icon assets" "$REPO_ROOT/scripts/verify-app-icon-assets.sh"; then
     add_blocker "App icon asset catalog is incomplete or has invalid PNG dimensions."
 fi

@@ -45,6 +45,7 @@
 - Added supported macOS target consistency verification to release readiness checks.
 - Added release version/build consistency verification to release readiness checks.
 - Added release entitlement boundary verification to release readiness checks.
+- Added release identity verification to release readiness checks.
 
 ### Fixed
 
