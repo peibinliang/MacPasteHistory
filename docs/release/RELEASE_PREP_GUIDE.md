@@ -61,6 +61,12 @@
 </plist>
 ```
 
+可用以下脚本校验 `project.yml` 已绑定正确 entitlements 文件、App Sandbox 已开启，且首版不需要的网络、USB、用户选择文件读写权限保持关闭：
+
+```bash
+scripts/verify-release-entitlements.sh
+```
+
 4. **注意**: 沙盒环境下 `NSPasteboard.general` 仍然可用（系统自动授权），但需确认：
    - `NSWorkspace.shared.frontmostApplication` 需要 **辅助功能权限**（在 Info.plist 中已声明 `NSAccessibilityUsageDescription`）。
    - 首次启动时系统会弹出辅助功能授权弹窗，引导用户到 **系统设置 → 隐私与安全性 → 辅助功能** 中添加应用。
@@ -769,7 +775,7 @@ scripts/release-readiness-report.sh \
   --strict-final
 ```
 
-该报告会汇总 Xcode 文件引用、日志隐私扫描、Info.plist 用途说明、支持 macOS 版本声明一致性、版本/构建号一致性、App Icon 素材、截图 PNG 尺寸、人工 QA 样本生成校验、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、用户文档、隐私政策、人工 QA 记录和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`，且推荐使用 `--strict-final` 将所有 warning 也视为阻断项，避免跳过检查、ad-hoc 签名或未提交工作区进入分发审批。JSON 摘要会包含 `status`、`checks`、`blockers`、`warnings` 和仍需人工证据的列表。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份降级为警告，不能作为最终分发验收依据。
+该报告会汇总 Xcode 文件引用、日志隐私扫描、Info.plist 用途说明、支持 macOS 版本声明一致性、版本/构建号一致性、Release entitlements 配置、App Icon 素材、截图 PNG 尺寸、人工 QA 样本生成校验、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、用户文档、隐私政策、人工 QA 记录和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`，且推荐使用 `--strict-final` 将所有 warning 也视为阻断项，避免跳过检查、ad-hoc 签名或未提交工作区进入分发审批。JSON 摘要会包含 `status`、`checks`、`blockers`、`warnings` 和仍需人工证据的列表。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份降级为警告，不能作为最终分发验收依据。
 
 如果只需要临时检查静态材料，可使用 `--skip-release-smoke` 和 `--skip-install-preflight` 跳过启动类检查；最终发布验收不得跳过：
 

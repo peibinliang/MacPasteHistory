@@ -191,6 +191,10 @@ if ! run_capture "Release version and build" "$REPO_ROOT/scripts/verify-release-
     add_blocker "Release version or build declarations are inconsistent."
 fi
 
+if ! run_capture "Release entitlements" "$REPO_ROOT/scripts/verify-release-entitlements.sh"; then
+    add_blocker "Release entitlement configuration is inconsistent or too broad."
+fi
+
 if ! run_capture "App icon assets" "$REPO_ROOT/scripts/verify-app-icon-assets.sh"; then
     add_blocker "App icon asset catalog is incomplete or has invalid PNG dimensions."
 fi
