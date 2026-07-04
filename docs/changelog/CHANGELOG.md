@@ -54,6 +54,7 @@
 - Added Release QA baseline evidence verification.
 - Added Release QA package manifest verification.
 - Added Package manifest tracking to manual Release QA records.
+- Added Package manifest file validation to manual Release QA record checks.
 - Added OpenSpec remaining-task reporting to release readiness summaries.
 
 ### Fixed

@@ -59,6 +59,38 @@ require_build_field() {
     fi
 }
 
+build_field_value() {
+    local field_name="$1"
+    awk -F'|' -v field="$field_name" '
+        function trim(value) {
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+            gsub(/^`|`$/, "", value)
+            return value
+        }
+        $2 {
+            key = trim($2)
+            if (key == field) {
+                print trim($3)
+                exit
+            }
+        }
+    ' "$record_path"
+}
+
+resolve_record_path() {
+    local raw_path="$1"
+    local record_dir
+    record_dir="$(cd "$(dirname "$record_path")" && pwd)"
+
+    if [[ "$raw_path" = /* ]]; then
+        printf "%s" "$raw_path"
+    elif [[ -e "$REPO_ROOT/$raw_path" ]]; then
+        printf "%s" "$REPO_ROOT/$raw_path"
+    else
+        printf "%s" "$record_dir/$raw_path"
+    fi
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --allow-adhoc)
@@ -86,6 +118,8 @@ if [[ ! -f "$record_path" ]]; then
 fi
 
 blockers=()
+manifest_status="not checked"
+rm -f /tmp/macpastehistory-manual-record-manifest.log
 required_sections=(
     "Build Under Test"
     "Environment Coverage"
@@ -187,6 +221,22 @@ else
     unsigned_lines=""
 fi
 
+manifest_value="$(build_field_value "Package manifest")"
+if [[ -z "$manifest_value" || "$manifest_value" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
+    manifest_status="missing"
+else
+    manifest_path="$(resolve_record_path "$manifest_value")"
+    if [[ ! -s "$manifest_path" ]]; then
+        manifest_status="missing"
+        add_blocker "Package manifest file is missing or empty: $manifest_value"
+    elif scripts/verify-release-qa-manifest.sh "$manifest_path" >/tmp/macpastehistory-manual-record-manifest.log 2>&1; then
+        manifest_status="passed"
+    else
+        manifest_status="failed"
+        add_blocker "Package manifest verification failed: $manifest_value"
+    fi
+fi
+
 echo "# Manual QA Record Validation"
 echo
 echo "| Field | Value |"
@@ -199,6 +249,7 @@ echo "| Required environment rows | \`${#required_environment_rows[@]}\` |"
 echo "| Required common app rows | \`${#required_common_app_rows[@]}\` |"
 echo "| Required privacy rows | \`${#required_privacy_rows[@]}\` |"
 echo "| TBD / Not run lines | \`$(printf "%s\n" "$placeholder_lines" | sed '/^$/d' | wc -l | tr -d ' ')\` |"
+echo "| Package manifest verification | \`$manifest_status\` |"
 echo "| Ad-hoc allowed | \`$([[ "$allow_adhoc" -eq 1 ]] && printf "yes" || printf "no")\` |"
 echo
 
@@ -229,6 +280,15 @@ if [[ -n "${unsigned_lines:-}" ]]; then
     echo "## Signing Lines"
     echo
     printf "%s\n" "$unsigned_lines" | sed 's/^/- /'
+fi
+
+if [[ -s /tmp/macpastehistory-manual-record-manifest.log ]]; then
+    echo
+    echo "## Package Manifest Output"
+    echo
+    echo '```text'
+    cat /tmp/macpastehistory-manual-record-manifest.log
+    echo '```'
 fi
 
 exit 1

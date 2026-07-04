@@ -860,7 +860,7 @@ scripts/validate-manual-qa-record.sh docs/release/manual-qa-record.md
 scripts/validate-manual-qa-record.sh --allow-adhoc docs/release/manual-qa-record.md
 ```
 
-`--allow-adhoc` 只用于内部 QA，不得作为最终分发签名验收依据。该脚本会检查必需章节，并在对应章节内检查 Release App Workflow 必测行（包括双击历史项直接粘贴）、环境覆盖行、常用应用矩阵行、隐私与安全检查行，同时检查 `TBD`、`Not run`、最终发布决定和签名/Team ID 明显缺口。
+`--allow-adhoc` 只用于内部 QA，不得作为最终分发签名验收依据。该脚本会检查必需章节，并在对应章节内检查 Build Under Test 必需字段、Package manifest 文件有效性、Release App Workflow 必测行（包括双击历史项直接粘贴）、环境覆盖行、常用应用矩阵行、隐私与安全检查行，同时检查 `TBD`、`Not run`、最终发布决定和签名/Team ID 明显缺口。
 
 ### 汇总检查
 
