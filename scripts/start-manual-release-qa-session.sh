@@ -132,6 +132,7 @@ scripts/prefill-manual-qa-record.sh \
     --record "$manual_record_path" \
     --baseline "$baseline_path" \
     --verification "$verification_path" \
+    --manifest "$manifest_path" \
     --checksum "$checksum_path" \
     --fixture-dir "$fixture_dir" \
     --notes "Session prefilled from generated package, baseline, verification, and fixtures; manual results still required." \

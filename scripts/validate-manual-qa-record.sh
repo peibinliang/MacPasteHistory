@@ -44,6 +44,21 @@ require_named_row() {
     fi
 }
 
+require_build_field() {
+    local field_name="$1"
+    local section_text
+    section_text="$(
+        awk '
+            $0 == "## Build Under Test" { in_section = 1; next }
+            in_section && /^## / { exit }
+            in_section { print }
+        ' "$record_path"
+    )"
+    if ! printf "%s\n" "$section_text" | grep -qE "^\\|[[:space:]]*$field_name[[:space:]]*\\|"; then
+        add_blocker "Missing required Build Under Test field: $field_name"
+    fi
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --allow-adhoc)
@@ -116,8 +131,26 @@ required_privacy_rows=(
     "Local storage"
 )
 
+required_build_fields=(
+    "Date"
+    "Tester"
+    "Git commit"
+    "App path"
+    "Version / build"
+    "Signing identity"
+    "Package SHA-256"
+    "Package manifest"
+    "Package verification"
+    "Fixture directory"
+    "Notes"
+)
+
 for section_name in "${required_sections[@]}"; do
     require_section "$section_name"
+done
+
+for field_name in "${required_build_fields[@]}"; do
+    require_build_field "$field_name"
 done
 
 for scenario_name in "${required_workflow_rows[@]}"; do
@@ -160,6 +193,7 @@ echo "| Field | Value |"
 echo "|---|---|"
 echo "| Record | \`$record_path\` |"
 echo "| Required sections | \`${#required_sections[@]}\` |"
+echo "| Required build fields | \`${#required_build_fields[@]}\` |"
 echo "| Required workflow rows | \`${#required_workflow_rows[@]}\` |"
 echo "| Required environment rows | \`${#required_environment_rows[@]}\` |"
 echo "| Required common app rows | \`${#required_common_app_rows[@]}\` |"

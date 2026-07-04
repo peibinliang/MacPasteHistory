@@ -127,6 +127,7 @@ scripts/verify-release-screenshot-assets.sh
 | Version / build | `0.1.0 (1)` |
 | Signing identity | TBD |
 | Package SHA-256 | TBD |
+| Package manifest | TBD |
 | Package verification | TBD |
 | Fixture directory | TBD |
 | Notes | TBD |

@@ -70,6 +70,7 @@
 - Added `--qa-session` to `scripts/release-readiness-report.sh` so final readiness checks can validate the generated manual QA session directory and warn when the session evidence is omitted.
 - Added `scripts/verify-release-qa-baseline.sh` and wired manual QA session verification to validate the build, toolchain, signing, Sandbox, common-app, and remaining-evidence baseline fields.
 - Added `scripts/verify-release-qa-manifest.sh` and wired manual QA session verification to validate package manifest fields, artifact paths, SHA-256 integrity, and embedded baseline evidence.
+- Added the package manifest to manual QA record prefill and validation so final records reference the exact QA package manifest under test.
 - Added OpenSpec release-change progress to `scripts/release-readiness-report.sh` so readiness reports and JSON output list the exact remaining release tasks.
 - Added double-click paste from the history list: a successful restore closes the history window, reactivates the previous foreground app, and sends `Command + V`.
 - Added `PasteCommandService` and tests for restore success/failure reporting plus paste command dispatch.
@@ -136,6 +137,7 @@
 - `scripts/release-readiness-report.sh --qa-session <session-dir> ...` produced a valid JSON summary with a passing Manual QA session check, while omitting `--qa-session` keeps a warning for strict final gates.
 - `scripts/verify-release-qa-baseline.sh <baseline.md>` passed for a generated internal QA baseline and failed against an intentionally incomplete sample.
 - `scripts/verify-release-qa-manifest.sh <manifest.md>` passed for a generated internal QA manifest and failed against an intentionally incomplete sample.
+- `scripts/validate-manual-qa-record.sh --allow-adhoc build/manual-qa-record-double-click-pass.md` now fails when the required Package manifest field is absent.
 - `scripts/release-readiness-report.sh --json-output build/release-readiness-openspec-green.json ...` produced `openSpecProgress` as 4/19 with 15 remaining tasks and an OpenSpec progress warning.
 - Targeted `ClipboardHistoryViewModelTests` and `PasteCommandServiceTests` passed with 9 tests and 0 failures after adding double-click paste support.
 - `scripts/preview-release-app.sh --build-only` and `scripts/package-release-qa-build.sh --output-dir build/release-qa-entry-verify` passed in parallel after wiring Xcode file-reference validation into release entry points and serializing XcodeGen.
