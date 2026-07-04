@@ -4,6 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 manual_record="$REPO_ROOT/docs/release/manual-qa-record.md"
 output_path=""
+json_output_path=""
 allow_adhoc=0
 skip_xcodegen=0
 skip_install_preflight=0
@@ -19,6 +20,7 @@ manual QA evidence.
 Options:
   --manual-record PATH  Manual QA record to validate.
   --output PATH         Write the report to PATH as well as stdout.
+  --json-output PATH    Write a machine-readable readiness summary to PATH.
   --allow-adhoc         Allow ad-hoc or missing signing for internal QA only.
   --skip-xcodegen       Validate the existing Xcode project without regenerating it.
   --skip-install-preflight
@@ -66,6 +68,14 @@ while [[ $# -gt 0 ]]; do
             output_path="$2"
             shift
             ;;
+        --json-output)
+            if [[ $# -lt 2 ]]; then
+                echo "--json-output requires a path" >&2
+                exit 2
+            fi
+            json_output_path="$2"
+            shift
+            ;;
         --allow-adhoc)
             allow_adhoc=1
             ;;
@@ -94,6 +104,7 @@ done
 require_command date
 require_command git
 require_command mktemp
+require_command python3
 require_command security
 require_command sw_vers
 require_command uname
@@ -106,6 +117,20 @@ blockers=()
 warnings=()
 detailed_sections=()
 check_rows=()
+check_names=()
+check_statuses=()
+check_notes=()
+
+add_check_row() {
+    local check_name="$1"
+    local check_status="$2"
+    local note_text="$3"
+
+    check_names+=("$check_name")
+    check_statuses+=("$check_status")
+    check_notes+=("$note_text")
+    check_rows+=("| $check_name | $check_status | $(escape_table_cell "$note_text") |")
+}
 
 run_capture() {
     local check_name="$1"
@@ -131,7 +156,7 @@ run_capture() {
 
     local summary
     summary="$(printf "%s\n" "$output" | awk '/^Status:/ {sub(/^Status:[[:space:]]*/, ""); print; found=1} END {if (!found) print "See detailed output."}' | tail -1)"
-    check_rows+=("| $check_name | $label | $(escape_table_cell "$summary") |")
+    add_check_row "$check_name" "$label" "$summary"
 
     detailed_sections+=("## $check_name"$'\n\n```text\n'"$output"$'\n```')
     return "$status"
@@ -166,7 +191,7 @@ if ! run_capture "Manual QA fixtures" "$REPO_ROOT/scripts/verify-manual-qa-fixtu
 fi
 
 if [[ "$skip_release_smoke" -eq 1 ]]; then
-    check_rows+=("| Release smoke test | SKIP | Skipped by --skip-release-smoke. |")
+    add_check_row "Release smoke test" "SKIP" "Skipped by --skip-release-smoke."
     add_warning "Release smoke test was skipped; run scripts/release-smoke-test.sh before final release."
 else
     if ! run_capture "Release smoke test" "$REPO_ROOT/scripts/release-smoke-test.sh"; then
@@ -175,7 +200,7 @@ else
 fi
 
 if [[ "$skip_install_preflight" -eq 1 ]]; then
-    check_rows+=("| Release install preflight | SKIP | Skipped by --skip-install-preflight. |")
+    add_check_row "Release install preflight" "SKIP" "Skipped by --skip-install-preflight."
     add_warning "Release install preflight was skipped; run scripts/release-install-preflight.sh before final release."
 else
     install_preflight_args=("$REPO_ROOT/scripts/release-install-preflight.sh")
@@ -201,20 +226,20 @@ else
     license_status="not accepted"
     add_blocker "Xcode license is not accepted."
 fi
-check_rows+=("| Xcode authorization | PASS | Developer dir: \`$(escape_table_cell "$xcode_path")\`; first launch: \`$first_launch_status\`; license: \`$license_status\` |")
+add_check_row "Xcode authorization" "PASS" "Developer dir: \`$xcode_path\`; first launch: \`$first_launch_status\`; license: \`$license_status\`"
 
 identity_output="$(security find-identity -v -p codesigning 2>/dev/null || true)"
 identity_count="$(printf "%s\n" "$identity_output" | awk '/valid identities found/ {print $1; found=1} END {if (!found) print 0}')"
 if [[ "$identity_count" -eq 0 ]]; then
     if [[ "$allow_adhoc" -eq 1 ]]; then
-        check_rows+=("| Signing identities | WARN | No valid identities found; allowed only for internal QA. |")
+        add_check_row "Signing identities" "WARN" "No valid identities found; allowed only for internal QA."
         add_warning "No valid code signing identities are installed; formal distribution remains blocked."
     else
-        check_rows+=("| Signing identities | FAIL | No valid code signing identities found. |")
+        add_check_row "Signing identities" "FAIL" "No valid code signing identities found."
         add_blocker "Install an Apple Development, Apple Distribution, or Developer ID Application signing identity."
     fi
 else
-    check_rows+=("| Signing identities | PASS | Valid code signing identities: \`$identity_count\` |")
+    add_check_row "Signing identities" "PASS" "Valid code signing identities: \`$identity_count\`"
 fi
 detailed_sections+=("## Signing Identities"$'\n\n```text\n'"$identity_output"$'\n```')
 
@@ -230,9 +255,9 @@ for relative_path in "${required_docs[@]}"; do
     fi
 done
 if [[ "${#missing_docs[@]}" -eq 0 ]]; then
-    check_rows+=("| Release docs | PASS | Required user, privacy, and screenshot docs exist. |")
+    add_check_row "Release docs" "PASS" "Required user, privacy, and screenshot docs exist."
 else
-    check_rows+=("| Release docs | FAIL | Missing or empty: \`$(escape_table_cell "${missing_docs[*]}")\` |")
+    add_check_row "Release docs" "FAIL" "Missing or empty: \`${missing_docs[*]}\`"
     add_blocker "Required release documentation is missing or empty."
 fi
 
@@ -247,9 +272,9 @@ fi
 
 git_status="$(git status --short)"
 if [[ -z "$git_status" ]]; then
-    check_rows+=("| Git worktree | PASS | Worktree is clean. |")
+    add_check_row "Git worktree" "PASS" "Worktree is clean."
 else
-    check_rows+=("| Git worktree | WARN | Worktree has uncommitted changes. |")
+    add_check_row "Git worktree" "WARN" "Worktree has uncommitted changes."
     add_warning "Git worktree has uncommitted changes; commit or discard intentional changes before final release."
     detailed_sections+=("## Git Status"$'\n\n```text\n'"$git_status"$'\n```')
 fi
@@ -259,12 +284,13 @@ macos_version="$(sw_vers -productVersion)"
 macos_build="$(sw_vers -buildVersion)"
 git_commit="$(git rev-parse --short HEAD)"
 manual_record_display="$(cd "$REPO_ROOT" && python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], os.getcwd()))' "$manual_record" 2>/dev/null || printf "%s" "$manual_record")"
+generated_at="$(date '+%Y-%m-%d %H:%M:%S %z')"
 
 emit_report() {
     cat <<EOF
 # Release Readiness Report
 
-Generated: $(date '+%Y-%m-%d %H:%M:%S %z')
+Generated: $generated_at
 
 | Field | Value |
 |---|---|
@@ -336,11 +362,90 @@ EOF
     done
 }
 
+emit_json_summary() {
+    local tmp_dir
+    tmp_dir="$(mktemp -d)"
+    local checks_path="$tmp_dir/checks.tsv"
+    local blockers_path="$tmp_dir/blockers.txt"
+    local warnings_path="$tmp_dir/warnings.txt"
+
+    local index
+    for index in "${!check_names[@]}"; do
+        printf "%s\t%s\t%s\n" "${check_names[$index]}" "${check_statuses[$index]}" "${check_notes[$index]}"
+    done >"$checks_path"
+
+    if [[ "${#blockers[@]}" -gt 0 ]]; then
+        printf "%s\n" "${blockers[@]}" >"$blockers_path"
+    else
+        : >"$blockers_path"
+    fi
+    if [[ "${#warnings[@]}" -gt 0 ]]; then
+        printf "%s\n" "${warnings[@]}" >"$warnings_path"
+    else
+        : >"$warnings_path"
+    fi
+
+    mkdir -p "$(dirname "$json_output_path")"
+    python3 - "$json_output_path" "$checks_path" "$blockers_path" "$warnings_path" <<PY
+import json
+import sys
+
+json_path, checks_path, blockers_path, warnings_path = sys.argv[1:5]
+
+checks = []
+with open(checks_path, encoding="utf-8") as handle:
+    for line in handle:
+        name, status, notes = line.rstrip("\n").split("\t", 2)
+        checks.append({"name": name, "status": status, "notes": notes})
+
+def read_lines(path):
+    with open(path, encoding="utf-8") as handle:
+        return [line.rstrip("\n") for line in handle if line.strip()]
+
+payload = {
+    "status": "fail" if read_lines(blockers_path) else "pass",
+    "generatedAt": "$generated_at",
+    "repository": "$REPO_ROOT",
+    "gitCommit": "$git_commit",
+    "macOS": {"version": "$macos_version", "build": "$macos_build"},
+    "architecture": "$machine_arch",
+    "xcode": {
+        "developerDirectory": "$xcode_path",
+        "version": "$xcode_version",
+        "firstLaunchStatus": "$first_launch_status",
+        "licenseStatus": "$license_status",
+    },
+    "manualQaRecord": "$manual_record_display",
+    "internalAdhocMode": bool($allow_adhoc),
+    "releaseSmokeSkipped": bool($skip_release_smoke),
+    "installPreflightSkipped": bool($skip_install_preflight),
+    "checks": checks,
+    "blockers": read_lines(blockers_path),
+    "warnings": read_lines(warnings_path),
+    "manualEvidenceStillRequired": [
+        "Signed Release build with the intended distribution certificate and Team ID.",
+        "Menu bar, history window, restore, delete, clear-all, pause, blacklist, and launch-at-login manual QA.",
+        "Apple Silicon, Intel, and supported macOS version coverage or explicit release decision records.",
+        "Final reviewer decision in the manual QA record.",
+    ],
+}
+
+with open(json_path, "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, ensure_ascii=False, indent=2)
+    handle.write("\n")
+PY
+    rm -rf "$tmp_dir"
+}
+
 if [[ -n "$output_path" ]]; then
     mkdir -p "$(dirname "$output_path")"
     emit_report | tee "$output_path"
 else
     emit_report
+fi
+
+if [[ -n "$json_output_path" ]]; then
+    emit_json_summary
 fi
 
 if [[ "${#blockers[@]}" -gt 0 ]]; then

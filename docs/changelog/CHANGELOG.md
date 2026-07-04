@@ -40,6 +40,7 @@
 - Added Release install preflight coverage to the final release readiness report.
 - Added Release smoke-test coverage to the final release readiness report.
 - Added ordered static-check and readiness-report guidance to generated manual Release QA session READMEs.
+- Added machine-readable JSON output support for release readiness reports.
 
 ### Fixed
 
