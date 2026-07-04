@@ -9,6 +9,7 @@ allow_adhoc=0
 skip_xcodegen=0
 skip_install_preflight=0
 skip_release_smoke=0
+strict_final=0
 
 usage() {
     cat <<'EOF'
@@ -26,6 +27,7 @@ Options:
   --skip-install-preflight
                         Skip launching a copied Release app during readiness checks.
   --skip-release-smoke  Skip the synthetic Release smoke test during readiness checks.
+  --strict-final        Treat warnings as blockers for final distribution approval.
   -h, --help            Show this help.
 EOF
 }
@@ -87,6 +89,9 @@ while [[ $# -gt 0 ]]; do
             ;;
         --skip-release-smoke)
             skip_release_smoke=1
+            ;;
+        --strict-final)
+            strict_final=1
             ;;
         -h|--help)
             usage
@@ -279,6 +284,10 @@ else
     detailed_sections+=("## Git Status"$'\n\n```text\n'"$git_status"$'\n```')
 fi
 
+if [[ "$strict_final" -eq 1 && "${#warnings[@]}" -gt 0 ]]; then
+    add_blocker "Strict final mode requires zero warnings; resolve all warnings before distribution approval."
+fi
+
 machine_arch="$(uname -m)"
 macos_version="$(sw_vers -productVersion)"
 macos_build="$(sw_vers -buildVersion)"
@@ -304,6 +313,7 @@ Generated: $generated_at
 | Internal ad-hoc mode | \`$([[ "$allow_adhoc" -eq 1 ]] && printf "yes" || printf "no")\` |
 | Release smoke skipped | \`$([[ "$skip_release_smoke" -eq 1 ]] && printf "yes" || printf "no")\` |
 | Install preflight skipped | \`$([[ "$skip_install_preflight" -eq 1 ]] && printf "yes" || printf "no")\` |
+| Strict final mode | \`$([[ "$strict_final" -eq 1 ]] && printf "yes" || printf "no")\` |
 
 ## Automated Checks
 
@@ -419,6 +429,7 @@ payload = {
     "internalAdhocMode": bool($allow_adhoc),
     "releaseSmokeSkipped": bool($skip_release_smoke),
     "installPreflightSkipped": bool($skip_install_preflight),
+    "strictFinalMode": bool($strict_final),
     "checks": checks,
     "blockers": read_lines(blockers_path),
     "warnings": read_lines(warnings_path),

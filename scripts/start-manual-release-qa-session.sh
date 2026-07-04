@@ -169,7 +169,7 @@ Generated: $(date '+%Y-%m-%d %H:%M:%S %z')
 6. Use files in \`$fixture_dir\` for Chrome, Safari, VS Code, WeChat, DingTalk, large-text, and image-copy scenarios.
 7. Fill every manual result in \`$manual_record_path\` with tester, date, environment, result, and screenshot or note references.
 8. After filling the record, run \`scripts/validate-manual-qa-record.sh "$manual_record_path"\`. Use \`--allow-adhoc\` only for internal QA before distribution signing exists.
-9. Run \`scripts/release-readiness-report.sh --manual-record "$manual_record_path" --output "$OUTPUT_DIR/release-readiness-report.md" --json-output "$OUTPUT_DIR/release-readiness-report.json"\` as the final release gate; add \`--allow-adhoc\` only for internal QA before distribution signing exists.
+9. Run \`scripts/release-readiness-report.sh --manual-record "$manual_record_path" --output "$OUTPUT_DIR/release-readiness-report.md" --json-output "$OUTPUT_DIR/release-readiness-report.json" --strict-final\` as the final release gate; add \`--allow-adhoc\` only for internal QA before distribution signing exists.
 10. Keep OpenSpec release tasks unchecked until the corresponding manual evidence is actually filled, validated, and reviewed.
 
 ## Important Boundaries
