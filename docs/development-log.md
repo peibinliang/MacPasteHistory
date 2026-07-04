@@ -56,6 +56,7 @@
 - Added reproducible App Icon generation and verification scripts, generated the macOS AppIcon PNG set, and wired icon verification into the release readiness report.
 - Added `scripts/verify-release-screenshot-assets.sh` and wired screenshot PNG dimension validation into the release readiness report.
 - Added `scripts/verify-manual-qa-fixtures.sh` and wired synthetic manual QA fixture generation validation into the release readiness report.
+- Updated manual Release QA session README generation to list the required static release checks, install preflight, manual-record validation, and final readiness report in execution order.
 - Added double-click paste from the history list: a successful restore closes the history window, reactivates the previous foreground app, and sends `Command + V`.
 - Added `PasteCommandService` and tests for restore success/failure reporting plus paste command dispatch.
 - Added a local release environment report script and snapshot for Xcode status, signing identities, machine architecture, macOS version, and common-app availability.

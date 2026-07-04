@@ -39,6 +39,7 @@
 - Added Info.plist privacy usage description verification to release readiness checks.
 - Added Release install preflight coverage to the final release readiness report.
 - Added Release smoke-test coverage to the final release readiness report.
+- Added ordered static-check and readiness-report guidance to generated manual Release QA session READMEs.
 
 ### Fixed
 
