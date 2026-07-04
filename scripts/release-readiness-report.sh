@@ -187,6 +187,10 @@ if ! run_capture "Supported macOS targets" "$REPO_ROOT/scripts/verify-supported-
     add_blocker "Supported macOS target declarations or QA matrix rows are inconsistent."
 fi
 
+if ! run_capture "Release version and build" "$REPO_ROOT/scripts/verify-release-version-build.sh"; then
+    add_blocker "Release version or build declarations are inconsistent."
+fi
+
 if ! run_capture "App icon assets" "$REPO_ROOT/scripts/verify-app-icon-assets.sh"; then
     add_blocker "App icon asset catalog is incomplete or has invalid PNG dimensions."
 fi
