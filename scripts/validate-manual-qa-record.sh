@@ -188,6 +188,7 @@ app_path_status="not checked"
 manifest_worktree_status="not checked"
 git_commit_status="not checked"
 version_build_status="not checked"
+signing_identity_status="not checked"
 rm -f /tmp/macpastehistory-manual-record-manifest.log
 rm -f /tmp/macpastehistory-manual-record-fixtures.log
 required_sections=(
@@ -352,6 +353,31 @@ if [[ "$manifest_status" == "passed" ]]; then
 fi
 
 if [[ "$manifest_status" == "passed" ]]; then
+    signing_identity_value="$(build_field_value "Signing identity")"
+    expected_signature="$(markdown_table_value "$manifest_path" "Signature")"
+    expected_team="$(markdown_table_value "$manifest_path" "Team identifier")"
+    signing_signature="$(summary_field_value "$signing_identity_value" "Signature")"
+    signing_team="$(summary_field_value "$signing_identity_value" "Team")"
+    signing_sandbox="$(summary_field_value "$signing_identity_value" "Sandbox")"
+
+    if [[ -z "$signing_identity_value" || "$signing_identity_value" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
+        signing_identity_status="missing"
+        add_blocker "Signing identity is missing from the record."
+    elif [[ -z "$signing_signature" || "$signing_signature" != "$expected_signature" ]]; then
+        signing_identity_status="mismatch"
+        add_blocker "Signing identity Signature value does not match the manifest."
+    elif [[ -z "$signing_team" || "$signing_team" != "$expected_team" ]]; then
+        signing_identity_status="mismatch"
+        add_blocker "Signing identity Team value does not match the manifest."
+    elif [[ "$signing_sandbox" != "present" ]]; then
+        signing_identity_status="mismatch"
+        add_blocker "Signing identity Sandbox value is not present."
+    else
+        signing_identity_status="passed"
+    fi
+fi
+
+if [[ "$manifest_status" == "passed" ]]; then
     app_path_value="$(build_field_value "App path")"
     packaged_app_value="$(markdown_table_value "$manifest_path" "Packaged app")"
     if [[ -z "$app_path_value" || "$app_path_value" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
@@ -462,6 +488,7 @@ echo "| Package manifest verification | \`$manifest_status\` |"
 echo "| Package manifest worktree | \`$manifest_worktree_status\` |"
 echo "| Git commit match | \`$git_commit_status\` |"
 echo "| Version / build match | \`$version_build_status\` |"
+echo "| Signing identity match | \`$signing_identity_status\` |"
 echo "| App path verification | \`$app_path_status\` |"
 echo "| Package SHA-256 match | \`$package_sha_status\` |"
 echo "| Package verification summary | \`$package_verification_status\` |"
