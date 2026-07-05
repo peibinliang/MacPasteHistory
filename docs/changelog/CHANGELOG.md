@@ -55,6 +55,7 @@
 - Added Release QA package manifest verification.
 - Added Package manifest tracking to manual Release QA records.
 - Added Package manifest file validation to manual Release QA record checks.
+- Added App path to Packaged app cross-checking for manual Release QA records.
 - Added Package SHA-256 cross-checking for manual Release QA records.
 - Added Package verification summary cross-checking for manual Release QA records.
 - Added Fixture directory validation for manual Release QA records.

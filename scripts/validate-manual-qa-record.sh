@@ -108,6 +108,24 @@ summary_field_value() {
     '
 }
 
+normalized_path() {
+    local path_value="$1"
+    local path_dir
+    local path_base
+
+    if [[ -d "$path_value" ]]; then
+        (cd "$path_value" && pwd -P)
+    else
+        path_dir="$(dirname "$path_value")"
+        path_base="$(basename "$path_value")"
+        if [[ -d "$path_dir" ]]; then
+            printf "%s/%s" "$(cd "$path_dir" && pwd -P)" "$path_base"
+        else
+            printf "%s" "$path_value"
+        fi
+    fi
+}
+
 resolve_record_path() {
     local raw_path="$1"
     local record_dir
@@ -166,6 +184,7 @@ manifest_status="not checked"
 package_sha_status="not checked"
 package_verification_status="not checked"
 fixture_status="not checked"
+app_path_status="not checked"
 rm -f /tmp/macpastehistory-manual-record-manifest.log
 rm -f /tmp/macpastehistory-manual-record-fixtures.log
 required_sections=(
@@ -286,6 +305,30 @@ else
 fi
 
 if [[ "$manifest_status" == "passed" ]]; then
+    app_path_value="$(build_field_value "App path")"
+    packaged_app_value="$(markdown_table_value "$manifest_path" "Packaged app")"
+    if [[ -z "$app_path_value" || "$app_path_value" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
+        app_path_status="missing"
+        add_blocker "App path is missing from the record."
+    else
+        app_path="$(resolve_record_path "$app_path_value")"
+        packaged_app_path="$(resolve_manifest_path "$packaged_app_value" "$(cd "$(dirname "$manifest_path")" && pwd)")"
+        if [[ ! -d "$app_path" ]]; then
+            app_path_status="missing"
+            add_blocker "App path does not exist or is not a directory: $app_path_value"
+        elif [[ "$app_path" != *.app ]]; then
+            app_path_status="invalid"
+            add_blocker "App path does not point to a .app bundle: $app_path_value"
+        elif [[ "$(normalized_path "$app_path")" != "$(normalized_path "$packaged_app_path")" ]]; then
+            app_path_status="mismatch"
+            add_blocker "App path does not match the Packaged app in the manifest."
+        else
+            app_path_status="passed"
+        fi
+    fi
+fi
+
+if [[ "$manifest_status" == "passed" ]]; then
     package_sha_value="$(build_field_value "Package SHA-256" | tr '[:upper:]' '[:lower:]')"
     checksum_value="$(markdown_table_value "$manifest_path" "SHA-256 file")"
     if [[ -z "$checksum_value" || "$checksum_value" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
@@ -369,6 +412,7 @@ echo "| Required common app rows | \`${#required_common_app_rows[@]}\` |"
 echo "| Required privacy rows | \`${#required_privacy_rows[@]}\` |"
 echo "| TBD / Not run lines | \`$(printf "%s\n" "$placeholder_lines" | sed '/^$/d' | wc -l | tr -d ' ')\` |"
 echo "| Package manifest verification | \`$manifest_status\` |"
+echo "| App path verification | \`$app_path_status\` |"
 echo "| Package SHA-256 match | \`$package_sha_status\` |"
 echo "| Package verification summary | \`$package_verification_status\` |"
 echo "| Fixture directory verification | \`$fixture_status\` |"
