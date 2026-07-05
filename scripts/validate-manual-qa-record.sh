@@ -165,7 +165,9 @@ blockers=()
 manifest_status="not checked"
 package_sha_status="not checked"
 package_verification_status="not checked"
+fixture_status="not checked"
 rm -f /tmp/macpastehistory-manual-record-manifest.log
+rm -f /tmp/macpastehistory-manual-record-fixtures.log
 required_sections=(
     "Build Under Test"
     "Environment Coverage"
@@ -337,6 +339,23 @@ if [[ "$manifest_status" == "passed" ]]; then
     fi
 fi
 
+fixture_value="$(build_field_value "Fixture directory")"
+if [[ -z "$fixture_value" || "$fixture_value" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
+    fixture_status="missing"
+    add_blocker "Fixture directory is missing from the record."
+else
+    fixture_path="$(resolve_record_path "$fixture_value")"
+    if [[ ! -d "$fixture_path" ]]; then
+        fixture_status="missing"
+        add_blocker "Fixture directory does not exist: $fixture_value"
+    elif scripts/verify-manual-qa-fixtures.sh --fixture-dir "$fixture_path" >/tmp/macpastehistory-manual-record-fixtures.log 2>&1; then
+        fixture_status="passed"
+    else
+        fixture_status="failed"
+        add_blocker "Fixture directory verification failed: $fixture_value"
+    fi
+fi
+
 echo "# Manual QA Record Validation"
 echo
 echo "| Field | Value |"
@@ -352,6 +371,7 @@ echo "| TBD / Not run lines | \`$(printf "%s\n" "$placeholder_lines" | sed '/^$/
 echo "| Package manifest verification | \`$manifest_status\` |"
 echo "| Package SHA-256 match | \`$package_sha_status\` |"
 echo "| Package verification summary | \`$package_verification_status\` |"
+echo "| Fixture directory verification | \`$fixture_status\` |"
 echo "| Ad-hoc allowed | \`$([[ "$allow_adhoc" -eq 1 ]] && printf "yes" || printf "no")\` |"
 echo
 
@@ -390,6 +410,15 @@ if [[ -s /tmp/macpastehistory-manual-record-manifest.log ]]; then
     echo
     echo '```text'
     cat /tmp/macpastehistory-manual-record-manifest.log
+    echo '```'
+fi
+
+if [[ -s /tmp/macpastehistory-manual-record-fixtures.log ]]; then
+    echo
+    echo "## Fixture Verification Output"
+    echo
+    echo '```text'
+    cat /tmp/macpastehistory-manual-record-fixtures.log
     echo '```'
 fi
 
