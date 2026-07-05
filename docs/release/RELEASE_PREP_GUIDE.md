@@ -860,7 +860,7 @@ scripts/validate-manual-qa-record.sh docs/release/manual-qa-record.md
 scripts/validate-manual-qa-record.sh --allow-adhoc docs/release/manual-qa-record.md
 ```
 
-`--allow-adhoc` 只用于内部 QA，不得作为最终分发签名验收依据。该脚本会检查必需章节，并在对应章节内检查 Build Under Test 必需字段、Package manifest 文件有效性、App path 是否存在且匹配 manifest 的 Packaged app、记录中的 Package SHA-256 是否匹配 manifest 引用的 checksum 文件、Package verification 摘要是否包含 checksum `OK` 且 Signature / Team / Sandbox 与 manifest 和包校验结果一致、Fixture directory 是否存在且通过 `scripts/verify-manual-qa-fixtures.sh --fixture-dir`、Release App Workflow 必测行（包括双击历史项直接粘贴）、环境覆盖行、常用应用矩阵行、隐私与安全检查行，同时检查 `TBD`、`Not run`、最终发布决定和签名/Team ID 明显缺口。
+`--allow-adhoc` 只用于内部 QA，不得作为最终分发签名验收依据。该脚本会检查必需章节，并在对应章节内检查 Build Under Test 必需字段、Package manifest 文件有效性、manifest 嵌入的 baseline 是否来自 clean git worktree、App path 是否存在且匹配 manifest 的 Packaged app、记录中的 Package SHA-256 是否匹配 manifest 引用的 checksum 文件、Package verification 摘要是否包含 checksum `OK` 且 Signature / Team / Sandbox 与 manifest 和包校验结果一致、Fixture directory 是否存在且通过 `scripts/verify-manual-qa-fixtures.sh --fixture-dir`、Release App Workflow 必测行（包括双击历史项直接粘贴）、环境覆盖行、常用应用矩阵行、隐私与安全检查行，同时检查 `TBD`、`Not run`、最终发布决定和签名/Team ID 明显缺口。
 
 ### 汇总检查
 

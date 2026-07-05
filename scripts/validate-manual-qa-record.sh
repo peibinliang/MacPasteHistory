@@ -185,6 +185,7 @@ package_sha_status="not checked"
 package_verification_status="not checked"
 fixture_status="not checked"
 app_path_status="not checked"
+manifest_worktree_status="not checked"
 rm -f /tmp/macpastehistory-manual-record-manifest.log
 rm -f /tmp/macpastehistory-manual-record-fixtures.log
 required_sections=(
@@ -305,6 +306,16 @@ else
 fi
 
 if [[ "$manifest_status" == "passed" ]]; then
+    manifest_worktree_value="$(markdown_table_value "$manifest_path" "Git worktree")"
+    if [[ "$manifest_worktree_value" == "Clean" ]]; then
+        manifest_worktree_status="passed"
+    else
+        manifest_worktree_status="dirty"
+        add_blocker "Package manifest baseline was generated from a dirty git worktree."
+    fi
+fi
+
+if [[ "$manifest_status" == "passed" ]]; then
     app_path_value="$(build_field_value "App path")"
     packaged_app_value="$(markdown_table_value "$manifest_path" "Packaged app")"
     if [[ -z "$app_path_value" || "$app_path_value" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
@@ -412,6 +423,7 @@ echo "| Required common app rows | \`${#required_common_app_rows[@]}\` |"
 echo "| Required privacy rows | \`${#required_privacy_rows[@]}\` |"
 echo "| TBD / Not run lines | \`$(printf "%s\n" "$placeholder_lines" | sed '/^$/d' | wc -l | tr -d ' ')\` |"
 echo "| Package manifest verification | \`$manifest_status\` |"
+echo "| Package manifest worktree | \`$manifest_worktree_status\` |"
 echo "| App path verification | \`$app_path_status\` |"
 echo "| Package SHA-256 match | \`$package_sha_status\` |"
 echo "| Package verification summary | \`$package_verification_status\` |"
