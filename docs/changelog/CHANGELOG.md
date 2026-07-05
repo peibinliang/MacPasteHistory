@@ -63,6 +63,7 @@
 - Added Git commit cross-checking against Package manifests for manual Release QA records.
 - Added Version / build cross-checking against Package manifests for manual Release QA records.
 - Added Signing identity cross-checking against Package manifests for manual Release QA records.
+- Added `Filled` placeholder rejection for manual Release QA records.
 - Added OpenSpec remaining-task reporting to release readiness summaries.
 
 ### Fixed

@@ -80,6 +80,7 @@
 - Wired manual QA record validation to compare the recorded Git commit against the Package manifest commit.
 - Wired manual QA record validation to compare the recorded Version / build against the Package manifest version.
 - Wired manual QA record validation to compare the recorded Signing identity against the Package manifest signature, Team, and Sandbox state.
+- Wired manual QA record validation to reject `Filled` placeholders in addition to `TBD` and `Not run`.
 - Added OpenSpec release-change progress to `scripts/release-readiness-report.sh` so readiness reports and JSON output list the exact remaining release tasks.
 - Added double-click paste from the history list: a successful restore closes the history window, reactivates the previous foreground app, and sends `Command + V`.
 - Added `PasteCommandService` and tests for restore success/failure reporting plus paste command dispatch.
@@ -156,6 +157,7 @@
 - `scripts/validate-manual-qa-record.sh --allow-adhoc <record>` now fails when the record Git commit differs from the referenced Package manifest commit.
 - `scripts/validate-manual-qa-record.sh --allow-adhoc <record>` now fails when the record Version / build differs from the referenced Package manifest version.
 - `scripts/validate-manual-qa-record.sh --allow-adhoc <record>` now fails when the record Signing identity differs from the referenced Package manifest signature, Team, or Sandbox state.
+- `scripts/validate-manual-qa-record.sh --allow-adhoc <record>` now fails when table rows still contain `Filled` placeholders.
 - `scripts/release-readiness-report.sh --json-output build/release-readiness-openspec-green.json ...` produced `openSpecProgress` as 4/19 with 15 remaining tasks and an OpenSpec progress warning.
 - Targeted `ClipboardHistoryViewModelTests` and `PasteCommandServiceTests` passed with 9 tests and 0 failures after adding double-click paste support.
 - `scripts/preview-release-app.sh --build-only` and `scripts/package-release-qa-build.sh --output-dir build/release-qa-entry-verify` passed in parallel after wiring Xcode file-reference validation into release entry points and serializing XcodeGen.

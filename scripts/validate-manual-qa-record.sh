@@ -274,9 +274,9 @@ for row_name in "${required_privacy_rows[@]}"; do
     require_named_row "Privacy And Safety Checks" "$row_name"
 done
 
-placeholder_lines="$(grep -nE '^\|.*TBD|^\|.*Not run' "$record_path" || true)"
+placeholder_lines="$(grep -nE '^\|.*(TBD|Not run|Filled)' "$record_path" || true)"
 if [[ -n "$placeholder_lines" ]]; then
-    add_blocker "Record still contains TBD or Not run placeholders."
+    add_blocker "Record still contains TBD, Not run, or Filled placeholders."
 fi
 
 if grep -qE 'Ready for distribution\?[[:space:]]*\|[[:space:]]*.*No' "$record_path"; then
@@ -483,7 +483,7 @@ echo "| Required workflow rows | \`${#required_workflow_rows[@]}\` |"
 echo "| Required environment rows | \`${#required_environment_rows[@]}\` |"
 echo "| Required common app rows | \`${#required_common_app_rows[@]}\` |"
 echo "| Required privacy rows | \`${#required_privacy_rows[@]}\` |"
-echo "| TBD / Not run lines | \`$(printf "%s\n" "$placeholder_lines" | sed '/^$/d' | wc -l | tr -d ' ')\` |"
+echo "| Placeholder lines | \`$(printf "%s\n" "$placeholder_lines" | sed '/^$/d' | wc -l | tr -d ' ')\` |"
 echo "| Package manifest verification | \`$manifest_status\` |"
 echo "| Package manifest worktree | \`$manifest_worktree_status\` |"
 echo "| Git commit match | \`$git_commit_status\` |"
