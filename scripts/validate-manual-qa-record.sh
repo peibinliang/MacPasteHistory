@@ -96,6 +96,18 @@ markdown_table_value() {
     ' "$file_path"
 }
 
+summary_field_value() {
+    local summary="$1"
+    local field_name="$2"
+    printf "%s\n" "$summary" | sed -n "s/^.*$field_name=\([^;|]*\).*$/\1/p" | awk '
+        {
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+            print
+            exit
+        }
+    '
+}
+
 resolve_record_path() {
     local raw_path="$1"
     local record_dir
@@ -152,6 +164,7 @@ fi
 blockers=()
 manifest_status="not checked"
 package_sha_status="not checked"
+package_verification_status="not checked"
 rm -f /tmp/macpastehistory-manual-record-manifest.log
 required_sections=(
     "Build Under Test"
@@ -296,6 +309,34 @@ if [[ "$manifest_status" == "passed" ]]; then
     fi
 fi
 
+if [[ "$manifest_status" == "passed" ]]; then
+    package_verification_value="$(build_field_value "Package verification")"
+    expected_signature="$(markdown_table_value "$manifest_path" "Signature")"
+    expected_team="$(markdown_table_value "$manifest_path" "Team identifier")"
+    verification_signature="$(summary_field_value "$package_verification_value" "Signature")"
+    verification_team="$(summary_field_value "$package_verification_value" "Team")"
+    verification_sandbox="$(summary_field_value "$package_verification_value" "Sandbox")"
+
+    if [[ -z "$package_verification_value" || "$package_verification_value" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
+        package_verification_status="missing"
+        add_blocker "Package verification summary is missing from the record."
+    elif ! printf "%s\n" "$package_verification_value" | grep -q ": OK"; then
+        package_verification_status="failed"
+        add_blocker "Package verification summary does not include a successful checksum result."
+    elif [[ -z "$verification_signature" || "$verification_signature" != "$expected_signature" ]]; then
+        package_verification_status="mismatch"
+        add_blocker "Package verification signature does not match the manifest."
+    elif [[ -z "$verification_team" || "$verification_team" != "$expected_team" ]]; then
+        package_verification_status="mismatch"
+        add_blocker "Package verification Team value does not match the manifest."
+    elif [[ "$verification_sandbox" != "present" ]]; then
+        package_verification_status="mismatch"
+        add_blocker "Package verification Sandbox value is not present."
+    else
+        package_verification_status="passed"
+    fi
+fi
+
 echo "# Manual QA Record Validation"
 echo
 echo "| Field | Value |"
@@ -310,6 +351,7 @@ echo "| Required privacy rows | \`${#required_privacy_rows[@]}\` |"
 echo "| TBD / Not run lines | \`$(printf "%s\n" "$placeholder_lines" | sed '/^$/d' | wc -l | tr -d ' ')\` |"
 echo "| Package manifest verification | \`$manifest_status\` |"
 echo "| Package SHA-256 match | \`$package_sha_status\` |"
+echo "| Package verification summary | \`$package_verification_status\` |"
 echo "| Ad-hoc allowed | \`$([[ "$allow_adhoc" -eq 1 ]] && printf "yes" || printf "no")\` |"
 echo
 
