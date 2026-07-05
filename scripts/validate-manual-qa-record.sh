@@ -39,7 +39,14 @@ require_named_row() {
             in_section { print }
         ' "$record_path"
     )"
-    if ! printf "%s\n" "$section_text" | grep -qE "^\\|[[:space:]]*$row_name[[:space:]]*\\|"; then
+    if ! printf "%s\n" "$section_text" | awk -F'|' -v row="$row_name" '
+        function trim(value) {
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+            return value
+        }
+        $2 && trim($2) == row { found = 1 }
+        END { exit found ? 0 : 1 }
+    '; then
         add_blocker "Missing required $group_name row: $row_name"
     fi
 }
@@ -236,6 +243,13 @@ required_privacy_rows=(
     "Local storage"
 )
 
+required_decision_rows=(
+    "Ready for distribution?"
+    "Blocking issues"
+    "Follow-up issues"
+    "Approver"
+)
+
 required_build_fields=(
     "Date"
     "Tester"
@@ -272,6 +286,10 @@ done
 
 for row_name in "${required_privacy_rows[@]}"; do
     require_named_row "Privacy And Safety Checks" "$row_name"
+done
+
+for row_name in "${required_decision_rows[@]}"; do
+    require_named_row "Decision" "$row_name"
 done
 
 placeholder_lines="$(grep -nE '^\|.*(TBD|Not run|Filled)' "$record_path" || true)"
@@ -483,6 +501,7 @@ echo "| Required workflow rows | \`${#required_workflow_rows[@]}\` |"
 echo "| Required environment rows | \`${#required_environment_rows[@]}\` |"
 echo "| Required common app rows | \`${#required_common_app_rows[@]}\` |"
 echo "| Required privacy rows | \`${#required_privacy_rows[@]}\` |"
+echo "| Required decision rows | \`${#required_decision_rows[@]}\` |"
 echo "| Placeholder lines | \`$(printf "%s\n" "$placeholder_lines" | sed '/^$/d' | wc -l | tr -d ' ')\` |"
 echo "| Package manifest verification | \`$manifest_status\` |"
 echo "| Package manifest worktree | \`$manifest_worktree_status\` |"
