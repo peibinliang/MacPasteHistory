@@ -187,6 +187,7 @@ fixture_status="not checked"
 app_path_status="not checked"
 manifest_worktree_status="not checked"
 git_commit_status="not checked"
+version_build_status="not checked"
 rm -f /tmp/macpastehistory-manual-record-manifest.log
 rm -f /tmp/macpastehistory-manual-record-fixtures.log
 required_sections=(
@@ -334,6 +335,23 @@ if [[ "$manifest_status" == "passed" ]]; then
 fi
 
 if [[ "$manifest_status" == "passed" ]]; then
+    record_version_build="$(build_field_value "Version / build")"
+    manifest_version_build="$(markdown_table_value "$manifest_path" "Version / build")"
+    if [[ -z "$record_version_build" || "$record_version_build" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
+        version_build_status="missing"
+        add_blocker "Version / build is missing from the record."
+    elif [[ -z "$manifest_version_build" || "$manifest_version_build" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
+        version_build_status="missing manifest"
+        add_blocker "Package manifest does not list a Version / build value."
+    elif [[ "$record_version_build" != "$manifest_version_build" ]]; then
+        version_build_status="mismatch"
+        add_blocker "Version / build does not match the package manifest."
+    else
+        version_build_status="passed"
+    fi
+fi
+
+if [[ "$manifest_status" == "passed" ]]; then
     app_path_value="$(build_field_value "App path")"
     packaged_app_value="$(markdown_table_value "$manifest_path" "Packaged app")"
     if [[ -z "$app_path_value" || "$app_path_value" =~ ^(TBD|TODO|PLACEHOLDER|not[[:space:]]provided)$ ]]; then
@@ -443,6 +461,7 @@ echo "| TBD / Not run lines | \`$(printf "%s\n" "$placeholder_lines" | sed '/^$/
 echo "| Package manifest verification | \`$manifest_status\` |"
 echo "| Package manifest worktree | \`$manifest_worktree_status\` |"
 echo "| Git commit match | \`$git_commit_status\` |"
+echo "| Version / build match | \`$version_build_status\` |"
 echo "| App path verification | \`$app_path_status\` |"
 echo "| Package SHA-256 match | \`$package_sha_status\` |"
 echo "| Package verification summary | \`$package_verification_status\` |"
