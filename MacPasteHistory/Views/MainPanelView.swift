@@ -276,9 +276,9 @@ private struct HistoryRowView: View {
                         .font(.body)
                         .lineLimit(3, reservesSpace: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
             .gesture(
                 ExclusiveGesture(
@@ -294,8 +294,6 @@ private struct HistoryRowView: View {
                     }
                 }
             )
-
-            Spacer()
 
             HStack(spacing: 6) {
                 Button(action: favoriteAction) {
