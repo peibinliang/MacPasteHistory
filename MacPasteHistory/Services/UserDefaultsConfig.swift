@@ -21,6 +21,7 @@ struct UserDefaultsConfig {
         case historyRetentionDays = "config.historyRetentionDays"
         case launchAtStartup = "config.launchAtStartup"
         case showDockIcon = "config.showDockIcon"
+        case preferredLanguage = "config.preferredLanguage"
     }
 
     // MARK: - Generic accessors
@@ -90,5 +91,16 @@ struct UserDefaultsConfig {
     var showDockIcon: Bool {
         get { bool(forKey: .showDockIcon, defaultValue: false) }
         set { setBool(newValue, forKey: .showDockIcon) }
+    }
+
+    var preferredLanguage: String? {
+        get { defaults.string(forKey: Key.preferredLanguage.rawValue) }
+        set {
+            if let newValue {
+                defaults.set(newValue, forKey: Key.preferredLanguage.rawValue)
+            } else {
+                defaults.removeObject(forKey: Key.preferredLanguage.rawValue)
+            }
+        }
     }
 }

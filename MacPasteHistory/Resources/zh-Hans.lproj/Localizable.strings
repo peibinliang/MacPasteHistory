@@ -1,0 +1,109 @@
+/* Localizable.strings - Simplified Chinese */
+
+/* MainPanelView - Header */
+"Clipboard History" = "剪贴板历史";
+"Clear Text" = "清空文本";
+
+/* MainPanelView - Search */
+"Search text history" = "搜索文本历史";
+
+/* MainPanelView - Toast */
+"Copied to clipboard" = "已复制到剪贴板";
+
+/* MainPanelView - Filter */
+"Favorites" = "收藏";
+"All" = "全部";
+"Text" = "文本";
+"Image" = "图片";
+
+/* MainPanelView - Empty State */
+"No History" = "暂无历史";
+
+/* MainPanelView - Row Actions */
+"Restore" = "恢复";
+"Delete" = "删除";
+"Favorite" = "收藏";
+"Unfavorite" = "取消收藏";
+
+/* MainPanelView - Detail View */
+"History Detail" = "历史详情";
+"Done" = "完成";
+"Type" = "类型";
+"Created" = "创建时间";
+"Size" = "大小";
+"Dimensions" = "尺寸";
+"Format" = "格式";
+"Source" = "来源";
+"Bundle ID" = "Bundle ID";
+
+/* MainPanelView - Preview Text */
+"Empty text" = "空文本";
+"Image %lldx%lld" = "图片 %lldx%lld";
+"%lld chars" = "%lld 字符";
+
+/* SettingsView - Alerts */
+"Clear All Data?" = "清空所有数据？";
+"Cancel" = "取消";
+"Clear" = "清空";
+"This will permanently delete all clipboard history records and image files. This action cannot be undone." = "这将永久删除所有剪贴板历史记录和图片文件。此操作无法撤销。";
+"Launch at Login Failed" = "开机启动设置失败";
+"OK" = "确定";
+
+/* SettingsView - Recording Section */
+"Recording" = "录制";
+"Record text clipboard history" = "记录文本剪贴板历史";
+"Record image clipboard history" = "记录图片剪贴板历史";
+"Launch at login" = "开机时启动";
+"Show Dock icon" = "显示 Dock 图标";
+
+/* SettingsView - Retention Section */
+"History Retention" = "历史保留";
+"Keep history for %lld days" = "保留 %lld 天历史";
+
+/* SettingsView - Limits Section */
+"Record Limits" = "记录限制";
+"Maximum %lld text records" = "最多 %lld 条文本记录";
+"Maximum %lld image records" = "最多 %lld 条图片记录";
+
+/* SettingsView - Storage Section */
+"Storage" = "存储";
+"Single image size limit" = "单张图片大小限制";
+"Total storage cap" = "总存储上限";
+
+/* SettingsView - Data Management Section */
+"Data Management" = "数据管理";
+"Clear All Data" = "清空所有数据";
+
+/* SettingsView - Language Section */
+"Language" = "语言";
+"Follow System" = "跟随系统";
+"English" = "English";
+"简体中文" = "简体中文";
+"繁體中文" = "繁體中文";
+
+/* SettingsView - Restart Alert */
+"Restart Required" = "需要重启";
+"The app needs to restart to apply the new language. Would you like to restart now?" = "应用需要重启以应用新语言。是否立即重启？";
+"Restart Now" = "立即重启";
+"Later" = "稍后";
+
+/* AppDelegate - Menu */
+"Open History" = "打开历史";
+"Settings" = "设置";
+"Quit" = "退出";
+
+/* HistoryDisplayFormatter */
+"Today" = "今天";
+"Yesterday" = "昨天";
+
+/* ClipboardHistoryViewModel - Errors */
+"Failed to load clipboard history." = "加载剪贴板历史失败。";
+"Failed to load more clipboard history." = "加载更多剪贴板历史失败。";
+"Failed to restore text to clipboard." = "恢复文本到剪贴板失败。";
+"Failed to delete clipboard history item." = "删除剪贴板历史项失败。";
+"Failed to update favorite state." = "更新收藏状态失败。";
+"Failed to clear clipboard history." = "清空剪贴板历史失败。";
+"Failed to restore image to clipboard." = "恢复图片到剪贴板失败。";
+
+/* SettingsViewModel - Errors */
+"Unable to update the login item. Check macOS Login Items permissions and try again." = "无法更新登录项。请检查 macOS 登录项权限后重试。";

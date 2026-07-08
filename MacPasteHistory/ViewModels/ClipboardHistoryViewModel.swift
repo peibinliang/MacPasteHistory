@@ -44,7 +44,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
             canLoadMore = loadedItems.count == pageSize
             errorMessage = nil
         } catch {
-            errorMessage = "Failed to load clipboard history."
+            errorMessage = NSLocalizedString("Failed to load clipboard history.", comment: "Error: load failed")
         }
     }
 
@@ -72,7 +72,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
             canLoadMore = loadedItems.count == pageSize
             errorMessage = nil
         } catch {
-            errorMessage = "Failed to load more clipboard history."
+            errorMessage = NSLocalizedString("Failed to load more clipboard history.", comment: "Error: load more failed")
         }
     }
 
@@ -83,7 +83,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
         }
 
         guard writer.writeText(item.textContent) else {
-            errorMessage = "Failed to restore text to clipboard."
+            errorMessage = NSLocalizedString("Failed to restore text to clipboard.", comment: "Error: restore text failed")
             return false
         }
         errorMessage = nil
@@ -98,7 +98,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
             try repository.deleteItem(id: item.id)
             loadHistory()
         } catch {
-            errorMessage = "Failed to delete clipboard history item."
+            errorMessage = NSLocalizedString("Failed to delete clipboard history item.", comment: "Error: delete failed")
         }
     }
 
@@ -107,7 +107,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
             try repository.setFavorite(!item.isFavorite, id: item.id)
             loadHistory()
         } catch {
-            errorMessage = "Failed to update favorite state."
+            errorMessage = NSLocalizedString("Failed to update favorite state.", comment: "Error: favorite update failed")
         }
     }
 
@@ -116,7 +116,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
             try repository.clearTextHistory()
             loadHistory()
         } catch {
-            errorMessage = "Failed to clear clipboard history."
+            errorMessage = NSLocalizedString("Failed to clear clipboard history.", comment: "Error: clear failed")
         }
     }
 
@@ -134,7 +134,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
         guard let filePath = item.filePath,
               let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)),
               writer.writeImage(data) else {
-            errorMessage = "Failed to restore image to clipboard."
+            errorMessage = NSLocalizedString("Failed to restore image to clipboard.", comment: "Error: restore image failed")
             return false
         }
         errorMessage = nil

@@ -1,0 +1,109 @@
+/* Localizable.strings - English */
+
+/* MainPanelView - Header */
+"Clipboard History" = "Clipboard History";
+"Clear Text" = "Clear Text";
+
+/* MainPanelView - Search */
+"Search text history" = "Search text history";
+
+/* MainPanelView - Toast */
+"Copied to clipboard" = "Copied to clipboard";
+
+/* MainPanelView - Filter */
+"Favorites" = "Favorites";
+"All" = "All";
+"Text" = "Text";
+"Image" = "Image";
+
+/* MainPanelView - Empty State */
+"No History" = "No History";
+
+/* MainPanelView - Row Actions */
+"Restore" = "Restore";
+"Delete" = "Delete";
+"Favorite" = "Favorite";
+"Unfavorite" = "Unfavorite";
+
+/* MainPanelView - Detail View */
+"History Detail" = "History Detail";
+"Done" = "Done";
+"Type" = "Type";
+"Created" = "Created";
+"Size" = "Size";
+"Dimensions" = "Dimensions";
+"Format" = "Format";
+"Source" = "Source";
+"Bundle ID" = "Bundle ID";
+
+/* MainPanelView - Preview Text */
+"Empty text" = "Empty text";
+"Image %lldx%lld" = "Image %lldx%lld";
+"%lld chars" = "%lld chars";
+
+/* SettingsView - Alerts */
+"Clear All Data?" = "Clear All Data?";
+"Cancel" = "Cancel";
+"Clear" = "Clear";
+"This will permanently delete all clipboard history records and image files. This action cannot be undone." = "This will permanently delete all clipboard history records and image files. This action cannot be undone.";
+"Launch at Login Failed" = "Launch at Login Failed";
+"OK" = "OK";
+
+/* SettingsView - Recording Section */
+"Recording" = "Recording";
+"Record text clipboard history" = "Record text clipboard history";
+"Record image clipboard history" = "Record image clipboard history";
+"Launch at login" = "Launch at login";
+"Show Dock icon" = "Show Dock icon";
+
+/* SettingsView - Retention Section */
+"History Retention" = "History Retention";
+"Keep history for %lld days" = "Keep history for %lld days";
+
+/* SettingsView - Limits Section */
+"Record Limits" = "Record Limits";
+"Maximum %lld text records" = "Maximum %lld text records";
+"Maximum %lld image records" = "Maximum %lld image records";
+
+/* SettingsView - Storage Section */
+"Storage" = "Storage";
+"Single image size limit" = "Single image size limit";
+"Total storage cap" = "Total storage cap";
+
+/* SettingsView - Data Management Section */
+"Data Management" = "Data Management";
+"Clear All Data" = "Clear All Data";
+
+/* SettingsView - Language Section */
+"Language" = "Language";
+"Follow System" = "Follow System";
+"English" = "English";
+"简体中文" = "简体中文";
+"繁體中文" = "繁體中文";
+
+/* SettingsView - Restart Alert */
+"Restart Required" = "Restart Required";
+"The app needs to restart to apply the new language. Would you like to restart now?" = "The app needs to restart to apply the new language. Would you like to restart now?";
+"Restart Now" = "Restart Now";
+"Later" = "Later";
+
+/* AppDelegate - Menu */
+"Open History" = "Open History";
+"Settings" = "Settings";
+"Quit" = "Quit";
+
+/* HistoryDisplayFormatter */
+"Today" = "Today";
+"Yesterday" = "Yesterday";
+
+/* ClipboardHistoryViewModel - Errors */
+"Failed to load clipboard history." = "Failed to load clipboard history.";
+"Failed to load more clipboard history." = "Failed to load more clipboard history.";
+"Failed to restore text to clipboard." = "Failed to restore text to clipboard.";
+"Failed to delete clipboard history item." = "Failed to delete clipboard history item.";
+"Failed to update favorite state." = "Failed to update favorite state.";
+"Failed to clear clipboard history." = "Failed to clear clipboard history.";
+"Failed to restore image to clipboard." = "Failed to restore image to clipboard.";
+
+/* SettingsViewModel - Errors */
+"Unable to update the login item. Check macOS Login Items permissions and try again." = "Unable to update the login item. Check macOS Login Items permissions and try again.";

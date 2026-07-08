@@ -123,7 +123,7 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         let didRestore = viewModel.restore(item)
 
         XCTAssertFalse(didRestore)
-        XCTAssertEqual(viewModel.errorMessage, "Failed to restore text to clipboard.")
+        XCTAssertEqual(viewModel.errorMessage, NSLocalizedString("Failed to restore text to clipboard.", comment: ""))
     }
 
     func testDelete_whenItemIsImage_shouldRemoveDatabaseRecordAndImageFiles() throws {

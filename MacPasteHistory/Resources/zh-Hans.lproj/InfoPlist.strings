@@ -1,0 +1,5 @@
+/* InfoPlist.strings - Simplified Chinese */
+
+"NSPasteboardAccessUsageDescription" = "Paste History 需要访问剪贴板以记录和恢复您的剪贴板历史。";
+"NSAccessibilityUsageDescription" = "Paste History 需要辅助功能权限以检测当前前台应用。";
+"CFBundleDisplayName" = "MacPasteHistory";

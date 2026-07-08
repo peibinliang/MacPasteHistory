@@ -113,7 +113,7 @@ struct MainPanelView: View {
     }
 
     private func showCopyToast() {
-        toastMessage = "Copied to clipboard"
+        toastMessage = NSLocalizedString("Copied to clipboard", comment: "Toast: copied to clipboard")
         withAnimation { showToast = true }
         Task {
             try? await Task.sleep(nanoseconds: 1_500_000_000)
@@ -233,11 +233,11 @@ private enum HistoryContentFilter: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .all:
-            return "All"
+            return NSLocalizedString("All", comment: "Filter: all types")
         case .text:
-            return "Text"
+            return NSLocalizedString("Text", comment: "Filter: text type")
         case .image:
-            return "Image"
+            return NSLocalizedString("Image", comment: "Filter: image type")
         }
     }
 
@@ -336,35 +336,35 @@ private struct HistoryRowView: View {
     private var previewText: String {
         if item.contentType == .image {
             guard let width = item.imageWidth, let height = item.imageHeight else {
-                return "Image"
+                return NSLocalizedString("Image", comment: "Preview: image without dimensions")
             }
-            return "Image \(width)x\(height)"
+            return String(format: NSLocalizedString("Image %lldx%lld", comment: "Preview: image dimensions"), width, height)
         }
 
         guard item.textContent.isEmpty == false else {
-            return "Empty text"
+            return NSLocalizedString("Empty text", comment: "Preview: empty text")
         }
 
         return formatter.preview(for: item.textContent)
     }
 
     private var contentTypeTitle: String {
-        item.contentType == .text ? "Text" : "Image"
+        item.contentType == .text ? NSLocalizedString("Text", comment: "Content type: text") : NSLocalizedString("Image", comment: "Content type: image")
     }
 
     private var favoriteTitle: String {
-        item.isFavorite ? "Unfavorite" : "Favorite"
+        item.isFavorite ? NSLocalizedString("Unfavorite", comment: "Action: unfavorite") : NSLocalizedString("Favorite", comment: "Action: favorite")
     }
 
     private var sizeTitle: String {
         if item.contentType == .image {
             guard let fileSize = item.fileSize else {
-                return "Image"
+                return NSLocalizedString("Image", comment: "Size: image without file size")
             }
             return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
         }
 
-        return "\(item.textLength) chars"
+        return String(format: NSLocalizedString("%lld chars", comment: "Size: character count"), item.textLength)
     }
 }
 
@@ -417,7 +417,7 @@ private struct HistoryDetailView: View {
 
     private var metadataGrid: some View {
         Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
-            metadataRow("Type", item.contentType == .text ? "Text" : "Image")
+            metadataRow("Type", item.contentType == .text ? NSLocalizedString("Text", comment: "Content type: text") : NSLocalizedString("Image", comment: "Content type: image"))
             metadataRow("Created", formatter.displayTime(for: item.createdAt))
             metadataRow("Size", sizeTitle)
             if let width = item.imageWidth, let height = item.imageHeight {
@@ -436,7 +436,7 @@ private struct HistoryDetailView: View {
         .font(.caption)
     }
 
-    private func metadataRow(_ label: String, _ value: String) -> some View {
+    private func metadataRow(_ label: LocalizedStringKey, _ value: String) -> some View {
         GridRow {
             Text(label)
                 .foregroundStyle(.secondary)
@@ -473,12 +473,12 @@ private struct HistoryDetailView: View {
     private var sizeTitle: String {
         if item.contentType == .image {
             guard let fileSize = item.fileSize else {
-                return "Image"
+                return NSLocalizedString("Image", comment: "Size: image without file size")
             }
             return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
         }
 
-        return "\(item.textLength) chars"
+        return String(format: NSLocalizedString("%lld chars", comment: "Size: character count"), item.textLength)
     }
 }
 

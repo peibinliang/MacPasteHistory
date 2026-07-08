@@ -16,13 +16,14 @@ final class HistoryDisplayFormatter {
         self.maxPreviewLines = maxPreviewLines
         self.maxPreviewCharacters = maxPreviewCharacters
         self.timeFormatter = DateFormatter()
-        self.timeFormatter.locale = Locale(identifier: "en_US_POSIX")
+        self.timeFormatter.locale = Locale.current
         self.timeFormatter.calendar = calendar
         self.timeFormatter.dateFormat = "HH:mm"
         self.dateTimeFormatter = DateFormatter()
-        self.dateTimeFormatter.locale = Locale(identifier: "en_US_POSIX")
+        self.dateTimeFormatter.locale = Locale.current
         self.dateTimeFormatter.calendar = calendar
-        self.dateTimeFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+        self.dateTimeFormatter.dateStyle = .medium
+        self.dateTimeFormatter.timeStyle = .short
     }
 
     func preview(for text: String) -> String {
@@ -42,7 +43,7 @@ final class HistoryDisplayFormatter {
     func displayTime(for date: Date, now: Date = Date()) -> String {
         let time = timeFormatter.string(from: date)
         if calendar.isDate(date, inSameDayAs: now) {
-            return "Today \(time)"
+            return "\(NSLocalizedString("Today", comment: "Relative time: today")) \(time)"
         }
 
         guard let yesterday = calendar.date(byAdding: .day, value: -1, to: now) else {
@@ -50,7 +51,7 @@ final class HistoryDisplayFormatter {
         }
 
         if calendar.isDate(date, inSameDayAs: yesterday) {
-            return "Yesterday \(time)"
+            return "\(NSLocalizedString("Yesterday", comment: "Relative time: yesterday")) \(time)"
         }
 
         return dateTimeFormatter.string(from: date)

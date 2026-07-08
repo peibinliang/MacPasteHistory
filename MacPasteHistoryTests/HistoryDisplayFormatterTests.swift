@@ -28,7 +28,7 @@ final class HistoryDisplayFormatterTests: XCTestCase {
 
         let displayTime = formatter.displayTime(for: date, now: now)
 
-        XCTAssertEqual(displayTime, "Today 09:30")
+        XCTAssertEqual(displayTime, "\(NSLocalizedString("Today", comment: "")) 09:30")
     }
 
     func testDisplayTime_whenDateIsYesterday_shouldShowYesterdayAndTime() throws {
@@ -39,7 +39,7 @@ final class HistoryDisplayFormatterTests: XCTestCase {
 
         let displayTime = formatter.displayTime(for: date, now: now)
 
-        XCTAssertEqual(displayTime, "Yesterday 22:15")
+        XCTAssertEqual(displayTime, "\(NSLocalizedString("Yesterday", comment: "")) 22:15")
     }
 
     func testDisplayTime_whenDateIsOlder_shouldShowExactDateAndTime() throws {
@@ -47,9 +47,14 @@ final class HistoryDisplayFormatterTests: XCTestCase {
         let now = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 7, day: 2, hour: 15)))
         let date = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 6, day: 28, hour: 8, minute: 5)))
         let formatter = HistoryDisplayFormatter(calendar: calendar)
+        let expectedFormatter = DateFormatter()
+        expectedFormatter.locale = Locale.current
+        expectedFormatter.calendar = calendar
+        expectedFormatter.dateStyle = .medium
+        expectedFormatter.timeStyle = .short
 
         let displayTime = formatter.displayTime(for: date, now: now)
 
-        XCTAssertEqual(displayTime, "2026-06-28 08:05")
+        XCTAssertEqual(displayTime, expectedFormatter.string(from: date))
     }
 }

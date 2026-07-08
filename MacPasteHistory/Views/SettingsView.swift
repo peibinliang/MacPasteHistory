@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
@@ -10,6 +11,7 @@ struct SettingsView: View {
             retentionSection
             limitsSection
             storageSection
+            languageSection
             dataSection
         }
         .formStyle(.grouped)
@@ -38,6 +40,17 @@ struct SettingsView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(viewModel.launchAtStartupErrorMessage ?? "")
+        }
+        .alert(
+            "Restart Required",
+            isPresented: $viewModel.showRestartAlert
+        ) {
+            Button("Restart Now") {
+                restartApp()
+            }
+            Button("Later", role: .cancel) {}
+        } message: {
+            Text("The app needs to restart to apply the new language. Would you like to restart now?")
         }
     }
 
@@ -123,6 +136,19 @@ struct SettingsView: View {
         }
     }
 
+    private var languageSection: some View {
+        Section("Language") {
+            Picker("Language", selection: $viewModel.selectedLanguage) {
+                ForEach(AppLanguage.allCases) { language in
+                    Text(language.displayName).tag(language)
+                }
+            }
+            .onChange(of: viewModel.selectedLanguage) { _, newValue in
+                viewModel.updateLanguage(newValue)
+            }
+        }
+    }
+
     private var dataSection: some View {
         Section("Data Management") {
             Button(role: .destructive) {
@@ -132,5 +158,10 @@ struct SettingsView: View {
                     .foregroundStyle(.red)
             }
         }
+    }
+
+    private func restartApp() {
+        AppRelauncher().relaunchAfterTermination(bundlePath: Bundle.main.bundlePath)
+        NSApp.terminate(nil)
     }
 }

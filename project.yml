@@ -4,6 +4,10 @@ options:
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
+  knownRegions:
+    - en
+    - zh-Hans
+    - zh-Hant
 settings:
   base:
     SWIFT_VERSION: "6.0"
