@@ -107,3 +107,30 @@
 
 /* SettingsViewModel - Errors */
 "Unable to update the login item. Check macOS Login Items permissions and try again." = "无法更新登录项。请检查 macOS 登录项权限后重试。";
+"Restart the app to finish applying the Dock icon setting." = "请重启应用以完成 Dock 图标设置。";
+"Unable to detect the current app." = "无法检测当前应用。";
+"Enter a valid bundle identifier, for example com.apple.Safari." = "请输入有效的 Bundle ID，例如 com.apple.Safari。";
+"Choose a shortcut with at least one modifier and a non-reserved key." = "请选择至少包含一个修饰键且非保留按键的快捷键。";
+"Shortcut registration failed (%lld). Choose another shortcut." = "快捷键注册失败（%lld）。请选择其他快捷键。";
+"Shortcut is not registered." = "快捷键未注册。";
+
+/* SettingsView - Privacy And Shortcuts */
+"Privacy Controls" = "隐私控制";
+"Pause recording" = "暂停记录";
+"App name" = "应用名称";
+"Add" = "添加";
+"Block Current App" = "加入当前应用";
+"No blocked apps" = "暂无应用黑名单";
+"Remove" = "移除";
+"Keyboard Shortcut" = "键盘快捷键";
+"Open history" = "打开历史";
+"Reset" = "重置";
+"Press shortcut" = "按下快捷键";
+
+/* MainPanelView - Filters */
+"Time" = "时间";
+"All Time" = "全部时间";
+"Last 7 Days" = "最近 7 天";
+"Last 30 Days" = "最近 30 天";
+"All Sources" = "全部来源";
+"Unknown Source" = "未知来源";

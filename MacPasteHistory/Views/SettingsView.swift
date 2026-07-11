@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Carbon
 
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
@@ -8,6 +9,8 @@ struct SettingsView: View {
     var body: some View {
         Form {
             recordingSection
+            privacySection
+            shortcutSection
             retentionSection
             limitsSection
             storageSection
@@ -29,17 +32,18 @@ struct SettingsView: View {
         .alert(
             L10n.string("Launch at Login Failed"),
             isPresented: Binding(
-                get: { viewModel.launchAtStartupErrorMessage != nil },
+                get: { viewModel.launchAtStartupErrorMessage != nil || viewModel.appPreferenceMessage != nil },
                 set: { isPresented in
                     if !isPresented {
                         viewModel.launchAtStartupErrorMessage = nil
+                        viewModel.appPreferenceMessage = nil
                     }
                 }
             )
         ) {
             Button(L10n.string("OK"), role: .cancel) {}
         } message: {
-            Text(viewModel.launchAtStartupErrorMessage ?? "")
+            Text(viewModel.launchAtStartupErrorMessage ?? viewModel.appPreferenceMessage ?? "")
         }
         .alert(
             L10n.string("Restart Required"),
@@ -74,6 +78,90 @@ struct SettingsView: View {
                 .onChange(of: viewModel.showDockIcon) { _, newValue in
                     viewModel.updateShowDockIcon(newValue)
                 }
+        }
+    }
+
+    private var privacySection: some View {
+        Section(L10n.string("Privacy Controls")) {
+            Toggle(L10n.string("Pause recording"), isOn: $viewModel.recordingPaused)
+                .onChange(of: viewModel.recordingPaused) { _, newValue in
+                    viewModel.updateRecordingPaused(newValue)
+                }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    TextField(L10n.string("Bundle ID"), text: $viewModel.blockedAppBundleID)
+                    TextField(L10n.string("App name"), text: $viewModel.blockedAppDisplayName)
+                    Button {
+                        viewModel.addBlockedAppFromFields()
+                    } label: {
+                        Label(L10n.string("Add"), systemImage: "plus")
+                    }
+                }
+                HStack {
+                    Button {
+                        viewModel.addCurrentForegroundAppToBlockedApps()
+                    } label: {
+                        Label(L10n.string("Block Current App"), systemImage: "app.badge")
+                    }
+                    if let message = viewModel.blockedAppErrorMessage {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+                if viewModel.blockedApps.isEmpty {
+                    Text(L10n.string("No blocked apps"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(viewModel.blockedApps) { entry in
+                        HStack {
+                            Toggle(isOn: Binding(
+                                get: { entry.isEnabled },
+                                set: { viewModel.setBlockedAppEnabled(entry, isEnabled: $0) }
+                            )) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(entry.displayName)
+                                    Text(entry.bundleID)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Spacer()
+                            Button(role: .destructive) {
+                                viewModel.removeBlockedApp(entry)
+                            } label: {
+                                Label(L10n.string("Remove"), systemImage: "minus.circle")
+                            }
+                            .labelStyle(.iconOnly)
+                            .help(L10n.string("Remove"))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var shortcutSection: some View {
+        Section(L10n.string("Keyboard Shortcut")) {
+            HStack {
+                Text(L10n.string("Open history"))
+                Spacer()
+                ShortcutRecorderView(shortcut: $viewModel.shortcutConfiguration) { shortcut in
+                    viewModel.updateShortcut(shortcut)
+                }
+                Button {
+                    viewModel.resetShortcut()
+                } label: {
+                    Label(L10n.string("Reset"), systemImage: "arrow.counterclockwise")
+                }
+            }
+            if let message = viewModel.shortcutMessage {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
         }
     }
 
@@ -163,5 +251,75 @@ struct SettingsView: View {
     private func restartApp() {
         AppRelauncher().relaunchAfterTermination(bundlePath: Bundle.main.bundlePath)
         NSApp.terminate(nil)
+    }
+}
+
+private struct ShortcutRecorderView: NSViewRepresentable {
+    @Binding var shortcut: ShortcutConfiguration
+    let onShortcutChange: (ShortcutConfiguration) -> Void
+
+    func makeNSView(context: Context) -> ShortcutRecorderButton {
+        let view = ShortcutRecorderButton()
+        view.onShortcutChange = { shortcut in
+            self.shortcut = shortcut
+            self.onShortcutChange(shortcut)
+        }
+        view.shortcut = shortcut
+        return view
+    }
+
+    func updateNSView(_ nsView: ShortcutRecorderButton, context: Context) {
+        nsView.shortcut = shortcut
+    }
+}
+
+private final class ShortcutRecorderButton: NSButton {
+    var shortcut: ShortcutConfiguration = .default {
+        didSet {
+            title = shortcut.displayLabel
+        }
+    }
+    var onShortcutChange: ((ShortcutConfiguration) -> Void)?
+
+    init() {
+        super.init(frame: .zero)
+        bezelStyle = .rounded
+        setButtonType(.momentaryPushIn)
+        title = shortcut.displayLabel
+        target = self
+        action = #selector(beginRecording)
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override var acceptsFirstResponder: Bool {
+        true
+    }
+
+    @objc private func beginRecording() {
+        window?.makeFirstResponder(self)
+        title = L10n.string("Press shortcut")
+    }
+
+    override func keyDown(with event: NSEvent) {
+        let configuration = ShortcutConfiguration(
+            keyCode: UInt32(event.keyCode),
+            modifiers: event.modifierFlags.carbonShortcutModifiers
+        )
+        shortcut = configuration
+        onShortcutChange?(configuration)
+    }
+}
+
+private extension NSEvent.ModifierFlags {
+    var carbonShortcutModifiers: UInt32 {
+        var result: UInt32 = 0
+        if contains(.command) { result |= UInt32(cmdKey) }
+        if contains(.shift) { result |= UInt32(shiftKey) }
+        if contains(.option) { result |= UInt32(optionKey) }
+        if contains(.control) { result |= UInt32(controlKey) }
+        return result
     }
 }

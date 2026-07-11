@@ -109,6 +109,55 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
         XCTAssertEqual(secondPage.map(\.textContent), ["first"])
     }
 
+    func testFetchHistory_whenTimeRangeProvided_shouldReturnItemsInsideRange() throws {
+        let oldItem = try repository.saveText("old note", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
+        _ = try repository.saveText("new note", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
+        try database.execute("UPDATE clipboard_history SET created_at = '2001-01-01 00:00:00' WHERE id = \(oldItem.id);")
+
+        let items = try repository.fetchHistory(query: HistoryQuery(timeRange: .last7Days))
+
+        XCTAssertEqual(items.map(\.textContent), ["new note"])
+    }
+
+    func testFetchHistory_whenSourceBundleProvided_shouldReturnMatchingSource() throws {
+        _ = try repository.saveText("safari note", sourceApp: "Safari", sourceBundleID: "com.apple.Safari")
+        _ = try repository.saveText("notes note", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
+
+        let items = try repository.fetchHistory(
+            query: HistoryQuery(sourceFilter: HistoryQuery.SourceFilter(appName: "Safari", bundleID: "com.apple.Safari"))
+        )
+
+        XCTAssertEqual(items.map(\.textContent), ["safari note"])
+    }
+
+    func testFetchHistory_whenFiltersComposed_shouldRequireAllCriteria() throws {
+        let favorite = try repository.saveText("alpha favorite", sourceApp: "Safari", sourceBundleID: "com.apple.Safari")
+        _ = try repository.saveText("alpha ordinary", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
+        try repository.setFavorite(true, id: favorite.id)
+
+        let items = try repository.fetchHistory(
+            query: HistoryQuery(
+                keyword: "alpha",
+                favoritesOnly: true,
+                contentType: .text,
+                timeRange: .last30Days,
+                sourceFilter: HistoryQuery.SourceFilter(appName: "Safari", bundleID: "com.apple.Safari")
+            )
+        )
+
+        XCTAssertEqual(items.map(\.textContent), ["alpha favorite"])
+    }
+
+    func testFetchSourceOptions_shouldReturnDistinctKnownSources() throws {
+        _ = try repository.saveText("unknown", sourceApp: nil, sourceBundleID: nil)
+        _ = try repository.saveText("safari", sourceApp: "Safari", sourceBundleID: "com.apple.Safari")
+
+        let options = try repository.fetchSourceOptions()
+
+        XCTAssertFalse(options.contains(HistorySourceOption(appName: nil, bundleID: nil)))
+        XCTAssertTrue(options.contains(HistorySourceOption(appName: "Safari", bundleID: "com.apple.Safari")))
+    }
+
     func testSaveImage_whenContentIsNew_shouldPersistPathsAndMetadata() throws {
         let storedImage = StoredClipboardImage(
             fileURL: URL(fileURLWithPath: "/tmp/original.png"),

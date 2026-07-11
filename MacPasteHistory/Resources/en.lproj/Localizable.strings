@@ -107,3 +107,30 @@
 
 /* SettingsViewModel - Errors */
 "Unable to update the login item. Check macOS Login Items permissions and try again." = "Unable to update the login item. Check macOS Login Items permissions and try again.";
+"Restart the app to finish applying the Dock icon setting." = "Restart the app to finish applying the Dock icon setting.";
+"Unable to detect the current app." = "Unable to detect the current app.";
+"Enter a valid bundle identifier, for example com.apple.Safari." = "Enter a valid bundle identifier, for example com.apple.Safari.";
+"Choose a shortcut with at least one modifier and a non-reserved key." = "Choose a shortcut with at least one modifier and a non-reserved key.";
+"Shortcut registration failed (%lld). Choose another shortcut." = "Shortcut registration failed (%lld). Choose another shortcut.";
+"Shortcut is not registered." = "Shortcut is not registered.";
+
+/* SettingsView - Privacy And Shortcuts */
+"Privacy Controls" = "Privacy Controls";
+"Pause recording" = "Pause recording";
+"App name" = "App name";
+"Add" = "Add";
+"Block Current App" = "Block Current App";
+"No blocked apps" = "No blocked apps";
+"Remove" = "Remove";
+"Keyboard Shortcut" = "Keyboard Shortcut";
+"Open history" = "Open history";
+"Reset" = "Reset";
+"Press shortcut" = "Press shortcut";
+
+/* MainPanelView - Filters */
+"Time" = "Time";
+"All Time" = "All Time";
+"Last 7 Days" = "Last 7 Days";
+"Last 30 Days" = "Last 30 Days";
+"All Sources" = "All Sources";
+"Unknown Source" = "Unknown Source";

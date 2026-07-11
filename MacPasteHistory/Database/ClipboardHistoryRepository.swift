@@ -140,10 +140,47 @@ final class ClipboardHistoryRepository {
             try bindText("%\(trimmedKeyword)%", to: statement, index: bindIndex)
             bindIndex += 1
         }
+        if let startDate = query.timeRange.startDate {
+            try bindText(dateFormatter.string(from: startDate), to: statement, index: bindIndex)
+            bindIndex += 1
+        }
+        if query.sourceFilter.isAll == false {
+            if let bundleID = query.sourceFilter.bundleID {
+                try bindText(bundleID, to: statement, index: bindIndex)
+                bindIndex += 1
+            } else if let appName = query.sourceFilter.appName {
+                try bindText(appName, to: statement, index: bindIndex)
+                bindIndex += 1
+            }
+        }
         try bindInt(query.limit, to: statement, index: bindIndex)
         try bindInt(query.offset, to: statement, index: bindIndex + 1)
 
         return try collectItems(from: statement)
+    }
+
+    func fetchSourceOptions() throws -> [HistorySourceOption] {
+        let statement = try database.prepare(
+            """
+            SELECT source_app, source_bundle_id
+            FROM clipboard_history
+            WHERE source_app IS NOT NULL OR source_bundle_id IS NOT NULL
+            GROUP BY source_app, source_bundle_id
+            ORDER BY source_app COLLATE NOCASE ASC, source_bundle_id COLLATE NOCASE ASC;
+            """
+        )
+        defer { sqlite3_finalize(statement) }
+
+        var options: [HistorySourceOption] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            options.append(
+                HistorySourceOption(
+                    appName: nullableStringValue(statement, index: 0),
+                    bundleID: nullableStringValue(statement, index: 1)
+                )
+            )
+        }
+        return options
     }
 
     func setFavorite(_ isFavorite: Bool, id: Int64) throws {
@@ -341,6 +378,16 @@ final class ClipboardHistoryRepository {
         }
         if query.favoritesOnly {
             conditions.append("is_favorite = 1")
+        }
+        if query.timeRange.startDate != nil {
+            conditions.append("datetime(created_at) >= datetime(?)")
+        }
+        if query.sourceFilter.isAll == false {
+            if query.sourceFilter.bundleID != nil {
+                conditions.append("source_bundle_id = ?")
+            } else if query.sourceFilter.appName != nil {
+                conditions.append("source_app = ?")
+            }
         }
 
         let whereClause = conditions.isEmpty ? "" : "WHERE \(conditions.joined(separator: " AND "))"

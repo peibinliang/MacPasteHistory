@@ -97,6 +97,27 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.items.isEmpty)
     }
 
+    func testSourceFilter_shouldShowOnlySelectedSource() throws {
+        _ = try repository.saveText("safari", sourceApp: "Safari", sourceBundleID: "com.apple.Safari")
+        _ = try repository.saveText("notes", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
+        viewModel.loadHistory()
+
+        viewModel.selectedSourceOption = HistorySourceOption(appName: "Safari", bundleID: "com.apple.Safari")
+        viewModel.loadHistory()
+
+        XCTAssertEqual(viewModel.items.map(\.textContent), ["safari"])
+    }
+
+    func testLoadHistory_whenSelectedSourceWasDeleted_shouldClearInvalidSourceSelection() throws {
+        let item = try repository.saveText("safari", sourceApp: "Safari", sourceBundleID: "com.apple.Safari")
+        viewModel.selectedSourceOption = HistorySourceOption(appName: "Safari", bundleID: "com.apple.Safari")
+
+        try repository.deleteItem(id: item.id)
+        viewModel.loadHistory()
+
+        XCTAssertNil(viewModel.selectedSourceOption)
+    }
+
     func testRestore_whenItemIsImage_shouldWriteImageDataToPasteboard() throws {
         let pngData = try makePNGData()
         let item = try saveImageRecord(pngData: pngData)

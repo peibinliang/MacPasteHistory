@@ -16,3 +16,4 @@ Generated assets:
 - `04-local-privacy.png`: local storage, pause, sensitive filtering, and clear-all messaging.
 
 All screenshots must be visually reviewed before final App Store upload.
+Screenshots and captions must not claim local database encryption for the current release; encrypted local storage is a future P2 capability.

@@ -31,3 +31,5 @@ Settings include text/image recording toggles, launch-at-login preference backed
 ## Privacy Notes
 
 Clipboard content stays on this Mac. Do not copy sensitive data into history if you do not want it stored locally. Sensitive-text filtering and blocked-app controls are implemented in the capture pipeline, but release behavior should still be verified against your actual workflow before distribution.
+
+The current release does not encrypt the local history database or app-managed image files. Use macOS account security and disk encryption such as FileVault if you need device-level protection for local files.

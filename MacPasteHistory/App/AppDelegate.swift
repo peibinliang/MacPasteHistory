@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var clearDataCancellable: AnyCancellable?
     private let shortcutService = ShortcutService()
     private var shortcutCancellable: AnyCancellable?
+    private let appPreferencesService = AppPreferencesService()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         LanguageManager().applyCurrentLanguage()
@@ -53,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupShortcut() {
-        shortcutService.registerDefaultShortcut()
+        shortcutService.registerConfiguredShortcut()
         shortcutCancellable = NotificationCenter.default
             .publisher(for: .globalShortcutPressed)
             .sink { [weak self] _ in
@@ -78,7 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureApplication() {
-        NSApp.setActivationPolicy(.accessory)
+        appPreferencesService.applyDockIconPreference()
     }
 
     private func createStatusItem() {

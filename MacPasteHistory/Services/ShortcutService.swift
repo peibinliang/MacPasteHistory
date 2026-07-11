@@ -2,39 +2,122 @@ import AppKit
 import Carbon
 import Foundation
 
+enum ShortcutRegistrationState: Equatable {
+    case unregistered
+    case registered(ShortcutConfiguration)
+    case invalid(ShortcutConfiguration)
+    case conflict(ShortcutConfiguration, OSStatus)
+}
+
+protocol ShortcutRegistrationManaging: AnyObject {
+    func register(keyCode: UInt32, modifiers: UInt32) -> OSStatus
+    func unregister()
+}
+
 /// Handles registration and listening for a global keyboard shortcut.
-/// Defaults to Command + Shift + V.
 final class ShortcutService {
     private let logger = Logger(category: "ShortcutService")
+    private var config: UserDefaultsConfig
+    private let registrationManager: ShortcutRegistrationManaging
+    private(set) var registrationState: ShortcutRegistrationState = .unregistered
+
+    init(
+        config: UserDefaultsConfig = UserDefaultsConfig(),
+        registrationManager: ShortcutRegistrationManaging = CarbonShortcutRegistrationManager()
+    ) {
+        self.config = config
+        self.registrationManager = registrationManager
+    }
+
+    // MARK: - Public API
+
+    @discardableResult
+    func registerConfiguredShortcut() -> ShortcutRegistrationState {
+        register(configuration: config.shortcutConfiguration, persistOnSuccess: false)
+    }
+
+    @discardableResult
+    func registerDefaultShortcut() -> ShortcutRegistrationState {
+        register(configuration: .default)
+    }
+
+    @discardableResult
+    func resetToDefaultShortcut() -> ShortcutRegistrationState {
+        register(configuration: .default)
+    }
+
+    @discardableResult
+    func register(configuration: ShortcutConfiguration) -> ShortcutRegistrationState {
+        register(configuration: configuration, persistOnSuccess: true)
+    }
+
+    func unregister() {
+        registrationManager.unregister()
+        registrationState = .unregistered
+    }
+
+    private func register(configuration: ShortcutConfiguration, persistOnSuccess: Bool) -> ShortcutRegistrationState {
+        guard configuration.isValid else {
+            registrationState = .invalid(configuration)
+            return registrationState
+        }
+
+        let previousConfiguration: ShortcutConfiguration?
+        if case .registered(let registeredConfiguration) = registrationState {
+            previousConfiguration = registeredConfiguration
+        } else {
+            previousConfiguration = nil
+        }
+
+        let status = registrationManager.register(
+            keyCode: configuration.keyCode,
+            modifiers: configuration.modifiers
+        )
+
+        guard status == noErr else {
+            logger.error("Failed to register global hot key: \(status)")
+            if let previousConfiguration {
+                _ = registrationManager.register(
+                    keyCode: previousConfiguration.keyCode,
+                    modifiers: previousConfiguration.modifiers
+                )
+                registrationState = .registered(previousConfiguration)
+            } else {
+                registrationState = .conflict(configuration, status)
+            }
+            return registrationState
+        }
+
+        if persistOnSuccess {
+            config.shortcutConfiguration = configuration
+        }
+        registrationState = .registered(configuration)
+        logger.info("Global shortcut registered: \(configuration.displayLabel)")
+        return registrationState
+    }
+
+    deinit {
+        unregister()
+    }
+}
+
+final class CarbonShortcutRegistrationManager: ShortcutRegistrationManaging {
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandler: EventHandlerRef?
-    private let config = UserDefaultsConfig()
-
-    var onShortcutPressed: (() -> Void)?
 
     private struct HotKeyID {
         static let showHistory = EventHotKeyID(signature: 0x50415354, id: 1) // 'PAST'
     }
 
-    // MARK: - Public API
-
-    func registerDefaultShortcut() {
-        let keyCode = UInt32(kVK_ANSI_V)
-        let modifiers: UInt32 = UInt32(cmdKey | shiftKey)
-        register(keyCode: keyCode, modifiers: modifiers)
-    }
-
-    func register(keyCode: UInt32, modifiers: UInt32) {
+    func register(keyCode: UInt32, modifiers: UInt32) -> OSStatus {
         unregister()
-
-        let hotKeyID = HotKeyID.showHistory
 
         var eventType = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
             eventKind: UInt32(kEventHotKeyPressed)
         )
 
-        let status = InstallEventHandler(
+        let handlerStatus = InstallEventHandler(
             GetEventDispatcherTarget(),
             { _, eventRef, _ -> OSStatus in
                 guard let eventRef else { return OSStatus(eventNotHandledErr) }
@@ -62,26 +145,24 @@ final class ShortcutService {
             &eventHandler
         )
 
-        guard status == noErr else {
-            logger.error("Failed to install event handler: \(status)")
-            return
+        guard handlerStatus == noErr else {
+            unregister()
+            return handlerStatus
         }
 
-        let registerStatus = RegisterEventHotKey(
+        let status = RegisterEventHotKey(
             keyCode,
             modifiers,
-            hotKeyID,
+            HotKeyID.showHistory,
             GetEventDispatcherTarget(),
             0,
             &hotKeyRef
         )
 
-        if registerStatus == noErr {
-            logger.info("Global shortcut registered: keyCode=\(keyCode), modifiers=\(modifiers)")
-        } else {
-            logger.error("Failed to register global hot key: \(registerStatus)")
+        if status != noErr {
             unregister()
         }
+        return status
     }
 
     func unregister() {

@@ -33,4 +33,43 @@ final class UserDefaultsConfigTests: XCTestCase {
 
         XCTAssertEqual(config.totalStorageCapInBytes, DefaultSettings.totalStorageCapInBytes)
     }
+
+    func testMaxImageSizeInBytes_whenPersistedValueIsInvalid_shouldUseDefaultValue() {
+        defaults.set(0, forKey: UserDefaultsConfig.Key.maxImageSizeInBytes.rawValue)
+        let config = UserDefaultsConfig(defaults: defaults)
+
+        XCTAssertEqual(config.maxImageSizeInBytes, DefaultSettings.maxImageSizeInBytes)
+    }
+
+    func testRecordingPaused_shouldPersistConfiguredValue() {
+        var config = UserDefaultsConfig(defaults: defaults)
+
+        config.recordingPaused = true
+
+        XCTAssertTrue(UserDefaultsConfig(defaults: defaults).recordingPaused)
+    }
+
+    func testBlockedApps_shouldPersistStructuredEntries() {
+        var config = UserDefaultsConfig(defaults: defaults)
+        let entry = BlockedAppEntry(bundleID: "com.apple.Safari", displayName: "Safari")
+
+        config.blockedApps = [entry]
+
+        XCTAssertEqual(UserDefaultsConfig(defaults: defaults).blockedApps, [entry])
+    }
+
+    func testShortcutConfiguration_whenUnset_shouldUseDefaultShortcut() {
+        let config = UserDefaultsConfig(defaults: defaults)
+
+        XCTAssertEqual(config.shortcutConfiguration, .default)
+    }
+
+    func testShortcutConfiguration_shouldPersistConfiguredShortcut() {
+        var config = UserDefaultsConfig(defaults: defaults)
+        let shortcut = ShortcutConfiguration(keyCode: 8, modifiers: 1_280)
+
+        config.shortcutConfiguration = shortcut
+
+        XCTAssertEqual(UserDefaultsConfig(defaults: defaults).shortcutConfiguration, shortcut)
+    }
 }

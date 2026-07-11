@@ -2,45 +2,56 @@ import Foundation
 
 /// Handles privacy controls: pause recording, blocked apps, and sensitive content filtering.
 struct PrivacyService {
-    private var isPaused = false
-    private var blockedBundleIDs: Set<String> = []
+    private var config: UserDefaultsConfig
     private let filterSensitiveContent: Bool
 
-    init(filterSensitiveContent: Bool = true) {
+    init(config: UserDefaultsConfig = UserDefaultsConfig(), filterSensitiveContent: Bool = true) {
+        self.config = config
         self.filterSensitiveContent = filterSensitiveContent
     }
 
     // MARK: - Pause
 
     mutating func setPaused(_ paused: Bool) {
-        isPaused = paused
+        config.recordingPaused = paused
     }
 
     var recordingPaused: Bool {
-        isPaused
+        config.recordingPaused
     }
 
     // MARK: - Blocked Apps
 
     mutating func blockApp(bundleID: String) {
-        blockedBundleIDs.insert(bundleID)
+        guard BlockedAppEntry.isValidBundleID(bundleID) else { return }
+        var entries = config.blockedApps
+        if let index = entries.firstIndex(where: { $0.bundleID == bundleID }) {
+            entries[index].isEnabled = true
+            entries[index].updatedAt = Date()
+        } else {
+            entries.append(BlockedAppEntry(bundleID: bundleID, displayName: bundleID))
+        }
+        config.blockedApps = entries
     }
 
     mutating func unblockApp(bundleID: String) {
-        blockedBundleIDs.remove(bundleID)
+        config.blockedApps = config.blockedApps.filter { $0.bundleID != bundleID }
     }
 
     mutating func setBlockedApps(_ bundleIDs: Set<String>) {
-        blockedBundleIDs = bundleIDs
+        config.blockedApps = bundleIDs
+            .filter(BlockedAppEntry.isValidBundleID)
+            .sorted()
+            .map { BlockedAppEntry(bundleID: $0, displayName: $0) }
     }
 
     func isAppBlocked(bundleID: String?) -> Bool {
         guard let bundleID else { return false }
-        return blockedBundleIDs.contains(bundleID)
+        return config.blockedApps.contains { $0.bundleID == bundleID && $0.isEnabled }
     }
 
     var blockedApps: Set<String> {
-        blockedBundleIDs
+        Set(config.blockedApps.filter(\.isEnabled).map(\.bundleID))
     }
 
     // MARK: - Sensitive Content Detection

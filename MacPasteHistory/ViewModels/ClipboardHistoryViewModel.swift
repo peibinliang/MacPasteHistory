@@ -7,6 +7,9 @@ final class ClipboardHistoryViewModel: ObservableObject {
     @Published var searchText = ""
     @Published var isFavoritesOnly = false
     @Published var selectedContentType: ClipboardContentType?
+    @Published var selectedTimeRange: HistoryQuery.TimeRange = .all
+    @Published var selectedSourceOption: HistorySourceOption?
+    @Published private(set) var sourceOptions: [HistorySourceOption] = []
     @Published private(set) var errorMessage: String?
     @Published private(set) var isLoadingMore = false
 
@@ -40,6 +43,10 @@ final class ClipboardHistoryViewModel: ObservableObject {
             currentOffset = 0
             let loadedItems = try repository.fetchHistory(query: currentQuery(offset: currentOffset))
             items = loadedItems
+            sourceOptions = try repository.fetchSourceOptions()
+            if let selectedSourceOption, sourceOptions.contains(selectedSourceOption) == false {
+                self.selectedSourceOption = nil
+            }
             currentOffset = loadedItems.count
             canLoadMore = loadedItems.count == pageSize
             errorMessage = nil
@@ -125,6 +132,8 @@ final class ClipboardHistoryViewModel: ObservableObject {
             keyword: searchText,
             favoritesOnly: isFavoritesOnly,
             contentType: selectedContentType,
+            timeRange: selectedTimeRange,
+            sourceFilter: selectedSourceOption?.filter ?? .all,
             limit: pageSize,
             offset: offset
         )

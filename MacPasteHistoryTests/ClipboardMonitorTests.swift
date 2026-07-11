@@ -106,11 +106,48 @@ final class ClipboardMonitorTests: XCTestCase {
         XCTAssertTrue(try repository.fetchHistory(query: HistoryQuery(contentType: .image)).isEmpty)
     }
 
+    func testPollOnce_whenRecordingPausedInConfig_shouldSkipSavingText() throws {
+        let suiteName = "ClipboardMonitorTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        var config = UserDefaultsConfig(defaults: defaults)
+        config.recordingPaused = true
+        let monitor = makeMonitor(privacyService: PrivacyService(config: config))
+        _ = pasteboard.setString("paused text", forType: .string)
+
+        monitor.pollOnce()
+
+        XCTAssertTrue(try repository.fetchTextHistory(matching: nil).isEmpty)
+        defaults.removePersistentDomain(forName: suiteName)
+    }
+
+    func testPollOnce_whenSourceAppIsBlockedInConfig_shouldSkipSavingText() throws {
+        let suiteName = "ClipboardMonitorTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        var config = UserDefaultsConfig(defaults: defaults)
+        config.blockedApps = [
+            BlockedAppEntry(bundleID: "com.peibin.tests", displayName: "Unit Test Host", isEnabled: true)
+        ]
+        let monitor = makeMonitor(privacyService: PrivacyService(config: config))
+        _ = pasteboard.setString("blocked text", forType: .string)
+
+        monitor.pollOnce()
+
+        XCTAssertTrue(try repository.fetchTextHistory(matching: nil).isEmpty)
+        defaults.removePersistentDomain(forName: suiteName)
+    }
+
     private func makeMonitor() -> ClipboardMonitor {
         makeMonitor(recordingSettings: StubRecordingSettings(shouldRecordText: true, shouldRecordImage: true))
     }
 
     private func makeMonitor(recordingSettings: RecordingSettingsProviding) -> ClipboardMonitor {
+        makeMonitor(recordingSettings: recordingSettings, privacyService: PrivacyService())
+    }
+
+    private func makeMonitor(
+        recordingSettings: RecordingSettingsProviding = StubRecordingSettings(shouldRecordText: true, shouldRecordImage: true),
+        privacyService: PrivacyService
+    ) -> ClipboardMonitor {
         ClipboardMonitor(
             pasteboard: pasteboard,
             repository: repository,
@@ -118,6 +155,7 @@ final class ClipboardMonitorTests: XCTestCase {
             sourceApplicationProvider: StubSourceApplicationProvider(),
             restorationState: restorationState,
             recordingSettings: recordingSettings,
+            privacyService: privacyService,
             logger: Logger(category: "ClipboardMonitorTests")
         )
     }

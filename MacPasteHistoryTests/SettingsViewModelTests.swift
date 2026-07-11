@@ -1,4 +1,5 @@
 import XCTest
+import Carbon
 @testable import MacPasteHistory
 
 final class SettingsViewModelTests: XCTestCase {
@@ -50,9 +51,63 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     @MainActor
-    private func makeViewModel() -> SettingsViewModel {
+    func testUpdateRecordingPaused_shouldPersistPauseState() {
+        let viewModel = makeViewModel()
+
+        viewModel.updateRecordingPaused(true)
+
+        XCTAssertTrue(config.recordingPaused)
+        XCTAssertTrue(viewModel.recordingPaused)
+    }
+
+    @MainActor
+    func testAddBlockedAppFromFields_shouldPersistBlockedAppEntry() {
+        let viewModel = makeViewModel()
+        viewModel.blockedAppBundleID = "com.apple.Safari"
+        viewModel.blockedAppDisplayName = "Safari"
+
+        viewModel.addBlockedAppFromFields()
+
+        XCTAssertEqual(config.blockedApps.map(\.bundleID), ["com.apple.Safari"])
+        XCTAssertEqual(viewModel.blockedApps.first?.displayName, "Safari")
+    }
+
+    @MainActor
+    func testAddCurrentForegroundAppToBlockedApps_shouldUseSourceApplicationProvider() {
+        let viewModel = makeViewModel(sourceApplicationProvider: SettingsStubSourceApplicationProvider())
+
+        viewModel.addCurrentForegroundAppToBlockedApps()
+
+        XCTAssertEqual(config.blockedApps.map(\.bundleID), ["com.example.Foreground"])
+    }
+
+    @MainActor
+    func testUpdateShortcut_whenValid_shouldPersistShortcut() {
+        let shortcutManager = SettingsFakeShortcutRegistrationManager()
+        let shortcutService = ShortcutService(config: config, registrationManager: shortcutManager)
+        let viewModel = makeViewModel(shortcutService: shortcutService)
+        let shortcut = ShortcutConfiguration(keyCode: 11, modifiers: 1_280)
+
+        viewModel.updateShortcut(shortcut)
+
+        XCTAssertEqual(config.shortcutConfiguration, shortcut)
+        XCTAssertNil(viewModel.shortcutMessage)
+    }
+
+    @MainActor
+    private func makeViewModel(
+        shortcutService: ShortcutService? = nil,
+        sourceApplicationProvider: SourceApplicationProviding = SourceApplicationProvider()
+    ) -> SettingsViewModel {
         let service = LoginItemService(manager: manager, config: config)
-        return SettingsViewModel(config: config, loginItemService: service)
+        let appPreferencesService = AppPreferencesService(config: config) { _ in true }
+        return SettingsViewModel(
+            config: config,
+            loginItemService: service,
+            appPreferencesService: appPreferencesService,
+            shortcutService: shortcutService,
+            sourceApplicationProvider: sourceApplicationProvider
+        )
     }
 }
 
@@ -78,4 +133,18 @@ private final class SettingsFakeLoginItemManager: LoginItemManaging {
 
 private enum SettingsLoginItemTestError: Error {
     case failed
+}
+
+private struct SettingsStubSourceApplicationProvider: SourceApplicationProviding {
+    func currentSourceApplication() -> SourceApplication {
+        SourceApplication(name: "Foreground", bundleID: "com.example.Foreground")
+    }
+}
+
+private final class SettingsFakeShortcutRegistrationManager: ShortcutRegistrationManaging {
+    func register(keyCode: UInt32, modifiers: UInt32) -> OSStatus {
+        noErr
+    }
+
+    func unregister() {}
 }

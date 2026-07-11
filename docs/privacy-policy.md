@@ -18,6 +18,8 @@ Clipboard history is stored locally under the user's Application Support directo
 
 Text and metadata are stored in SQLite. Image originals and thumbnails are stored as local files. The app does not intentionally upload clipboard history, images, hashes, or settings to a cloud service.
 
+The current release does not encrypt the local SQLite database or app-managed image files. Local database encryption is planned as a future P2 capability and should not be treated as available until a dedicated encrypted-storage release is implemented and verified.
+
 ## Sensitive Content
 
 The app includes sensitive-text filtering for common patterns such as passwords, API tokens, authorization headers, long token-like strings, bank-card-like numbers, and ID-like numbers. When detected, matching text is skipped instead of being persisted. This filter is best-effort and does not guarantee that every sensitive value is detected.

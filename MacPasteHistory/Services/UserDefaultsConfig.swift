@@ -22,6 +22,10 @@ struct UserDefaultsConfig {
         case launchAtStartup = "config.launchAtStartup"
         case showDockIcon = "config.showDockIcon"
         case preferredLanguage = "config.preferredLanguage"
+        case recordingPaused = "config.recordingPaused"
+        case blockedApps = "config.blockedApps"
+        case shortcutKeyCode = "config.shortcutKeyCode"
+        case shortcutModifiers = "config.shortcutModifiers"
     }
 
     // MARK: - Generic accessors
@@ -42,6 +46,18 @@ struct UserDefaultsConfig {
         defaults.set(value, forKey: key.rawValue)
     }
 
+    func string(forKey key: Key) -> String? {
+        defaults.string(forKey: key.rawValue)
+    }
+
+    func setString(_ value: String?, forKey key: Key) {
+        if let value {
+            defaults.set(value, forKey: key.rawValue)
+        } else {
+            defaults.removeObject(forKey: key.rawValue)
+        }
+    }
+
     func removeValue(forKey key: Key) {
         defaults.removeObject(forKey: key.rawValue)
     }
@@ -59,27 +75,27 @@ struct UserDefaultsConfig {
     }
 
     var maxTextHistoryCount: Int {
-        get { integer(forKey: .maxTextHistoryCount, defaultValue: DefaultSettings.maxTextHistoryCount) }
+        get { positiveInteger(forKey: .maxTextHistoryCount, defaultValue: DefaultSettings.maxTextHistoryCount) }
         set { setInteger(newValue, forKey: .maxTextHistoryCount) }
     }
 
     var maxImageHistoryCount: Int {
-        get { integer(forKey: .maxImageHistoryCount, defaultValue: DefaultSettings.maxImageHistoryCount) }
+        get { positiveInteger(forKey: .maxImageHistoryCount, defaultValue: DefaultSettings.maxImageHistoryCount) }
         set { setInteger(newValue, forKey: .maxImageHistoryCount) }
     }
 
     var maxImageSizeInBytes: Int {
-        get { integer(forKey: .maxImageSizeInBytes, defaultValue: DefaultSettings.maxImageSizeInBytes) }
+        get { positiveInteger(forKey: .maxImageSizeInBytes, defaultValue: DefaultSettings.maxImageSizeInBytes) }
         set { setInteger(newValue, forKey: .maxImageSizeInBytes) }
     }
 
     var totalStorageCapInBytes: Int {
-        get { integer(forKey: .totalStorageCapInBytes, defaultValue: DefaultSettings.totalStorageCapInBytes) }
+        get { positiveInteger(forKey: .totalStorageCapInBytes, defaultValue: DefaultSettings.totalStorageCapInBytes) }
         set { setInteger(newValue, forKey: .totalStorageCapInBytes) }
     }
 
     var historyRetentionDays: Int {
-        get { integer(forKey: .historyRetentionDays, defaultValue: DefaultSettings.historyRetentionDays) }
+        get { positiveInteger(forKey: .historyRetentionDays, defaultValue: DefaultSettings.historyRetentionDays) }
         set { setInteger(newValue, forKey: .historyRetentionDays) }
     }
 
@@ -102,5 +118,50 @@ struct UserDefaultsConfig {
                 defaults.removeObject(forKey: Key.preferredLanguage.rawValue)
             }
         }
+    }
+
+    var recordingPaused: Bool {
+        get { bool(forKey: .recordingPaused, defaultValue: false) }
+        set { setBool(newValue, forKey: .recordingPaused) }
+    }
+
+    var blockedApps: [BlockedAppEntry] {
+        get {
+            guard let data = string(forKey: .blockedApps)?.data(using: .utf8),
+                  let entries = try? JSONDecoder().decode([BlockedAppEntry].self, from: data) else {
+                return []
+            }
+            return entries
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue),
+                  let value = String(data: data, encoding: .utf8) else {
+                setString(nil, forKey: .blockedApps)
+                return
+            }
+            setString(value, forKey: .blockedApps)
+        }
+    }
+
+    var shortcutConfiguration: ShortcutConfiguration {
+        get {
+            guard defaults.object(forKey: Key.shortcutKeyCode.rawValue) != nil,
+                  defaults.object(forKey: Key.shortcutModifiers.rawValue) != nil else {
+                return .default
+            }
+            return ShortcutConfiguration(
+                keyCode: UInt32(integer(forKey: .shortcutKeyCode, defaultValue: Int(ShortcutConfiguration.default.keyCode))),
+                modifiers: UInt32(integer(forKey: .shortcutModifiers, defaultValue: Int(ShortcutConfiguration.default.modifiers)))
+            )
+        }
+        set {
+            setInteger(Int(newValue.keyCode), forKey: .shortcutKeyCode)
+            setInteger(Int(newValue.modifiers), forKey: .shortcutModifiers)
+        }
+    }
+
+    private func positiveInteger(forKey key: Key, defaultValue: Int) -> Int {
+        let value = integer(forKey: key, defaultValue: defaultValue)
+        return value > 0 ? value : defaultValue
     }
 }

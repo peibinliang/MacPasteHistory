@@ -159,7 +159,38 @@ struct MainPanelView: View {
                 viewModel.selectedContentType = selectedFilter.contentType
                 viewModel.loadHistory()
             }
+
+            Picker(L10n.string("Time"), selection: $viewModel.selectedTimeRange) {
+                ForEach(HistoryQuery.TimeRange.allCases) { range in
+                    Text(range.title).tag(range)
+                }
+            }
+            .frame(width: 140)
+            .onChange(of: viewModel.selectedTimeRange) {
+                viewModel.loadHistory()
+            }
+
+            Picker(L10n.string("Source"), selection: sourceSelectionBinding) {
+                Text(L10n.string("All Sources")).tag("")
+                ForEach(viewModel.sourceOptions) { option in
+                    Text(option.title).tag(option.id)
+                }
+            }
+            .frame(width: 180)
+            .onChange(of: viewModel.selectedSourceOption) {
+                viewModel.loadHistory()
+            }
         }
+    }
+
+    private var sourceSelectionBinding: Binding<String> {
+        Binding(
+            get: { viewModel.selectedSourceOption?.id ?? "" },
+            set: { id in
+                viewModel.selectedSourceOption = viewModel.sourceOptions.first { $0.id == id }
+                viewModel.loadHistory()
+            }
+        )
     }
 
     @ViewBuilder
