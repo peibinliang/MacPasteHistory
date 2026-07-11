@@ -18,16 +18,16 @@ struct SettingsView: View {
         .padding(20)
         .frame(minWidth: 460, minHeight: 480)
         .onAppear { viewModel.loadSettings() }
-        .alert("Clear All Data?", isPresented: $showClearConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Clear", role: .destructive) {
+        .alert(L10n.string("Clear All Data?"), isPresented: $showClearConfirmation) {
+            Button(L10n.string("Cancel"), role: .cancel) {}
+            Button(L10n.string("Clear"), role: .destructive) {
                 viewModel.clearAllData()
             }
         } message: {
-            Text("This will permanently delete all clipboard history records and image files. This action cannot be undone.")
+            Text(L10n.string("This will permanently delete all clipboard history records and image files. This action cannot be undone."))
         }
         .alert(
-            "Launch at Login Failed",
+            L10n.string("Launch at Login Failed"),
             isPresented: Binding(
                 get: { viewModel.launchAtStartupErrorMessage != nil },
                 set: { isPresented in
@@ -37,40 +37,40 @@ struct SettingsView: View {
                 }
             )
         ) {
-            Button("OK", role: .cancel) {}
+            Button(L10n.string("OK"), role: .cancel) {}
         } message: {
             Text(viewModel.launchAtStartupErrorMessage ?? "")
         }
         .alert(
-            "Restart Required",
+            L10n.string("Restart Required"),
             isPresented: $viewModel.showRestartAlert
         ) {
-            Button("Restart Now") {
+            Button(L10n.string("Restart Now")) {
                 restartApp()
             }
-            Button("Later", role: .cancel) {}
+            Button(L10n.string("Later"), role: .cancel) {}
         } message: {
-            Text("The app needs to restart to apply the new language. Would you like to restart now?")
+            Text(L10n.string("The app needs to restart to apply the new language. Would you like to restart now?"))
         }
     }
 
     // MARK: - Sections
 
     private var recordingSection: some View {
-        Section("Recording") {
-            Toggle("Record text clipboard history", isOn: $viewModel.shouldRecordText)
+        Section(L10n.string("Recording")) {
+            Toggle(L10n.string("Record text clipboard history"), isOn: $viewModel.shouldRecordText)
                 .onChange(of: viewModel.shouldRecordText) { _, newValue in
                     viewModel.updateShouldRecordText(newValue)
                 }
-            Toggle("Record image clipboard history", isOn: $viewModel.shouldRecordImage)
+            Toggle(L10n.string("Record image clipboard history"), isOn: $viewModel.shouldRecordImage)
                 .onChange(of: viewModel.shouldRecordImage) { _, newValue in
                     viewModel.updateShouldRecordImage(newValue)
                 }
-            Toggle("Launch at login", isOn: $viewModel.launchAtStartup)
+            Toggle(L10n.string("Launch at login"), isOn: $viewModel.launchAtStartup)
                 .onChange(of: viewModel.launchAtStartup) { _, newValue in
                     viewModel.updateLaunchAtStartup(newValue)
                 }
-            Toggle("Show Dock icon", isOn: $viewModel.showDockIcon)
+            Toggle(L10n.string("Show Dock icon"), isOn: $viewModel.showDockIcon)
                 .onChange(of: viewModel.showDockIcon) { _, newValue in
                     viewModel.updateShowDockIcon(newValue)
                 }
@@ -78,9 +78,9 @@ struct SettingsView: View {
     }
 
     private var retentionSection: some View {
-        Section("History Retention") {
+        Section(L10n.string("History Retention")) {
             Stepper(
-                "Keep history for \(viewModel.historyRetentionDays) days",
+                String(format: L10n.string("Keep history for %lld days"), viewModel.historyRetentionDays),
                 value: $viewModel.historyRetentionDays,
                 in: 1...365
             )
@@ -91,9 +91,9 @@ struct SettingsView: View {
     }
 
     private var limitsSection: some View {
-        Section("Record Limits") {
+        Section(L10n.string("Record Limits")) {
             Stepper(
-                "Maximum \(viewModel.maxTextHistoryCount) text records",
+                String(format: L10n.string("Maximum %lld text records"), viewModel.maxTextHistoryCount),
                 value: $viewModel.maxTextHistoryCount,
                 in: 100...5_000,
                 step: 100
@@ -102,7 +102,7 @@ struct SettingsView: View {
                 viewModel.updateMaxTextHistoryCount(newValue)
             }
             Stepper(
-                "Maximum \(viewModel.maxImageHistoryCount) image records",
+                String(format: L10n.string("Maximum %lld image records"), viewModel.maxImageHistoryCount),
                 value: $viewModel.maxImageHistoryCount,
                 in: 10...500,
                 step: 10
@@ -114,8 +114,8 @@ struct SettingsView: View {
     }
 
     private var storageSection: some View {
-        Section("Storage") {
-            Picker("Single image size limit", selection: $viewModel.singleImageSizeLimit) {
+        Section(L10n.string("Storage")) {
+            Picker(L10n.string("Single image size limit"), selection: $viewModel.singleImageSizeLimit) {
                 Text("5 MB").tag(5)
                 Text("10 MB").tag(10)
                 Text("20 MB").tag(20)
@@ -124,7 +124,7 @@ struct SettingsView: View {
             .onChange(of: viewModel.singleImageSizeLimit) { _, newValue in
                 viewModel.updateSingleImageSizeLimit(newValue)
             }
-            Picker("Total storage cap", selection: $viewModel.totalStorageCap) {
+            Picker(L10n.string("Total storage cap"), selection: $viewModel.totalStorageCap) {
                 Text("100 MB").tag(100)
                 Text("250 MB").tag(250)
                 Text("500 MB").tag(500)
@@ -137,8 +137,8 @@ struct SettingsView: View {
     }
 
     private var languageSection: some View {
-        Section("Language") {
-            Picker("Language", selection: $viewModel.selectedLanguage) {
+        Section(L10n.string("Language")) {
+            Picker(L10n.string("Language"), selection: $viewModel.selectedLanguage) {
                 ForEach(AppLanguage.allCases) { language in
                     Text(language.displayName).tag(language)
                 }
@@ -150,11 +150,11 @@ struct SettingsView: View {
     }
 
     private var dataSection: some View {
-        Section("Data Management") {
+        Section(L10n.string("Data Management")) {
             Button(role: .destructive) {
                 showClearConfirmation = true
             } label: {
-                Label("Clear All Data", systemImage: "trash")
+                Label(L10n.string("Clear All Data"), systemImage: "trash")
                     .foregroundStyle(.red)
             }
         }

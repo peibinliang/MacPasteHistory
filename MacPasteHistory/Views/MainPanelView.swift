@@ -69,20 +69,20 @@ struct MainPanelView: View {
 
     private var header: some View {
         HStack {
-            Text("Clipboard History")
+                Text(L10n.string("Clipboard History"))
                 .font(.headline)
             Spacer()
             Button {
                 viewModel.clearTextHistory()
             } label: {
-                Label("Clear Text", systemImage: "trash")
+                Label(L10n.string("Clear Text"), systemImage: "trash")
             }
             .disabled(viewModel.items.isEmpty)
         }
     }
 
     private var searchField: some View {
-        TextField("Search text history", text: $viewModel.searchText)
+        TextField(L10n.string("Search text history"), text: $viewModel.searchText)
             .textFieldStyle(.roundedBorder)
             .onSubmit {
                 viewModel.search()
@@ -113,7 +113,7 @@ struct MainPanelView: View {
     }
 
     private func showCopyToast() {
-        toastMessage = NSLocalizedString("Copied to clipboard", comment: "Toast: copied to clipboard")
+        toastMessage = L10n.string("Copied to clipboard")
         withAnimation { showToast = true }
         Task {
             try? await Task.sleep(nanoseconds: 1_500_000_000)
@@ -141,14 +141,14 @@ struct MainPanelView: View {
     private var filterBar: some View {
         HStack(spacing: 12) {
             Toggle(isOn: $viewModel.isFavoritesOnly) {
-                Label("Favorites", systemImage: "star.fill")
+                Label(L10n.string("Favorites"), systemImage: "star.fill")
             }
             .toggleStyle(.checkbox)
             .onChange(of: viewModel.isFavoritesOnly) {
                 viewModel.loadHistory()
             }
 
-            Picker("Type", selection: $selectedFilter) {
+            Picker(L10n.string("Type"), selection: $selectedFilter) {
                 ForEach(HistoryContentFilter.allCases) { filter in
                     Text(filter.title).tag(filter)
                 }
@@ -168,7 +168,7 @@ struct MainPanelView: View {
             Text(errorMessage)
                 .foregroundStyle(.red)
         } else if viewModel.items.isEmpty {
-            ContentUnavailableView("No History", systemImage: "doc.on.clipboard")
+            ContentUnavailableView(L10n.string("No History"), systemImage: "doc.on.clipboard")
         } else {
             List(selection: $selectedKeyboardItem) {
                 ForEach(viewModel.items) { item in
@@ -233,11 +233,11 @@ private enum HistoryContentFilter: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .all:
-            return NSLocalizedString("All", comment: "Filter: all types")
+            return L10n.string("All")
         case .text:
-            return NSLocalizedString("Text", comment: "Filter: text type")
+            return L10n.string("Text")
         case .image:
-            return NSLocalizedString("Image", comment: "Filter: image type")
+            return L10n.string("Image")
         }
     }
 
@@ -303,16 +303,16 @@ private struct HistoryRowView: View {
                 .help(favoriteTitle)
 
                 Button(action: restoreAction) {
-                    Label("Restore", systemImage: "arrow.uturn.backward")
+                    Label(L10n.string("Restore"), systemImage: "arrow.uturn.backward")
                 }
                 .labelStyle(.iconOnly)
-                .help("Restore")
+                .help(L10n.string("Restore"))
 
                 Button(role: .destructive, action: deleteAction) {
-                    Label("Delete", systemImage: "trash")
+                    Label(L10n.string("Delete"), systemImage: "trash")
                 }
                 .labelStyle(.iconOnly)
-                .help("Delete")
+                .help(L10n.string("Delete"))
             }
             .buttonStyle(.borderless)
         }
@@ -336,35 +336,35 @@ private struct HistoryRowView: View {
     private var previewText: String {
         if item.contentType == .image {
             guard let width = item.imageWidth, let height = item.imageHeight else {
-                return NSLocalizedString("Image", comment: "Preview: image without dimensions")
+                return L10n.string("Image")
             }
-            return String(format: NSLocalizedString("Image %lldx%lld", comment: "Preview: image dimensions"), width, height)
+            return String(format: L10n.string("Image %lldx%lld"), width, height)
         }
 
         guard item.textContent.isEmpty == false else {
-            return NSLocalizedString("Empty text", comment: "Preview: empty text")
+            return L10n.string("Empty text")
         }
 
         return formatter.preview(for: item.textContent)
     }
 
     private var contentTypeTitle: String {
-        item.contentType == .text ? NSLocalizedString("Text", comment: "Content type: text") : NSLocalizedString("Image", comment: "Content type: image")
+        item.contentType == .text ? L10n.string("Text") : L10n.string("Image")
     }
 
     private var favoriteTitle: String {
-        item.isFavorite ? NSLocalizedString("Unfavorite", comment: "Action: unfavorite") : NSLocalizedString("Favorite", comment: "Action: favorite")
+        item.isFavorite ? L10n.string("Unfavorite") : L10n.string("Favorite")
     }
 
     private var sizeTitle: String {
         if item.contentType == .image {
             guard let fileSize = item.fileSize else {
-                return NSLocalizedString("Image", comment: "Size: image without file size")
+                return L10n.string("Image")
             }
             return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
         }
 
-        return String(format: NSLocalizedString("%lld chars", comment: "Size: character count"), item.textLength)
+        return String(format: L10n.string("%lld chars"), item.textLength)
     }
 }
 
@@ -381,14 +381,14 @@ private struct HistoryDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("History Detail")
+                    Text(L10n.string("History Detail"))
                         .font(.headline)
                     Text(formatter.displayTime(for: item.createdAt))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("Done") {
+                Button(L10n.string("Done")) {
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
@@ -400,14 +400,14 @@ private struct HistoryDetailView: View {
 
             HStack {
                 Button(action: favoriteAction) {
-                    Label(item.isFavorite ? "Unfavorite" : "Favorite", systemImage: item.isFavorite ? "star.fill" : "star")
+                    Label(item.isFavorite ? L10n.string("Unfavorite") : L10n.string("Favorite"), systemImage: item.isFavorite ? "star.fill" : "star")
                 }
                 Spacer()
                 Button(action: restoreAction) {
-                    Label("Restore", systemImage: "arrow.uturn.backward")
+                    Label(L10n.string("Restore"), systemImage: "arrow.uturn.backward")
                 }
                 Button(role: .destructive, action: deleteAction) {
-                    Label("Delete", systemImage: "trash")
+                    Label(L10n.string("Delete"), systemImage: "trash")
                 }
             }
         }
@@ -417,26 +417,26 @@ private struct HistoryDetailView: View {
 
     private var metadataGrid: some View {
         Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
-            metadataRow("Type", item.contentType == .text ? NSLocalizedString("Text", comment: "Content type: text") : NSLocalizedString("Image", comment: "Content type: image"))
-            metadataRow("Created", formatter.displayTime(for: item.createdAt))
-            metadataRow("Size", sizeTitle)
+            metadataRow(L10n.string("Type"), item.contentType == .text ? L10n.string("Text") : L10n.string("Image"))
+            metadataRow(L10n.string("Created"), formatter.displayTime(for: item.createdAt))
+            metadataRow(L10n.string("Size"), sizeTitle)
             if let width = item.imageWidth, let height = item.imageHeight {
-                metadataRow("Dimensions", "\(width)x\(height)")
+                metadataRow(L10n.string("Dimensions"), "\(width)x\(height)")
             }
             if let imageFormat = item.imageFormat {
-                metadataRow("Format", imageFormat.rawValue.uppercased())
+                metadataRow(L10n.string("Format"), imageFormat.rawValue.uppercased())
             }
             if let sourceApp = item.sourceApp, sourceApp.isEmpty == false {
-                metadataRow("Source", sourceApp)
+                metadataRow(L10n.string("Source"), sourceApp)
             }
             if let sourceBundleID = item.sourceBundleID, sourceBundleID.isEmpty == false {
-                metadataRow("Bundle ID", sourceBundleID)
+                metadataRow(L10n.string("Bundle ID"), sourceBundleID)
             }
         }
         .font(.caption)
     }
 
-    private func metadataRow(_ label: LocalizedStringKey, _ value: String) -> some View {
+    private func metadataRow(_ label: String, _ value: String) -> some View {
         GridRow {
             Text(label)
                 .foregroundStyle(.secondary)
@@ -473,12 +473,12 @@ private struct HistoryDetailView: View {
     private var sizeTitle: String {
         if item.contentType == .image {
             guard let fileSize = item.fileSize else {
-                return NSLocalizedString("Image", comment: "Size: image without file size")
+                return L10n.string("Image")
             }
             return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
         }
 
-        return String(format: NSLocalizedString("%lld chars", comment: "Size: character count"), item.textLength)
+        return String(format: L10n.string("%lld chars"), item.textLength)
     }
 }
 

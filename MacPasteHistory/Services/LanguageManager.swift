@@ -13,13 +13,13 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .system:
-            return NSLocalizedString("Follow System", comment: "Language option: follow system locale")
+            return L10n.string("Follow System")
         case .en:
-            return NSLocalizedString("English", comment: "Language option: English")
+            return L10n.string("English")
         case .zhHans:
-            return NSLocalizedString("简体中文", comment: "Language option: Simplified Chinese")
+            return L10n.string("简体中文")
         case .zhHant:
-            return NSLocalizedString("繁體中文", comment: "Language option: Traditional Chinese")
+            return L10n.string("繁體中文")
         }
     }
 

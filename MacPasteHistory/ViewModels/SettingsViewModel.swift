@@ -54,7 +54,7 @@ final class SettingsViewModel: ObservableObject {
             launchAtStartupErrorMessage = nil
         } catch {
             launchAtStartup = config.launchAtStartup
-            launchAtStartupErrorMessage = NSLocalizedString("Unable to update the login item. Check macOS Login Items permissions and try again.", comment: "Error: login item update failed")
+            launchAtStartupErrorMessage = L10n.string("Unable to update the login item. Check macOS Login Items permissions and try again.")
         }
     }
 

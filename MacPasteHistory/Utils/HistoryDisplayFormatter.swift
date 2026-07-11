@@ -43,7 +43,7 @@ final class HistoryDisplayFormatter {
     func displayTime(for date: Date, now: Date = Date()) -> String {
         let time = timeFormatter.string(from: date)
         if calendar.isDate(date, inSameDayAs: now) {
-            return "\(NSLocalizedString("Today", comment: "Relative time: today")) \(time)"
+            return "\(L10n.string("Today")) \(time)"
         }
 
         guard let yesterday = calendar.date(byAdding: .day, value: -1, to: now) else {
@@ -51,7 +51,7 @@ final class HistoryDisplayFormatter {
         }
 
         if calendar.isDate(date, inSameDayAs: yesterday) {
-            return "\(NSLocalizedString("Yesterday", comment: "Relative time: yesterday")) \(time)"
+            return "\(L10n.string("Yesterday")) \(time)"
         }
 
         return dateTimeFormatter.string(from: date)

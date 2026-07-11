@@ -95,10 +95,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func createStatusMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: NSLocalizedString("Open History", comment: "Menu: open history"), action: #selector(openMainPanel), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: NSLocalizedString("Settings", comment: "Menu: settings"), action: #selector(openSettings), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: L10n.string("Open History"), action: #selector(openMainPanel), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: L10n.string("Settings"), action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: NSLocalizedString("Quit", comment: "Menu: quit"), action: #selector(quitApplication), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: L10n.string("Quit"), action: #selector(quitApplication), keyEquivalent: "q"))
         menu.items.forEach { item in
             item.target = self
         }
@@ -153,7 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             imageStorageService: imageStorageService
         )
         let controller = mainWindowController ?? createWindowController(
-            title: NSLocalizedString("Clipboard History", comment: "Window title: clipboard history"),
+            title: L10n.string("Clipboard History"),
             rootView: MainPanelView(
                 viewModel: viewModel,
                 pasteTargetApplication: pasteTargetApplication
@@ -180,7 +180,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         let controller = settingsWindowController ?? createWindowController(
-            title: NSLocalizedString("Settings", comment: "Window title: settings"),
+            title: L10n.string("Settings"),
             rootView: SettingsView(),
             size: NSSize(width: 520, height: 420)
         )
