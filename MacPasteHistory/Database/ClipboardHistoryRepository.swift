@@ -12,7 +12,12 @@ final class ClipboardHistoryRepository {
         self.dateFormatter = DateFormatter.sqliteDateFormatter
     }
 
-    func saveText(_ text: String, sourceApp: String?, sourceBundleID: String?) throws -> ClipboardHistoryItem {
+    func saveText(
+        _ text: String,
+        sourceApp: String?,
+        sourceBundleID: String?,
+        detection: ContentDetectionResult? = nil
+    ) throws -> ClipboardHistoryItem {
         let normalizedText = hashService.normalize(text)
         let contentHash = hashService.hash(for: normalizedText)
 
@@ -35,12 +40,12 @@ final class ClipboardHistoryRepository {
                     source_bundle_id,
                     content_hash,
                     text_length,
-                    searchable_text,
+                    searchable_text, detected_type, detection_confidence, detection_version, detected_at,
                     first_captured_at,
                     last_captured_at,
                     capture_count
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
                 """
             )
             defer { sqlite3_finalize(statement) }
@@ -52,6 +57,10 @@ final class ClipboardHistoryRepository {
             try bindText(contentHash, to: statement, index: 5)
             try bindInt(normalizedText.count, to: statement, index: 6)
             try bindText(normalizedText, to: statement, index: 7)
+            try bindNullableText(detection?.type.rawValue, to: statement, index: 8)
+            if let detection { try bindDouble(detection.confidence, to: statement, index: 9) } else { try bindNull(to: statement, index: 9) }
+            if let detection { try bindInt(detection.version, to: statement, index: 10) } else { try bindNull(to: statement, index: 10) }
+            try bindNullableText(detection.map { dateFormatter.string(from: $0.detectedAt) }, to: statement, index: 11)
 
             guard sqlite3_step(statement) == SQLITE_DONE else {
                 throw DatabaseError.stepFailed(database.lastErrorMessage)
@@ -257,6 +266,10 @@ final class ClipboardHistoryRepository {
         try bindText(dateFormatter.string(from: result.detectedAt), to: statement, index: 4)
         try bindInt64(id, to: statement, index: 5)
         try stepUpdate(statement)
+    }
+
+    func historyItem(id: Int64) throws -> ClipboardHistoryItem? {
+        try fetchItem(id: id)
     }
 
     func updateUserOverrideType(id: Int64, type: DetectedContentType?) throws {
@@ -987,6 +1000,12 @@ final class ClipboardHistoryRepository {
             return
         }
         try bindText(value, to: statement, index: index)
+    }
+
+    private func bindNull(to statement: OpaquePointer?, index: Int32) throws {
+        guard sqlite3_bind_null(statement, index) == SQLITE_OK else {
+            throw DatabaseError.bindFailed(database.lastErrorMessage)
+        }
     }
 
     private func bindInt(_ value: Int, to statement: OpaquePointer?, index: Int32) throws {

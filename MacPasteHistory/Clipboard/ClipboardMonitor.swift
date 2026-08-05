@@ -11,6 +11,7 @@ final class ClipboardMonitor: NSObject {
     private let recordingSettings: RecordingSettingsProviding
     private var privacyService: PrivacyService
     private let logger: Logger
+    private let contentClassifier: ContentClassifier
     private var lastChangeCount: Int
     private var timer: Timer?
 
@@ -23,7 +24,8 @@ final class ClipboardMonitor: NSObject {
         restorationState: ClipboardRestorationState,
         recordingSettings: RecordingSettingsProviding = DefaultRecordingSettingsProvider(),
         privacyService: PrivacyService = PrivacyService(),
-        logger: Logger = Logger(category: "ClipboardMonitor")
+        logger: Logger = Logger(category: "ClipboardMonitor"),
+        contentClassifier: ContentClassifier = ContentClassifier()
     ) {
         self.pasteboard = pasteboard
         self.reader = reader ?? ClipboardReader(pasteboard: pasteboard)
@@ -34,6 +36,7 @@ final class ClipboardMonitor: NSObject {
         self.recordingSettings = recordingSettings
         self.privacyService = privacyService
         self.logger = logger
+        self.contentClassifier = contentClassifier
         self.lastChangeCount = pasteboard.changeCount
         super.init()
     }
@@ -111,7 +114,8 @@ final class ClipboardMonitor: NSObject {
             _ = try repository.saveText(
                 text,
                 sourceApp: sourceApplication.name,
-                sourceBundleID: sourceApplication.bundleID
+                sourceBundleID: sourceApplication.bundleID,
+                detection: contentClassifier.classifyFast(text)
             )
             logger.info("Clipboard text saved, length: \(text.count)")
             NotificationCenter.default.post(name: .clipboardHistoryDidChange, object: nil)

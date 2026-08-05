@@ -192,6 +192,15 @@ final class ClipboardHistoryViewModel: ObservableObject {
         }
     }
 
+    func setUserOverrideType(_ type: DetectedContentType?, for item: ClipboardHistoryItem) {
+        do {
+            try repository.updateUserOverrideType(id: item.id, type: type)
+            refreshSearch()
+        } catch {
+            errorMessage = L10n.string("Failed to update clipboard content type.")
+        }
+    }
+
     func clearTextHistory() {
         do {
             try repository.clearTextHistory()

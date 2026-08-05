@@ -81,6 +81,29 @@ struct HistoryRowView: View {
 
     @ViewBuilder private var preview: some View {
         if item.contentType == .image { HistoryImagePreview(path: item.thumbnailPath, size: NSSize(width: 54, height: 44)) }
-        else { Image(systemName: "doc.text").font(.system(size: 22, weight: .light)).foregroundStyle(.secondary).frame(width: 54, height: 44).background(Color.primary.opacity(0.035)).clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous)) }
+        else {
+            ZStack(alignment: .bottomTrailing) {
+                Image(systemName: "doc.text").font(.system(size: 22, weight: .light)).foregroundStyle(.secondary)
+                if let typeIcon = typeIcon {
+                    Image(systemName: typeIcon).font(.caption.weight(.semibold)).foregroundStyle(Color.accentColor)
+                        .accessibilityLabel(item.effectiveDetectedType.rawValue)
+                        .help(item.effectiveDetectedType.rawValue)
+                }
+            }
+            .frame(width: 54, height: 44).background(Color.primary.opacity(0.035)).clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+    }
+
+    private var typeIcon: String? {
+        switch item.effectiveDetectedType {
+        case .json: "curlybraces"
+        case .jwt: "checkmark.seal"
+        case .url: "link"
+        case .base64: "textformat.abc"
+        case .timestamp: "clock"
+        case .sql: "cylinder"
+        case .shell: "terminal"
+        case .plainText, .image: nil
+        }
     }
 }
