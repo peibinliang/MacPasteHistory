@@ -18,7 +18,7 @@ The history overlay groups records into **Just Now**, **Today**, and **Earlier**
 
 Single-click a history row to restore that item, close the history panel, return focus to the app that was active before opening history, and send `Command + V`. Use the row's **More Actions** menu to preview long text or images without pasting. Arrow keys move the inline selection, and `Enter` directly pastes the selected item.
 
-The first direct paste may ask for macOS Accessibility permission because the app must send a keyboard shortcut to another app. After granting permission in System Settings, reopen history and click the item again.
+On first launch, 粘易 checks whether macOS Accessibility permission is available. If it is missing, the app shows a reminder with an **Open System Settings** button. If permission is still unavailable when you select an item for direct paste, the history panel stays open and shows the reminder again. Grant access under **System Settings → Privacy & Security → Accessibility**, then click the item again.
 
 ## Manage Data
 

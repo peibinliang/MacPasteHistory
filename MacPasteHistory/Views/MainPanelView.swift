@@ -4,6 +4,7 @@ import SwiftUI
 struct MainPanelView: View {
     @StateObject private var viewModel: ClipboardHistoryViewModel
     private let pasteCommandService: PasteCommandService
+    private let accessibilityPermissionService: AccessibilityPermissionService
     private let pasteTargetApplication: NSRunningApplication?
     private let dismissAction: (() -> Void)?
 
@@ -12,6 +13,7 @@ struct MainPanelView: View {
     @State private var selectedKeyboardItem: Int64?
     @State private var showToast = false
     @State private var toastMessage = ""
+    @State private var showAccessibilityPermissionReminder = false
     @FocusState private var isListFocused: Bool
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openSettings) private var openSettings
@@ -21,11 +23,13 @@ struct MainPanelView: View {
     init(
         viewModel: ClipboardHistoryViewModel,
         pasteCommandService: PasteCommandService = PasteCommandService(),
+        accessibilityPermissionService: AccessibilityPermissionService = AccessibilityPermissionService(),
         pasteTargetApplication: NSRunningApplication? = nil,
         dismissAction: (() -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.pasteCommandService = pasteCommandService
+        self.accessibilityPermissionService = accessibilityPermissionService
         self.pasteTargetApplication = pasteTargetApplication
         self.dismissAction = dismissAction
     }
@@ -65,6 +69,21 @@ struct MainPanelView: View {
                 self.selectedKeyboardItem = viewModel.items.first?.id
                 return
             }
+        }
+        .alert(
+            L10n.string("Accessibility Permission Required"),
+            isPresented: $showAccessibilityPermissionReminder
+        ) {
+            Button(L10n.string("Open System Settings")) {
+                accessibilityPermissionService.openSystemSettings()
+            }
+            Button(L10n.string("Later"), role: .cancel) {}
+        } message: {
+            Text(
+                L10n.string(
+                    "Allow 粘易 in System Settings → Privacy & Security → Accessibility, then try pasting again."
+                )
+            )
         }
         .overlay(alignment: .bottom) {
             if showToast {
@@ -394,6 +413,10 @@ struct MainPanelView: View {
     }
 
     private func pasteIntoPreviousApplication(_ item: ClipboardHistoryItem) {
+        if accessibilityPermissionService.reminderIfNeeded(for: .automaticPaste) {
+            showAccessibilityPermissionReminder = true
+            return
+        }
         guard viewModel.restore(item) else { return }
         closePanel()
         pasteTargetApplication?.activate(options: PasteActivationPolicy.options)

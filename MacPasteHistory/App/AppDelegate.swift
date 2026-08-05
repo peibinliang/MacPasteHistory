@@ -28,14 +28,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var workspaceActivationCancellable: AnyCancellable?
     private var lastExternalApplication: NSRunningApplication?
     private let appPreferencesService = AppPreferencesService()
+    private let accessibilityPermissionService: AccessibilityPermissionService
 
     override init() {
         shortcutService = ShortcutService()
+        accessibilityPermissionService = AccessibilityPermissionService()
         super.init()
     }
 
     init(shortcutService: ShortcutService) {
         self.shortcutService = shortcutService
+        accessibilityPermissionService = AccessibilityPermissionService()
         super.init()
     }
 
@@ -48,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboardMonitor?.start()
         setupClearDataObserver()
         setupShortcut()
+        scheduleLaunchAccessibilityPermissionReminder()
     }
 
     private static func applicationSupportOverrideURL() -> URL? {
@@ -84,6 +88,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     as? NSRunningApplication
                 self?.rememberExternalApplication(application)
             }
+    }
+
+    private func scheduleLaunchAccessibilityPermissionReminder() {
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            self?.presentLaunchAccessibilityPermissionReminderIfNeeded()
+        }
+    }
+
+    private func presentLaunchAccessibilityPermissionReminderIfNeeded() {
+        guard accessibilityPermissionService.reminderIfNeeded(for: .launch) else {
+            return
+        }
+
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = L10n.string("Accessibility Permission Required")
+        alert.informativeText = L10n.string(
+            "Allow 粘易 in System Settings → Privacy & Security → Accessibility, then try pasting again."
+        )
+        alert.addButton(withTitle: L10n.string("Open System Settings"))
+        alert.addButton(withTitle: L10n.string("Later"))
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn {
+            accessibilityPermissionService.openSystemSettings()
+        }
     }
 
     private func rememberExternalApplication(_ application: NSRunningApplication?) {
@@ -194,6 +226,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let hostingView = controller.window?.contentView as? NSHostingView<MainPanelView> {
             hostingView.rootView = MainPanelView(
                 viewModel: viewModel,
+                accessibilityPermissionService: accessibilityPermissionService,
                 pasteTargetApplication: pasteTargetApplication,
                 dismissAction: { [weak window = controller.window] in
                     window?.orderOut(nil)
@@ -269,6 +302,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.contentView = NSHostingView(
             rootView: MainPanelView(
                 viewModel: viewModel,
+                accessibilityPermissionService: accessibilityPermissionService,
                 pasteTargetApplication: pasteTargetApplication,
                 dismissAction: { [weak panel] in
                     panel?.orderOut(nil)

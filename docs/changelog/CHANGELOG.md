@@ -4,6 +4,7 @@
 
 ### Added
 
+- Added an Accessibility permission reminder on first launch and whenever direct paste is blocked, with a shortcut to the correct System Settings pane.
 - Added the Context Timeline interface: recent-source ribbon, chronological record groups, inline keyboard selection, compact filters, and persistent paste shortcuts.
 - Added timeline organization coverage for recent, today, and earlier groups plus deduplicated recent application sources.
 - Redesigned the 粘易 app icon as an original monochrome folded-paper loop mark, with a matching simplified menu bar template icon for clear small-size rendering.

@@ -49,6 +49,9 @@
 "This will permanently delete all clipboard history records and image files. This action cannot be undone." = "This will permanently delete all clipboard history records and image files. This action cannot be undone.";
 "Launch at Login Failed" = "Launch at Login Failed";
 "OK" = "OK";
+"Accessibility Permission Required" = "Accessibility Permission Required";
+"Open System Settings" = "Open System Settings";
+"Allow 粘易 in System Settings → Privacy & Security → Accessibility, then try pasting again." = "Allow 粘易 in System Settings → Privacy & Security → Accessibility, then try pasting again.";
 
 /* SettingsView - Recording Section */
 "Recording" = "Recording";

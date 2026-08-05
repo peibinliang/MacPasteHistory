@@ -1,4 +1,5 @@
 import XCTest
+import ApplicationServices
 @testable import MacPasteHistory
 
 final class AccessibilityPermissionServiceTests: XCTestCase {
@@ -42,6 +43,12 @@ final class AccessibilityPermissionServiceTests: XCTestCase {
         service.openSystemSettings()
 
         XCTAssertEqual(settingsOpener.openedURL, AccessibilityPermissionService.systemSettingsURL)
+    }
+
+    func testSystemPermissionChecker_shouldReflectMacOSAccessibilityState() {
+        let checker = SystemAccessibilityPermissionChecker()
+
+        XCTAssertEqual(checker.isProcessTrusted(), AXIsProcessTrusted())
     }
 }
 

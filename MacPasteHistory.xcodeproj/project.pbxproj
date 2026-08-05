@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		011094ABAC4009D12620CCA2 /* ClipboardHistoryRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58DF15ADF1FC329CEEF688B7 /* ClipboardHistoryRepository.swift */; };
+		01C7F6957DC3CEC8BBD507D1 /* AccessibilityPermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F8B7DF2950D64834EB69656 /* AccessibilityPermissionService.swift */; };
 		069348900FA46945D165BF86 /* ClipboardWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98BDE95C6AF6440C112C429F /* ClipboardWriter.swift */; };
 		0C28D58779C8D25529230CA2 /* TextHashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C65CF736363160B42E2DD14 /* TextHashService.swift */; };
 		10D680D50B0CC4B9A4FCDAAF /* LoginItemServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C11A578184EFF27D18A9F1 /* LoginItemServiceTests.swift */; };
@@ -111,6 +112,7 @@
 		3B897F204577B88F8592A84A /* HistoryPanelWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryPanelWindow.swift; sourceTree = "<group>"; };
 		3C65CF736363160B42E2DD14 /* TextHashService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextHashService.swift; sourceTree = "<group>"; };
 		3E1D6F5C44168AD2BACA310B /* ClipboardImageFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardImageFormat.swift; sourceTree = "<group>"; };
+		3F8B7DF2950D64834EB69656 /* AccessibilityPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityPermissionService.swift; sourceTree = "<group>"; };
 		4B338A6B60AAD24098AED942 /* DefaultSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultSettings.swift; sourceTree = "<group>"; };
 		4BB47224BFA6BE4EB45D35AD /* MacPasteHistory.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacPasteHistory.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4E10FB7CE29E874C22EEA1AA /* ShortcutServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutServiceTests.swift; sourceTree = "<group>"; };
@@ -281,6 +283,7 @@
 		30D2A24403EB4D95C6880B52 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				3F8B7DF2950D64834EB69656 /* AccessibilityPermissionService.swift */,
 				AE0A5C8D1AE532528D2CBAEA /* ApplicationSupportService.swift */,
 				BC1EB8AD16FC09D837A3B0B7 /* AppPreferencesService.swift */,
 				DC1CAF3A929708296DAA564D /* AppRelauncher.swift */,
@@ -506,6 +509,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				01C7F6957DC3CEC8BBD507D1 /* AccessibilityPermissionService.swift in Sources */,
 				884F99A1DD25AFB369419BF9 /* AppBrand.swift in Sources */,
 				A9608B93A43BB52D98F327AC /* AppDelegate.swift in Sources */,
 				449733AFE10778F76D63DFD3 /* AppPreferencesService.swift in Sources */,

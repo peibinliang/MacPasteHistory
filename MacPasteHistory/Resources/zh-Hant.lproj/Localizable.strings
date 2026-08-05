@@ -49,6 +49,9 @@
 "This will permanently delete all clipboard history records and image files. This action cannot be undone." = "這將永久刪除所有剪貼板歷史記錄和圖片檔案。此操作無法復原。";
 "Launch at Login Failed" = "開機啟動設定失敗";
 "OK" = "確定";
+"Accessibility Permission Required" = "需要輔助使用權限";
+"Open System Settings" = "開啟系統設定";
+"Allow 粘易 in System Settings → Privacy & Security → Accessibility, then try pasting again." = "請在「系統設定 → 隱私權與安全性 → 輔助使用」中允許粘易，然後重新嘗試貼上。";
 
 /* SettingsView - Recording Section */
 "Recording" = "錄製";

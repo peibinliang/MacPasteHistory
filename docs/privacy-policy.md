@@ -34,6 +34,10 @@ The capture pipeline supports paused recording and blocked application checks. W
 
 Users can disable text recording, disable image recording, delete individual records, clear text history, or clear all local data. Clear-all removes database history records and app-managed image files. Standard macOS backups or external copies outside the app's control may retain older data.
 
+## System Permissions
+
+Direct paste uses macOS Accessibility permission to send `Command + V` to the application that was active before opening history. 粘易 checks this permission locally and does not transmit the result. When permission is missing, the app shows guidance on first launch and again before a blocked direct-paste attempt; users can open the macOS Accessibility settings pane from the reminder. Clipboard history remains unchanged until permission is available and the paste action is retried.
+
 ## Logs
 
 Operational logs should record statuses, lengths, counts, errors, and source identifiers only. Clipboard content itself should not be logged.

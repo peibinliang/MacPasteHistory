@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Added a centralized Accessibility permission service. An untrusted first launch now shows one reminder, and every blocked automatic-paste attempt keeps the history panel open and shows localized guidance with an “Open System Settings” action.
 - Rebuilt the history overlay from the selected Context Timeline design, with a recent-source ribbon, chronological sections, inline keyboard selection, compact filtering, and clearer paste affordances.
 - Reorganized Settings into General, Privacy, and Storage and Data categories, and rebuilt history detail as a fixed-header/fixed-action sheet with independently scrolling content.
 - Renamed the user-facing product to 粘易 while retaining `com.peibin.MacPasteHistory`, the `MacPasteHistory` Swift module, and the existing Application Support directory.
@@ -30,6 +31,8 @@
 
 ### Verification
 
+- Added five unit tests covering one-time launch reminders, repeat reminders on blocked paste, granted-permission behavior, the Accessibility System Settings URL, and the system authorization adapter.
+- The final full test suite passed with 120 tests and 0 failures after the permission reminder integration; the new service reached 87.88% line coverage.
 - Added regression coverage for focus-ring suppression, previous-app selection and activation, and application-level shortcut-service reuse; the targeted suite passed with 7 tests and 0 failures.
 - The final full test suite passed with 115 tests and 0 failures.
 - Added timeline organization tests for recent/today/earlier grouping, empty-group omission, and deduplicated source ordering; the targeted suite passed with 8 tests and 0 failures.
