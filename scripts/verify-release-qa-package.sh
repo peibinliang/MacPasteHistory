@@ -128,7 +128,7 @@ if [[ -z "$app_path" || ! -d "$app_path" ]]; then
 fi
 
 info_plist="$app_path/Contents/Info.plist"
-executable_path="$app_path/Contents/MacOS/MacPasteHistory"
+executable_path="$app_path/Contents/MacOS/粘易"
 
 if [[ ! -f "$info_plist" ]]; then
     echo "Info.plist missing from app bundle" >&2

@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCHEME="MacPasteHistory"
 BUNDLE_ID="com.peibin.MacPasteHistory"
-APP_PROCESS_NAME="MacPasteHistory"
+APP_PROCESS_NAME="粘易"
 DB_RELATIVE_PATH="Library/Application Support/MacPasteHistory/clipboard.db"
 CONTAINER_DATA_DIR="$HOME/Library/Containers/$BUNDLE_ID/Data"
 CONTAINER_PREFERENCES_DIR="$CONTAINER_DATA_DIR/Library/Preferences"

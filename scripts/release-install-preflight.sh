@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCHEME="MacPasteHistory"
 BUNDLE_ID="com.peibin.MacPasteHistory"
-APP_PROCESS_NAME="MacPasteHistory"
+APP_PROCESS_NAME="粘易"
 CONTAINER_DATA_DIR="$HOME/Library/Containers/$BUNDLE_ID/Data"
 
 should_build=1
@@ -173,7 +173,7 @@ fi
 trap cleanup EXIT
 
 install_root="$(mktemp -d /tmp/macpastehistory-release-install-preflight.XXXXXX)"
-installed_app_path="$install_root/MacPasteHistory.app"
+installed_app_path="$install_root/粘易.app"
 mkdir -p "$CONTAINER_DATA_DIR"
 preview_data_dir="$(mktemp -d "$CONTAINER_DATA_DIR/install-preflight-data.XXXXXX")"
 db_path="$preview_data_dir/clipboard.db"

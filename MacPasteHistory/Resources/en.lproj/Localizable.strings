@@ -21,6 +21,7 @@
 
 /* MainPanelView - Row Actions */
 "Restore" = "Restore";
+"Details" = "Details";
 "Delete" = "Delete";
 "Favorite" = "Favorite";
 "Unfavorite" = "Unfavorite";

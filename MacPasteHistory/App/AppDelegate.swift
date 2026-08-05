@@ -84,10 +84,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func createStatusItem() {
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(
+        let statusIcon = NSImage(named: "StatusBarIcon") ?? NSImage(
             systemSymbolName: "doc.on.clipboard",
-            accessibilityDescription: "MacPasteHistory"
+            accessibilityDescription: AppBrand.displayName
         )
+        statusIcon?.isTemplate = true
+        statusItem.button?.image = statusIcon
+        statusItem.button?.toolTip = AppBrand.displayName
         statusItem.button?.target = self
         statusItem.button?.action = #selector(openMainPanel)
         statusItem.menu = createStatusMenu()

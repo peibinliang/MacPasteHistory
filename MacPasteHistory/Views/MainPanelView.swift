@@ -332,15 +332,19 @@ private struct HistoryRowView: View {
                 )
                 .onEnded { value in
                     switch value {
-                    case .first:
-                        pasteAction()
-                    case .second:
-                        detailAction()
+                    case .first, .second:
+                        performPrimaryAction()
                     }
                 }
             )
 
             HStack(spacing: 6) {
+                Button(action: detailAction) {
+                    Label(L10n.string("Details"), systemImage: "info.circle")
+                }
+                .labelStyle(.iconOnly)
+                .help(L10n.string("Details"))
+
                 Button(action: favoriteAction) {
                     Label(favoriteTitle, systemImage: item.isFavorite ? "star.fill" : "star")
                 }
@@ -362,6 +366,13 @@ private struct HistoryRowView: View {
             .buttonStyle(.borderless)
         }
         .padding(.vertical, 8)
+    }
+
+    private func performPrimaryAction() {
+        switch HistoryRowInteraction.primaryAction {
+        case .paste:
+            pasteAction()
+        }
     }
 
     private var metadataLine: some View {

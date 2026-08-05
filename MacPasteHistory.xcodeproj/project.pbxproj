@@ -41,6 +41,7 @@
 		71426B9021280E94D7539B59 /* DatabaseInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD73045A8756D418C97F929 /* DatabaseInitializer.swift */; };
 		724DE67B7ED6AFA12ADBA092 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9D1A51C599E31B32062B14 /* Logger.swift */; };
 		8059994676147193B55260EA /* AppPreferencesServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31BED0192DB3783C3D7B0A3A /* AppPreferencesServiceTests.swift */; };
+		884F99A1DD25AFB369419BF9 /* AppBrand.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC972C7F0AEC2C99D7E86314 /* AppBrand.swift */; };
 		91F5BFFC202182E5FC7733FE /* ImageStorageServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0C921950775062031F5338 /* ImageStorageServiceTests.swift */; };
 		9819F865E31CDCA64F589AEC /* SourceApplicationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF30F9481AFEB3D51C6704D /* SourceApplicationProvider.swift */; };
 		9A689474C1BC54A9D315A53F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DC22C0FBF11262EEF86116E6 /* Assets.xcassets */; };
@@ -53,6 +54,7 @@
 		AA1C10D6831D38ABDFCDBF2C /* DatabaseConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 731F5A4FD87B6D86CEC3FCF0 /* DatabaseConnection.swift */; };
 		AAEA0FB90CD051CCB9FFCF05 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FEB9AABB37848925A7279D /* L10n.swift */; };
 		AB88A6377412D6A4D747B974 /* BlockedAppEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5494612831C707DAC4547F3 /* BlockedAppEntry.swift */; };
+		AC35936FD8D5F32A5AB8DE4A /* HistoryRowInteraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75B1D5FA0ADD84C44EA212A /* HistoryRowInteraction.swift */; };
 		AEE680C63F09BD5BF264371C /* ClipboardReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0708A6AE053FF672A9AA3F81 /* ClipboardReader.swift */; };
 		BBB21CE9D5205457B2405E96 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 29573C23DA2EA58B87F07E67 /* InfoPlist.strings */; };
 		C31DD94AC6018F6598D13BDD /* PasteCommandServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1020A653220EFFBC5ACAA2E3 /* PasteCommandServiceTests.swift */; };
@@ -160,8 +162,10 @@
 		CCD73045A8756D418C97F929 /* DatabaseInitializer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseInitializer.swift; sourceTree = "<group>"; };
 		D23878887B967095A61459A7 /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		D5D7232AB046B2CD2E4D7FBF /* ClipboardHistoryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistoryViewModel.swift; sourceTree = "<group>"; };
+		D75B1D5FA0ADD84C44EA212A /* HistoryRowInteraction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRowInteraction.swift; sourceTree = "<group>"; };
 		DC1CAF3A929708296DAA564D /* AppRelauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRelauncher.swift; sourceTree = "<group>"; };
 		DC22C0FBF11262EEF86116E6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DC972C7F0AEC2C99D7E86314 /* AppBrand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBrand.swift; sourceTree = "<group>"; };
 		DF9519F036C97A9264A2759F /* TextHashServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextHashServiceTests.swift; sourceTree = "<group>"; };
 		E1FB76BFCE8E190C38BA03E2 /* PasteCommandService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteCommandService.swift; sourceTree = "<group>"; };
 		E6E4FA64682900B660E3D556 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -313,6 +317,7 @@
 		701B2550E74B557FBD7C9055 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				DC972C7F0AEC2C99D7E86314 /* AppBrand.swift */,
 				CBFB2FF0430D2E76216AFDFB /* AppDelegate.swift */,
 				3B897F204577B88F8592A84A /* HistoryPanelWindow.swift */,
 				72C597E123F2DDF8153F0730 /* MacPasteHistoryApp.swift */,
@@ -366,6 +371,7 @@
 				C59BAFAC1C74299F1C61B42B /* ClipboardImageCandidate.swift */,
 				3E1D6F5C44168AD2BACA310B /* ClipboardImageFormat.swift */,
 				548547071FD81AC03035F12B /* HistoryQuery.swift */,
+				D75B1D5FA0ADD84C44EA212A /* HistoryRowInteraction.swift */,
 				C5C48E776837A0472D9524D0 /* ShortcutConfiguration.swift */,
 				C930D2F90FBF0BDDA6585C26 /* StoredClipboardImage.swift */,
 			);
@@ -496,6 +502,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				884F99A1DD25AFB369419BF9 /* AppBrand.swift in Sources */,
 				A9608B93A43BB52D98F327AC /* AppDelegate.swift in Sources */,
 				449733AFE10778F76D63DFD3 /* AppPreferencesService.swift in Sources */,
 				FE5E3DF528DCC08C32284276 /* AppRelauncher.swift in Sources */,
@@ -521,6 +528,7 @@
 				EE421C564255C193BB94B491 /* HistoryDisplayFormatter.swift in Sources */,
 				EFEF620FBCA32EA04050ED68 /* HistoryPanelWindow.swift in Sources */,
 				C7DD814F1D07B66090A4EA6A /* HistoryQuery.swift in Sources */,
+				AC35936FD8D5F32A5AB8DE4A /* HistoryRowInteraction.swift in Sources */,
 				6E2AB18C2EC6E7315E57141D /* ImageStorageService.swift in Sources */,
 				AAEA0FB90CD051CCB9FFCF05 /* L10n.swift in Sources */,
 				DBC4FCC299904D397A04BB5B /* LanguageManager.swift in Sources */,
@@ -648,7 +656,8 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.peibin.MacPasteHistory;
-				PRODUCT_NAME = MacPasteHistory;
+				PRODUCT_MODULE_NAME = MacPasteHistory;
+				PRODUCT_NAME = "粘易";
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -729,7 +738,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.peibin.MacPasteHistoryTests;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MacPasteHistory.app/Contents/MacOS/MacPasteHistory";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/粘易.app/Contents/MacOS/粘易";
 			};
 			name = Release;
 		};
@@ -746,7 +755,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.peibin.MacPasteHistoryTests;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MacPasteHistory.app/Contents/MacOS/MacPasteHistory";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/粘易.app/Contents/MacOS/粘易";
 			};
 			name = Debug;
 		};
@@ -767,7 +776,8 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.peibin.MacPasteHistory;
-				PRODUCT_NAME = MacPasteHistory;
+				PRODUCT_MODULE_NAME = MacPasteHistory;
+				PRODUCT_NAME = "粘易";
 				SDKROOT = macosx;
 				STRIP_STYLE = "non-global";
 				SWIFT_COMPILATION_MODE = wholemodule;

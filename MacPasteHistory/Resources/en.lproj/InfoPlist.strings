@@ -1,5 +1,5 @@
 /* InfoPlist.strings - English */
 
-"NSPasteboardAccessUsageDescription" = "Paste History needs pasteboard access to record and restore your clipboard history.";
-"NSAccessibilityUsageDescription" = "Paste History needs accessibility access to detect the current foreground app.";
-"CFBundleDisplayName" = "MacPasteHistory";
+"NSPasteboardAccessUsageDescription" = "粘易 needs pasteboard access to record and restore your clipboard history.";
+"NSAccessibilityUsageDescription" = "粘易 needs accessibility access to return to the previous app and paste the selected content.";
+"CFBundleDisplayName" = "粘易";

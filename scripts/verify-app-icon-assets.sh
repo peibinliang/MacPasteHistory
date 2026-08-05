@@ -4,6 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ICONSET_DIR="$REPO_ROOT/MacPasteHistory/Resources/Assets.xcassets/AppIcon.appiconset"
 CONTENTS_JSON="$ICONSET_DIR/Contents.json"
+STATUS_ICONSET_DIR="$REPO_ROOT/MacPasteHistory/Resources/Assets.xcassets/StatusBarIcon.imageset"
 
 usage() {
     cat <<'EOF'
@@ -125,3 +126,21 @@ violations.each do |violation|
 end
 exit 1
 RUBY
+
+for status_icon in "status-bar-icon.png:18" "status-bar-icon@2x.png:36"; do
+    filename="${status_icon%%:*}"
+    expected_pixels="${status_icon##*:}"
+    path="$STATUS_ICONSET_DIR/$filename"
+    if [[ ! -f "$path" ]]; then
+        echo "Missing status bar icon: $path" >&2
+        exit 1
+    fi
+    width="$(sips -g pixelWidth "$path" 2>/dev/null | awk '/pixelWidth/ {print $2}')"
+    height="$(sips -g pixelHeight "$path" 2>/dev/null | awk '/pixelHeight/ {print $2}')"
+    if [[ "$width" != "$expected_pixels" || "$height" != "$expected_pixels" ]]; then
+        echo "Status bar icon $filename has ${width}x${height}, expected ${expected_pixels}x${expected_pixels}." >&2
+        exit 1
+    fi
+done
+
+echo "Status bar icons: PASS (18x18 and 36x36 template assets)"

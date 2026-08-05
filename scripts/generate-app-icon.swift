@@ -14,8 +14,10 @@ private struct IconSlot {
 }
 
 private let repoRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-private let iconsetURL = repoRoot
-    .appendingPathComponent("MacPasteHistory/Resources/Assets.xcassets/AppIcon.appiconset", isDirectory: true)
+private let sourceURL = repoRoot.appendingPathComponent("design/AppIconSource.png")
+private let assetCatalogURL = repoRoot.appendingPathComponent("MacPasteHistory/Resources/Assets.xcassets", isDirectory: true)
+private let iconsetURL = assetCatalogURL.appendingPathComponent("AppIcon.appiconset", isDirectory: true)
+private let statusIconsetURL = assetCatalogURL.appendingPathComponent("StatusBarIcon.imageset", isDirectory: true)
 
 private let slots: [IconSlot] = [
     IconSlot(size: "16x16", scale: "1x", pixels: 16),
@@ -31,11 +33,14 @@ private let slots: [IconSlot] = [
 ]
 
 private enum IconGenerationError: Error, CustomStringConvertible {
+    case sourceImageMissing(String)
     case couldNotCreateBitmap(Int)
     case couldNotEncodePNG(Int)
 
     var description: String {
         switch self {
+        case .sourceImageMissing(let path):
+            return "Source image is missing or unreadable: \(path)"
         case .couldNotCreateBitmap(let pixels):
             return "Could not create bitmap for \(pixels)x\(pixels) icon"
         case .couldNotEncodePNG(let pixels):
@@ -44,19 +49,11 @@ private enum IconGenerationError: Error, CustomStringConvertible {
     }
 }
 
-private func scaled(_ value: CGFloat, _ pixels: Int) -> CGFloat {
-    value * CGFloat(pixels) / 1024.0
-}
-
-private func color(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat, _ alpha: CGFloat = 1) -> NSColor {
-    NSColor(calibratedRed: red / 255, green: green / 255, blue: blue / 255, alpha: alpha)
-}
-
-private func drawIcon(size pixels: Int) throws -> Data {
+private func pngData(width: Int, height: Int, draw: (NSRect) -> Void) throws -> Data {
     guard let representation = NSBitmapImageRep(
         bitmapDataPlanes: nil,
-        pixelsWide: pixels,
-        pixelsHigh: pixels,
+        pixelsWide: width,
+        pixelsHigh: height,
         bitsPerSample: 8,
         samplesPerPixel: 4,
         hasAlpha: true,
@@ -65,84 +62,63 @@ private func drawIcon(size pixels: Int) throws -> Data {
         bytesPerRow: 0,
         bitsPerPixel: 0
     ) else {
-        throw IconGenerationError.couldNotCreateBitmap(pixels)
+        throw IconGenerationError.couldNotCreateBitmap(max(width, height))
     }
 
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: representation)
-
-    let rect = NSRect(x: 0, y: 0, width: pixels, height: pixels)
+    let rect = NSRect(x: 0, y: 0, width: width, height: height)
     NSColor.clear.setFill()
     rect.fill()
-
-    let corner = scaled(220, pixels)
-    let background = NSBezierPath(roundedRect: rect.insetBy(dx: scaled(72, pixels), dy: scaled(72, pixels)), xRadius: corner, yRadius: corner)
-    let gradient = NSGradient(colors: [
-        color(30, 110, 166),
-        color(26, 163, 151)
-    ])
-    gradient?.draw(in: background, angle: 45)
-
-    let boardRect = NSRect(
-        x: scaled(246, pixels),
-        y: scaled(204, pixels),
-        width: scaled(532, pixels),
-        height: scaled(644, pixels)
-    )
-    let board = NSBezierPath(roundedRect: boardRect, xRadius: scaled(76, pixels), yRadius: scaled(76, pixels))
-    color(248, 252, 255).setFill()
-    board.fill()
-    color(12, 73, 114, 0.20).setStroke()
-    board.lineWidth = max(1, scaled(12, pixels))
-    board.stroke()
-
-    let clipRect = NSRect(
-        x: scaled(374, pixels),
-        y: scaled(744, pixels),
-        width: scaled(276, pixels),
-        height: scaled(96, pixels)
-    )
-    let clip = NSBezierPath(roundedRect: clipRect, xRadius: scaled(42, pixels), yRadius: scaled(42, pixels))
-    color(16, 95, 142).setFill()
-    clip.fill()
-
-    let clipInner = NSBezierPath(roundedRect: clipRect.insetBy(dx: scaled(76, pixels), dy: scaled(28, pixels)), xRadius: scaled(18, pixels), yRadius: scaled(18, pixels))
-    color(190, 232, 231).setFill()
-    clipInner.fill()
-
-    let lineColor = color(32, 105, 145, 0.82)
-    lineColor.setStroke()
-    let lineWidth = max(1.5, scaled(26, pixels))
-    let lineStartX = scaled(338, pixels)
-    let lineEndX = scaled(686, pixels)
-    for y in [scaled(624, pixels), scaled(524, pixels), scaled(424, pixels)] {
-        let line = NSBezierPath()
-        line.move(to: NSPoint(x: lineStartX, y: y))
-        line.line(to: NSPoint(x: lineEndX, y: y))
-        line.lineWidth = lineWidth
-        line.lineCapStyle = .round
-        line.stroke()
-    }
-
-    let check = NSBezierPath()
-    check.move(to: NSPoint(x: scaled(366, pixels), y: scaled(324, pixels)))
-    check.line(to: NSPoint(x: scaled(464, pixels), y: scaled(260, pixels)))
-    check.line(to: NSPoint(x: scaled(650, pixels), y: scaled(356, pixels)))
-    check.lineWidth = max(2, scaled(34, pixels))
-    check.lineCapStyle = .round
-    check.lineJoinStyle = .round
-    color(15, 151, 136).setStroke()
-    check.stroke()
-
+    draw(rect)
     NSGraphicsContext.restoreGraphicsState()
 
     guard let data = representation.representation(using: .png, properties: [:]) else {
-        throw IconGenerationError.couldNotEncodePNG(pixels)
+        throw IconGenerationError.couldNotEncodePNG(max(width, height))
     }
     return data
 }
 
-private func contentsJSON() -> String {
+private func appIconData(source: NSImage, pixels: Int) throws -> Data {
+    try pngData(width: pixels, height: pixels) { rect in
+        source.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
+    }
+}
+
+private func statusIconData(pixels: Int) throws -> Data {
+    try pngData(width: pixels, height: pixels) { rect in
+        let scale = CGFloat(pixels) / 18
+        NSColor.black.setStroke()
+
+        let clipboard = NSBezierPath(roundedRect: NSRect(x: 3 * scale, y: 2 * scale, width: 10 * scale, height: 13 * scale), xRadius: 2 * scale, yRadius: 2 * scale)
+        clipboard.lineWidth = 1.45 * scale
+        clipboard.stroke()
+
+        let clip = NSBezierPath(roundedRect: NSRect(x: 5.3 * scale, y: 13.2 * scale, width: 5.4 * scale, height: 2.5 * scale), xRadius: 1.1 * scale, yRadius: 1.1 * scale)
+        clip.lineWidth = 1.45 * scale
+        clip.stroke()
+
+        let arrow = NSBezierPath()
+        arrow.move(to: NSPoint(x: 7 * scale, y: 8.5 * scale))
+        arrow.line(to: NSPoint(x: 16 * scale, y: 8.5 * scale))
+        arrow.move(to: NSPoint(x: 12.8 * scale, y: 11.5 * scale))
+        arrow.line(to: NSPoint(x: 16 * scale, y: 8.5 * scale))
+        arrow.line(to: NSPoint(x: 12.8 * scale, y: 5.5 * scale))
+        arrow.lineWidth = 1.7 * scale
+        arrow.lineCapStyle = .round
+        arrow.lineJoinStyle = .round
+        arrow.stroke()
+
+        let cursor = NSBezierPath()
+        cursor.move(to: NSPoint(x: 16 * scale, y: 4.4 * scale))
+        cursor.line(to: NSPoint(x: 16 * scale, y: 12.6 * scale))
+        cursor.lineWidth = 1.2 * scale
+        cursor.lineCapStyle = .round
+        cursor.stroke()
+    }
+}
+
+private func appIconContentsJSON() -> String {
     let rows = slots.map { slot in
         """
             {
@@ -167,29 +143,49 @@ private func contentsJSON() -> String {
     """
 }
 
-do {
-    try FileManager.default.createDirectory(at: iconsetURL, withIntermediateDirectories: true)
-    let existingIcons = try FileManager.default.contentsOfDirectory(at: iconsetURL, includingPropertiesForKeys: nil)
-    for iconURL in existingIcons where iconURL.lastPathComponent.hasPrefix("app-icon-") && iconURL.pathExtension == "png" {
-        try FileManager.default.removeItem(at: iconURL)
+private let statusIconContentsJSON = """
+{
+  "images" : [
+    {
+      "filename" : "status-bar-icon.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "status-bar-icon@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x"
     }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  },
+  "properties" : {
+    "template-rendering-intent" : "template"
+  }
+}
+"""
+
+do {
+    guard let source = NSImage(contentsOf: sourceURL) else {
+        throw IconGenerationError.sourceImageMissing(sourceURL.path)
+    }
+    try FileManager.default.createDirectory(at: iconsetURL, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: statusIconsetURL, withIntermediateDirectories: true)
 
     for slot in slots {
-        let data = try drawIcon(size: slot.pixels)
+        let data = try appIconData(source: source, pixels: slot.pixels)
         try data.write(to: iconsetURL.appendingPathComponent(slot.filename), options: .atomic)
     }
+    try appIconContentsJSON().write(to: iconsetURL.appendingPathComponent("Contents.json"), atomically: true, encoding: .utf8)
 
-    try contentsJSON().write(
-        to: iconsetURL.appendingPathComponent("Contents.json"),
-        atomically: true,
-        encoding: .utf8
-    )
+    try statusIconData(pixels: 18).write(to: statusIconsetURL.appendingPathComponent("status-bar-icon.png"), options: .atomic)
+    try statusIconData(pixels: 36).write(to: statusIconsetURL.appendingPathComponent("status-bar-icon@2x.png"), options: .atomic)
+    try statusIconContentsJSON.write(to: statusIconsetURL.appendingPathComponent("Contents.json"), atomically: true, encoding: .utf8)
 
-    print("Generated AppIcon assets:")
-    for slot in slots {
-        print("  \(iconsetURL.appendingPathComponent(slot.filename).path)")
-    }
+    print("Generated \(slots.count) AppIcon assets and 2 StatusBarIcon assets from \(sourceURL.path)")
 } catch {
-    fputs("Failed to generate AppIcon assets: \(error)\n", stderr)
+    fputs("Failed to generate icon assets: \(error)\n", stderr)
     exit(1)
 }

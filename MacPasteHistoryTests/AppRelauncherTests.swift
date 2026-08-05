@@ -10,14 +10,14 @@ final class AppRelauncherTests: XCTestCase {
             capturedArguments = arguments
         }
 
-        relauncher.relaunchAfterTermination(bundlePath: "/Applications/MacPasteHistory.app")
+        relauncher.relaunchAfterTermination(bundlePath: "/Applications/粘易.app")
 
         XCTAssertEqual(capturedExecutable?.path, "/bin/sh")
         XCTAssertEqual(capturedArguments?.first, "-c")
         let shellCommand = try XCTUnwrap(capturedArguments?.last)
         XCTAssertTrue(shellCommand.contains("sleep 0.5"))
         XCTAssertTrue(shellCommand.contains("/usr/bin/open -n"))
-        XCTAssertTrue(shellCommand.contains("'/Applications/MacPasteHistory.app'"))
+        XCTAssertTrue(shellCommand.contains("'/Applications/粘易.app'"))
     }
 
     func testRelaunchAfterTermination_whenBundlePathContainsQuote_shouldShellQuoteSafely() throws {

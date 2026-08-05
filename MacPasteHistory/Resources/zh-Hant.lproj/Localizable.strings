@@ -21,6 +21,7 @@
 
 /* MainPanelView - Row Actions */
 "Restore" = "還原";
+"Details" = "詳細資料";
 "Delete" = "刪除";
 "Favorite" = "收藏";
 "Unfavorite" = "取消收藏";

@@ -6,7 +6,7 @@ PROJECT_YML="$REPO_ROOT/project.yml"
 INFO_PLIST="$REPO_ROOT/MacPasteHistory/Resources/Info.plist"
 
 EXPECTED_BUNDLE_ID="com.peibin.MacPasteHistory"
-EXPECTED_PRODUCT_NAME="MacPasteHistory"
+EXPECTED_PRODUCT_NAME="粘易"
 EXPECTED_INFOPLIST="MacPasteHistory/Resources/Info.plist"
 
 add_violation() {
