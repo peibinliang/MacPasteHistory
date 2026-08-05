@@ -34,7 +34,7 @@ private enum FixtureError: Error, CustomStringConvertible {
 
 private func largeText(repetitions: Int) -> String {
     let paragraph = [
-        "MacPasteHistory manual QA large text sample.",
+        "粘易 manual QA large text sample.",
         "This line is synthetic and contains no private clipboard data.",
         "Search token: release-fixture-clipboard-history.",
         "Mixed language sample: copy test text, menu bar restore, history search.",
@@ -50,7 +50,7 @@ private let textFixtures: [TextFixture] = [
     TextFixture(
         fileName: "01-browser-text-sample.txt",
         contents: """
-        MacPasteHistory browser copy sample
+        粘易 browser copy sample
 
         Copy this text from Chrome or Safari and verify:
         - The text appears in history.

@@ -1,19 +1,19 @@
 # App Store Screenshot Assets
 
-These PNGs are generated from synthetic, non-private example data for release material preparation.
+These PNGs show the current 粘易 Release UI with synthetic, non-private example data. They are also used by the repository README.
 
-Regenerate them with:
+## Current assets
 
-```bash
-scripts/generate-release-screenshots.swift
-```
+- `01-history-overview.png`: top overlay, recent-source ribbon, timeline groups, search, filtering, and row actions.
+- `02-image-history.png`: image detail, dimensions, format, source application, favorite, delete, and copy actions.
+- `03-settings-controls.png`: General settings, recording options, launch behavior, shortcut customization, and language.
+- `04-local-privacy.png`: pause recording and application blocklist controls.
 
-Generated assets:
+## Refresh workflow
 
-- `01-history-overview.png`: history list, search, filters, and restore feedback.
-- `02-image-history.png`: image history, thumbnail grid, metadata, and restore action.
-- `03-settings-controls.png`: recording, launch, retention, and storage controls.
-- `04-local-privacy.png`: local storage, pause, sensitive filtering, and clear-all messaging.
+1. Run `scripts/preview-release-app.sh --seed-preview-data` to build and launch the current Release app with isolated synthetic history.
+2. Capture the four views from the running app. Do not use personal clipboard history or user files.
+3. Export each image as a 5760 × 3600 PNG, preserving the filenames above.
+4. Run `scripts/verify-release-screenshot-assets.sh` and visually review every image before committing.
 
-All screenshots must be visually reviewed before final App Store upload.
-Screenshots and captions must not claim local database encryption for the current release; encrypted local storage is a future P2 capability.
+The legacy static screenshot generator does not reflect the live SwiftUI layout and is not the source of truth for README or release screenshots. Screenshots and captions must not claim local database encryption for the current release; encrypted local storage is a future P2 capability.

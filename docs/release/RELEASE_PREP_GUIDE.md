@@ -781,13 +781,13 @@ MacPasteHistory **不收集任何个人身份信息**。
 
 1. `docs/release/screenshots/01-history-overview.png` — 历史列表、搜索、过滤、收藏、恢复和删除入口
 2. `docs/release/screenshots/02-image-history.png` — 图片缩略图、图片详情、尺寸、格式和来源应用
-3. `docs/release/screenshots/03-settings-controls.png` — 录制开关、Launch at login、保留时间和存储限制
-4. `docs/release/screenshots/04-local-privacy.png` — 本地存储、暂停记录、敏感内容过滤和清空全部数据
+3. `docs/release/screenshots/03-settings-controls.png` — 录制开关、Launch at login、自定义快捷键和语言
+4. `docs/release/screenshots/04-local-privacy.png` — 暂停记录和应用黑名单
 
 #### 截图制作建议
 
-- 当前仓库提供可重复生成脚本：`scripts/generate-release-screenshots.swift`
-- 使用合成示例数据，不包含真实用户内容
+- 使用 `scripts/preview-release-app.sh --seed-preview-data` 启动当前 Release 界面并注入隔离的合成示例数据
+- 从运行中的应用采集截图，不包含真实用户内容；旧的静态生成脚本不再作为当前界面的截图来源
 - macOS 模板框架使用 [App Store Marketing Guidelines](https://developer.apple.com/app-store/marketing/guidelines/) 的官方模板
 - 分辨率: 2x（确保 Retina 清晰）
 - 当前输出为 5760 × 3600 PNG，可按最终上架渠道要求裁切或导出目标尺寸

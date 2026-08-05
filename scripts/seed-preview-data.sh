@@ -218,7 +218,7 @@ browser_text="$(cat "$fixtures_dir/01-browser-text-sample.txt")"
 code_text="$(cat "$fixtures_dir/02-vscode-code-sample.swift")"
 chat_text="$(cat "$fixtures_dir/03-chat-copy-sample.txt")"
 large_preview_text="$(printf '%s\n' \
-    'MacPasteHistory preview large text sample.' \
+    '粘易 preview large text sample.' \
     'This synthetic item lets you check long previews, detail scrolling, and search.' \
     'Search token: preview-large-text-history.' \
     '' \

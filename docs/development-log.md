@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Refreshed the GitHub README and all four release screenshots from the current 粘易 Release build using isolated synthetic clipboard data; the documentation now shows the timeline overlay, image detail, categorized Settings, and Privacy controls.
 - Added a centralized Accessibility permission service. An untrusted first launch now shows one reminder, and every blocked automatic-paste attempt keeps the history panel open and shows localized guidance with an “Open System Settings” action.
 - Rebuilt the history overlay from the selected Context Timeline design, with a recent-source ribbon, chronological sections, inline keyboard selection, compact filtering, and clearer paste affordances.
 - Reorganized Settings into General, Privacy, and Storage and Data categories, and rebuilt history detail as a fixed-header/fixed-action sheet with independently scrolling content.
