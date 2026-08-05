@@ -4,7 +4,7 @@
 
 ### Added
 
-- Added a new branded app icon and a matching monochrome menu bar template icon for 粘易.
+- Redesigned the 粘易 app icon as an original monochrome folded-paper loop mark, with a matching simplified menu bar template icon for clear small-size rendering.
 - Added single-click direct paste from the history list, including clipboard replacement, previous-app reactivation, and Command+V dispatch.
 - Initialized macOS SwiftUI app project foundation.
 - Added XcodeGen project configuration.

@@ -90,31 +90,29 @@ private func statusIconData(pixels: Int) throws -> Data {
         let scale = CGFloat(pixels) / 18
         NSColor.black.setStroke()
 
-        let clipboard = NSBezierPath(roundedRect: NSRect(x: 3 * scale, y: 2 * scale, width: 10 * scale, height: 13 * scale), xRadius: 2 * scale, yRadius: 2 * scale)
-        clipboard.lineWidth = 1.45 * scale
-        clipboard.stroke()
+        // The menu-bar mark is the one-color reduction of the app icon's
+        // folded-paper loops. Two offset loops communicate transfer while the
+        // shared vertical opening remains legible at the native 18-point size.
+        let lineWidth = 2.35 * scale
+        let upperLoop = NSBezierPath(
+            roundedRect: NSRect(x: 2.1 * scale, y: 7.2 * scale, width: 10.1 * scale, height: 8.7 * scale),
+            xRadius: 3.2 * scale,
+            yRadius: 3.2 * scale
+        )
+        upperLoop.lineWidth = lineWidth
+        upperLoop.lineCapStyle = .round
+        upperLoop.lineJoinStyle = .round
+        upperLoop.stroke()
 
-        let clip = NSBezierPath(roundedRect: NSRect(x: 5.3 * scale, y: 13.2 * scale, width: 5.4 * scale, height: 2.5 * scale), xRadius: 1.1 * scale, yRadius: 1.1 * scale)
-        clip.lineWidth = 1.45 * scale
-        clip.stroke()
-
-        let arrow = NSBezierPath()
-        arrow.move(to: NSPoint(x: 7 * scale, y: 8.5 * scale))
-        arrow.line(to: NSPoint(x: 16 * scale, y: 8.5 * scale))
-        arrow.move(to: NSPoint(x: 12.8 * scale, y: 11.5 * scale))
-        arrow.line(to: NSPoint(x: 16 * scale, y: 8.5 * scale))
-        arrow.line(to: NSPoint(x: 12.8 * scale, y: 5.5 * scale))
-        arrow.lineWidth = 1.7 * scale
-        arrow.lineCapStyle = .round
-        arrow.lineJoinStyle = .round
-        arrow.stroke()
-
-        let cursor = NSBezierPath()
-        cursor.move(to: NSPoint(x: 16 * scale, y: 4.4 * scale))
-        cursor.line(to: NSPoint(x: 16 * scale, y: 12.6 * scale))
-        cursor.lineWidth = 1.2 * scale
-        cursor.lineCapStyle = .round
-        cursor.stroke()
+        let lowerLoop = NSBezierPath(
+            roundedRect: NSRect(x: 5.8 * scale, y: 2.1 * scale, width: 10.1 * scale, height: 8.7 * scale),
+            xRadius: 3.2 * scale,
+            yRadius: 3.2 * scale
+        )
+        lowerLoop.lineWidth = lineWidth
+        lowerLoop.lineCapStyle = .round
+        lowerLoop.lineJoinStyle = .round
+        lowerLoop.stroke()
     }
 }
 

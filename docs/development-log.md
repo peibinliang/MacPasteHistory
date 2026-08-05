@@ -5,7 +5,7 @@
 ### Changed
 
 - Renamed the user-facing product to 粘易 while retaining `com.peibin.MacPasteHistory`, the `MacPasteHistory` Swift module, and the existing Application Support directory.
-- Replaced the generated app icon with a clipboard, paste-arrow, and text-cursor brand mark, and added a matching monochrome menu bar template icon.
+- Replaced the multi-element clipboard mark with an original graphite folded-paper loop icon and a matching one-color menu bar reduction, improving recognition at Dock and 18-point menu sizes.
 - Changed history-row single click to restore the selected clipboard item, dismiss the overlay, reactivate the previous foreground app, and send `Command + V`; details now use a dedicated info button.
 
 ### Fixed

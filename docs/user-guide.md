@@ -4,7 +4,7 @@
 
 ## Start And Open
 
-Launch `粘易.app`. The app runs from the menu bar with a clipboard-and-paste icon. Choose **Open History** from the menu bar item, or press the global shortcut `Command + Shift + V` when it is available.
+Launch `粘易.app`. The app runs from the menu bar with a folded-loop icon. Choose **Open History** from the menu bar item, or press the global shortcut `Command + Shift + V` when it is available.
 
 ## Record Clipboard History
 
