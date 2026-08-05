@@ -153,22 +153,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             writer: clipboardWriter,
             imageStorageService: imageStorageService
         )
-        let controller = mainWindowController ?? createWindowController(
-            title: L10n.string("Clipboard History"),
-            rootView: MainPanelView(
-                viewModel: viewModel,
-                pasteTargetApplication: pasteTargetApplication
-            ),
-            size: NSSize(width: 520, height: 640)
+        let controller = mainWindowController ?? createHistoryPanelController(
+            viewModel: viewModel,
+            pasteTargetApplication: pasteTargetApplication
         )
         if let hostingView = controller.window?.contentView as? NSHostingView<MainPanelView> {
             hostingView.rootView = MainPanelView(
                 viewModel: viewModel,
-                pasteTargetApplication: pasteTargetApplication
+                pasteTargetApplication: pasteTargetApplication,
+                dismissAction: { [weak window = controller.window] in
+                    window?.orderOut(nil)
+                }
             )
         }
         mainWindowController = controller
-        showWindow(controller)
+        showHistoryPanel(controller)
     }
 
     private static func currentPasteTargetApplication() -> NSRunningApplication? {
@@ -209,6 +208,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.center()
         window.contentView = NSHostingView(rootView: rootView)
         return NSWindowController(window: window)
+    }
+
+    private func createHistoryPanelController(
+        viewModel: ClipboardHistoryViewModel,
+        pasteTargetApplication: NSRunningApplication?
+    ) -> NSWindowController {
+        let panel = HistoryPanelWindow(
+            contentRect: NSRect(origin: .zero, size: HistoryPanelWindow.defaultSize)
+        )
+        panel.contentView = NSHostingView(
+            rootView: MainPanelView(
+                viewModel: viewModel,
+                pasteTargetApplication: pasteTargetApplication,
+                dismissAction: { [weak panel] in
+                    panel?.orderOut(nil)
+                }
+            )
+        )
+        return NSWindowController(window: panel)
+    }
+
+    private func showHistoryPanel(_ controller: NSWindowController) {
+        guard let panel = controller.window as? HistoryPanelWindow else {
+            return
+        }
+        panel.positionOnActiveScreen()
+        controller.showWindow(nil)
+        panel.makeKeyAndOrderFront(nil)
     }
 
     private func showWindow(_ controller: NSWindowController) {

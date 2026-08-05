@@ -4,6 +4,7 @@ struct MainPanelView: View {
     @StateObject private var viewModel: ClipboardHistoryViewModel
     private let pasteCommandService: PasteCommandService
     private let pasteTargetApplication: NSRunningApplication?
+    private let dismissAction: (() -> Void)?
     @State private var selectedItem: ClipboardHistoryItem?
     @State private var selectedFilter: HistoryContentFilter = .all
     @State private var selectedKeyboardItem: Int64?
@@ -15,11 +16,13 @@ struct MainPanelView: View {
     init(
         viewModel: ClipboardHistoryViewModel,
         pasteCommandService: PasteCommandService = PasteCommandService(),
-        pasteTargetApplication: NSRunningApplication? = nil
+        pasteTargetApplication: NSRunningApplication? = nil,
+        dismissAction: (() -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.pasteCommandService = pasteCommandService
         self.pasteTargetApplication = pasteTargetApplication
+        self.dismissAction = dismissAction
     }
 
     var body: some View {
@@ -31,6 +34,13 @@ struct MainPanelView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(16)
+        .background(.ultraThinMaterial)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: HistoryPanelWindow.cornerRadius,
+                style: .continuous
+            )
+        )
         .onAppear {
             viewModel.loadHistory()
             isListFocused = true
@@ -109,7 +119,11 @@ struct MainPanelView: View {
     }
 
     private func closePanel() {
-        dismiss()
+        if let dismissAction {
+            dismissAction()
+        } else {
+            dismiss()
+        }
     }
 
     private func showCopyToast() {
