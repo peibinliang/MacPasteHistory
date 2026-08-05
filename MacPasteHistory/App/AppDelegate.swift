@@ -23,15 +23,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var imageStorageService: ImageStorageService?
     private var clipboardMonitor: ClipboardMonitor?
     private var clearDataCancellable: AnyCancellable?
-    private let shortcutService = ShortcutService()
+    private let shortcutService: ShortcutService
     private var shortcutCancellable: AnyCancellable?
+    private var workspaceActivationCancellable: AnyCancellable?
+    private var lastExternalApplication: NSRunningApplication?
     private let appPreferencesService = AppPreferencesService()
+
+    override init() {
+        shortcutService = ShortcutService()
+        super.init()
+    }
+
+    init(shortcutService: ShortcutService) {
+        self.shortcutService = shortcutService
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         LanguageManager().applyCurrentLanguage()
         configureApplication()
         initializeLocalStorage()
         createStatusItem()
+        setupPasteTargetTracking()
         clipboardMonitor?.start()
         setupClearDataObserver()
         setupShortcut()
@@ -60,6 +73,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] _ in
                 self?.openMainPanel()
             }
+    }
+
+    private func setupPasteTargetTracking() {
+        rememberExternalApplication(NSWorkspace.shared.frontmostApplication)
+        workspaceActivationCancellable = NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.didActivateApplicationNotification)
+            .sink { [weak self] notification in
+                let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                    as? NSRunningApplication
+                self?.rememberExternalApplication(application)
+            }
+    }
+
+    private func rememberExternalApplication(_ application: NSRunningApplication?) {
+        guard application?.bundleIdentifier != Bundle.main.bundleIdentifier else {
+            return
+        }
+        lastExternalApplication = application
     }
 
     private func handleClearAllData() {
@@ -150,7 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             logger.error("Cannot open history before local storage is initialized")
             return
         }
-        let pasteTargetApplication = Self.currentPasteTargetApplication()
+        let pasteTargetApplication = currentPasteTargetApplication()
         let viewModel = ClipboardHistoryViewModel(
             repository: clipboardHistoryRepository,
             writer: clipboardWriter,
@@ -173,18 +204,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         showHistoryPanel(controller)
     }
 
-    private static func currentPasteTargetApplication() -> NSRunningApplication? {
+    private func currentPasteTargetApplication() -> NSRunningApplication? {
         let frontmostApplication = NSWorkspace.shared.frontmostApplication
-        guard frontmostApplication?.bundleIdentifier != Bundle.main.bundleIdentifier else {
-            return nil
+        let preferredBundleIdentifier = PasteTargetPolicy.preferredBundleIdentifier(
+            frontmostBundleIdentifier: frontmostApplication?.bundleIdentifier,
+            lastExternalBundleIdentifier: lastExternalApplication?.bundleIdentifier,
+            ownBundleIdentifier: Bundle.main.bundleIdentifier
+        )
+
+        if frontmostApplication?.bundleIdentifier == preferredBundleIdentifier {
+            rememberExternalApplication(frontmostApplication)
+            return frontmostApplication
         }
-        return frontmostApplication
+        return lastExternalApplication?.bundleIdentifier == preferredBundleIdentifier
+            ? lastExternalApplication
+            : nil
+    }
+
+    func makeSettingsViewModel(
+        config: UserDefaultsConfig = UserDefaultsConfig()
+    ) -> SettingsViewModel {
+        SettingsViewModel(config: config, shortcutService: shortcutService)
     }
 
     @objc private func openSettings() {
         let controller = settingsWindowController ?? createWindowController(
             title: L10n.string("Settings"),
-            rootView: SettingsView(),
+            rootView: SettingsView(viewModel: makeSettingsViewModel()),
             size: NSSize(width: 520, height: 420)
         )
         settingsWindowController = controller

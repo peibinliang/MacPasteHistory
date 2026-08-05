@@ -289,6 +289,7 @@ struct MainPanelView: View {
                 return .handled
             }
             .focusable()
+            .focusEffectDisabled(HistoryPanelWindow.keyboardFocusEffectDisabled)
             .focused($isListFocused)
         }
     }
@@ -395,9 +396,9 @@ struct MainPanelView: View {
     private func pasteIntoPreviousApplication(_ item: ClipboardHistoryItem) {
         guard viewModel.restore(item) else { return }
         closePanel()
-        pasteTargetApplication?.activate(options: [])
+        pasteTargetApplication?.activate(options: PasteActivationPolicy.options)
         Task {
-            try? await Task.sleep(nanoseconds: 150_000_000)
+            try? await Task.sleep(nanoseconds: 250_000_000)
             pasteCommandService.sendPasteCommand()
         }
     }

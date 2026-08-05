@@ -5,6 +5,7 @@ final class HistoryPanelWindow: NSPanel {
     static let defaultSize = NSSize(width: 880, height: 620)
     static let defaultTopInset: CGFloat = 12
     static let cornerRadius: CGFloat = 24
+    nonisolated static let keyboardFocusEffectDisabled = true
 
     override var canBecomeKey: Bool {
         true

@@ -28,7 +28,7 @@ final class SettingsViewModel: ObservableObject {
     private let loginItemService: LoginItemService
     private let languageManager: LanguageManager
     private let appPreferencesService: AppPreferencesService
-    private let shortcutService: ShortcutService
+    let shortcutService: ShortcutService
     private let sourceApplicationProvider: SourceApplicationProviding
 
     init(

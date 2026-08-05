@@ -12,6 +12,9 @@
 
 ### Fixed
 
+- Suppressed the history list's default keyboard focus effect while keeping arrow-key and Enter navigation available.
+- Kept track of the last non-粘易 foreground application and force-activated it before dispatching the paste command.
+- Reused the application-level shortcut service in both Settings entry points, eliminating duplicate Carbon hotkey registration conflicts.
 - Replaced the standard clipboard history window with a rounded, translucent top overlay.
 - Prevented global shortcut invocation from activating a normal app window and switching away from the current fullscreen Space.
 - Added outside-click and Escape dismissal while preserving keyboard navigation and double-click paste behavior.
@@ -19,11 +22,16 @@
 
 ### Root Cause
 
+- The keyboard-focusable history `ScrollView` drew its system focus ring across the full list bounds, leaving a blue line at both edges.
+- Paste targeting only sampled the current foreground app when the panel opened; after 粘易 became foreground, the previous target could be lost, and activation used no options.
+- Each Settings view created its own `ShortcutService`; the app delegate already owned the registered global shortcut, so the second Carbon registration returned a hotkey-exists conflict.
 - `AppDelegate` created history with a standard titled `NSWindow` and called `NSApp.activate(ignoringOtherApps:)`; macOS therefore activated the app on its own Space when invoked over a fullscreen application.
 - The overlay initially hid itself synchronously from `resignKey()`. Opening a SwiftUI detail Sheet also makes the parent resign key status, so the parent was hidden while its modal Sheet remained active.
 
 ### Verification
 
+- Added regression coverage for focus-ring suppression, previous-app selection and activation, and application-level shortcut-service reuse; the targeted suite passed with 7 tests and 0 failures.
+- The final full test suite passed with 115 tests and 0 failures.
 - Added timeline organization tests for recent/today/earlier grouping, empty-group omission, and deduplicated source ordering; the targeted suite passed with 8 tests and 0 failures.
 - Completed a same-canvas visual comparison against design option 3; `design-qa.md` records a passing result with no actionable P0/P1/P2 findings.
 - Added brand and row-interaction regression tests; the final full test suite passed with 107 tests and 0 failures.

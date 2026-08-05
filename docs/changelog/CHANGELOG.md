@@ -73,6 +73,9 @@
 
 ### Fixed
 
+- Removed the blue keyboard focus ring that appeared as two horizontal dividers around the history list.
+- Fixed direct paste by retaining the last external foreground application, bringing it back to the front, and allowing focus to settle before sending `Command + V`.
+- Fixed custom shortcut registration by sharing the app's single `ShortcutService` with every Settings entry point instead of registering a competing Carbon hotkey.
 - Fixed the clipboard history overlay becoming unresponsive when opening a record detail Sheet.
 - Moved record details to a dedicated button so row clicks can paste without conflicting with the detail Sheet gesture.
 

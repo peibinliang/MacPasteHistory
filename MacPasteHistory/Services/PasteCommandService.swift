@@ -3,6 +3,28 @@ import ApplicationServices
 import Carbon
 import Foundation
 
+enum PasteActivationPolicy {
+    static let options: NSApplication.ActivationOptions = [.activateIgnoringOtherApps]
+}
+
+enum PasteTargetPolicy {
+    static func preferredBundleIdentifier(
+        frontmostBundleIdentifier: String?,
+        lastExternalBundleIdentifier: String?,
+        ownBundleIdentifier: String?
+    ) -> String? {
+        if let frontmostBundleIdentifier,
+           frontmostBundleIdentifier != ownBundleIdentifier {
+            return frontmostBundleIdentifier
+        }
+
+        guard lastExternalBundleIdentifier != ownBundleIdentifier else {
+            return nil
+        }
+        return lastExternalBundleIdentifier
+    }
+}
+
 protocol PasteCommandSending {
     func sendCommandVPaste()
 }

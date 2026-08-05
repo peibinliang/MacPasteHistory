@@ -3,9 +3,13 @@ import AppKit
 import Carbon
 
 struct SettingsView: View {
-    @StateObject private var viewModel = SettingsViewModel()
+    @StateObject private var viewModel: SettingsViewModel
     @State private var showClearConfirmation = false
     @State private var selectedCategory: SettingsCategory? = .general
+
+    init(viewModel: SettingsViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
 
     var body: some View {
         NavigationSplitView {
