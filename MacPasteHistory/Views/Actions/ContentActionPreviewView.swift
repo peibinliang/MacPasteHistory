@@ -28,6 +28,7 @@ struct ContentActionPreviewView: View {
                         get: { actionViewModel.editedOutput },
                         set: { actionViewModel.updateEditedOutput($0) }
                     ), syntax: session.steps.last?.originalResult.syntax ?? .plainText)
+                    .accessibilityValue(L10n.string(ContentActionAccessibilityPresentation.resultEditedValue))
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
                 }
@@ -75,6 +76,7 @@ struct ContentActionPreviewView: View {
             ForEach(actionViewModel.notices, id: \.messageKey) { notice in
                 Label(L10n.string(notice.messageKey), systemImage: "info.circle")
                     .font(.caption).foregroundStyle(.secondary)
+                    .accessibilityLabel(L10n.string(notice.messageKey))
             }
         }
         .padding(.horizontal, 16)

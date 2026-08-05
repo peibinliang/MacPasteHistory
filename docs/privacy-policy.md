@@ -18,7 +18,7 @@ Clipboard history is stored locally under the user's Application Support directo
 
 The internal storage directory retains the legacy `MacPasteHistory` name so an app update preserves existing clipboard history.
 
-Text and metadata are stored in SQLite. Image originals and thumbnails are stored as local files. The app does not intentionally upload clipboard history, images, hashes, or settings to a cloud service.
+Text and metadata are stored in SQLite. Image originals and thumbnails are stored as local files. The app does not intentionally upload clipboard history, images, hashes, or settings to a cloud service. Structured search, content actions, JWT parsing and manual OCR are also processed locally. OCR runs only after a user explicitly selects it for one image; the app does not automatically scan historical images. JWT parsing is a format inspection aid and never verifies a signature or trust claim.
 
 The current release does not encrypt the local SQLite database or app-managed image files. Local database encryption is planned as a future P2 capability and should not be treated as available until a dedicated encrypted-storage release is implemented and verified.
 

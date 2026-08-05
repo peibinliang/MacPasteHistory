@@ -34,6 +34,8 @@ struct ContentActionCommandPalette: View {
                             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(ContentActionAccessibilityPresentation.actionLabel(action))
+                        .accessibilityHint(L10n.string(ContentActionAccessibilityPresentation.actionHint))
                     }
                 }
             }

@@ -4,6 +4,9 @@
 
 ### Added
 
+- Added structured clipboard search, developer-content classification, local content transformations, editable action sessions, derived-history metadata, and local manual image OCR.
+- Added progressive action-panel layouts, keyboard navigation, syntax-aware editing, usage attribution, and OCR-aware image search.
+
 - Added an Accessibility permission reminder on first launch and whenever direct paste is blocked, with a shortcut to the correct System Settings pane.
 - Added the Context Timeline interface: recent-source ribbon, chronological record groups, inline keyboard selection, compact filters, and persistent paste shortcuts.
 - Added timeline organization coverage for recent, today, and earlier groups plus deduplicated recent application sources.

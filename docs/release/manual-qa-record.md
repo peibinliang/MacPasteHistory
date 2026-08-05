@@ -176,6 +176,19 @@ scripts/verify-release-screenshot-assets.sh
 | Logs | Logs contain no full clipboard content or sensitive data. | ⬜ Not run | TBD |
 | Local storage | History and images stay under app Application Support. | ⬜ Not run | TBD |
 
+## Enhanced Search, Actions And OCR
+
+| Scenario | Expected Result | Result | Evidence / Notes |
+|---|---|---|---|
+| Structured search | `app:terminal type:shell docker`, `fav:true`, and `before:7d` produce expected tokens and results. | ⬜ Not run | TBD |
+| Action panel layouts | Wide display keeps history and action panel visible; narrow display uses Back/overlay behavior. | ⬜ Not run | TBD |
+| Action categories | JSON, URL, Base64, JWT, timestamp, SQL, shell and text actions produce expected local output. | ⬜ Not run | TBD |
+| JWT warning | Unsigned JWT displays signature-not-verified warning and any expiry state. | ⬜ Not run | TBD |
+| Editable chain | Base64 decode → JSON format can edit, move back and branch. | ⬜ Not run | TBD |
+| Result attribution | Copy/direct-paste/save produce the expected reuse/paste counters and derived record. | ⬜ Not run | TBD |
+| Manual OCR | Synthetic English/简体/繁體 image is only recognized after click, remains editable, then searchable after Save. | ⬜ Not run | TBD |
+| Derived origin | Deleting an origin retains the derived summary and indicates missing source. | ⬜ Not run | TBD |
+
 ## Decision
 
 | Item | Value |

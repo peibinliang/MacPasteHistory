@@ -107,6 +107,7 @@ struct HistoryRowView: View {
                     Image(systemName: "arrow.triangle.branch")
                         .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                         .help(item.derivedActionSummary ?? L10n.string("Derived content"))
+                        .accessibilityLabel(L10n.string(ContentActionAccessibilityPresentation.derivedLabel))
                 }
             }
             .frame(width: 54, height: 44).background(Color.primary.opacity(0.035)).clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))

@@ -70,7 +70,8 @@ expected_text_files = {
   "01-browser-text-sample.txt" => "browser copy sample",
   "02-vscode-code-sample.swift" => "ClipboardFixture",
   "03-chat-copy-sample.txt" => "QA chat sample",
-  "04-large-text-sample.txt" => "release-fixture-clipboard-history"
+  "04-large-text-sample.txt" => "release-fixture-clipboard-history",
+  "07-structured-actions-fixture.txt" => "jwt-expired"
 }
 expected_images = {
   "05-standard-image-1024x768.png" => [1024, 768],

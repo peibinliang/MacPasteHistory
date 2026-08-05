@@ -12,12 +12,13 @@ struct OCRResultView: View {
                 Button(L10n.string("Recognize Text")) { Task { await viewModel.recognize(item: item) } }
             case .recognizing:
                 HStack { ProgressView(); Text(L10n.string("Recognizing text…")) }
-                    .accessibilityLabel(L10n.string("Recognizing text"))
+                    .accessibilityLabel(L10n.string(ContentActionAccessibilityPresentation.ocrRecognizingLabel))
             case .editing:
                 TextEditor(text: $viewModel.editableText)
                     .font(.body.monospaced())
                     .frame(minHeight: 130)
                     .overlay { RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.3)) }
+                    .accessibilityLabel(L10n.string(ContentActionAccessibilityPresentation.ocrRecognizedLabel))
                 HStack {
                     Button(L10n.string("Cancel")) { viewModel.cancel() }
                     Spacer()
@@ -27,6 +28,7 @@ struct OCRResultView: View {
             case let .failed(error):
                 Label(L10n.string(error.rawValue), systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.red)
+                    .accessibilityLabel(L10n.string(ContentActionAccessibilityPresentation.ocrFailedLabel))
                 Button(L10n.string("Retry")) { Task { await viewModel.retry(item: item) } }
             }
         }
