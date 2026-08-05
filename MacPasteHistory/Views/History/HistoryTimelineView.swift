@@ -3,6 +3,7 @@ import SwiftUI
 struct HistoryTimelineView: View {
     let sections: [HistoryTimelineSection]
     @Binding var selectedItemID: Int64?
+    let highlightedTerms: [String]
     let detailAction: (ClipboardHistoryItem) -> Void
     let favoriteAction: (ClipboardHistoryItem) -> Void
     let restoreAction: (ClipboardHistoryItem) -> Void
@@ -17,7 +18,7 @@ struct HistoryTimelineView: View {
                     .foregroundStyle(.secondary)
                 VStack(spacing: 0) {
                     ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
-                        HistoryRowView(item: item, isSelected: selectedItemID == item.id, detailAction: { detailAction(item) }, favoriteAction: { favoriteAction(item) }, restoreAction: { restoreAction(item) }, pasteAction: { selectedItemID = item.id; pasteAction(item) }, deleteAction: { deleteAction(item) })
+                        HistoryRowView(item: item, isSelected: selectedItemID == item.id, highlightedTerms: highlightedTerms, detailAction: { detailAction(item) }, favoriteAction: { favoriteAction(item) }, restoreAction: { restoreAction(item) }, pasteAction: { selectedItemID = item.id; pasteAction(item) }, deleteAction: { deleteAction(item) })
                             .onHover { if $0 { selectedItemID = item.id } }.onAppear { loadMoreAction(item) }
                         if index < section.items.count - 1 { Divider().padding(.leading, 78) }
                     }

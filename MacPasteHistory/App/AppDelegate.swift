@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var clipboardWriter: ClipboardWriter?
     private var imageStorageService: ImageStorageService?
     private var clipboardMonitor: ClipboardMonitor?
+    private var searchCoordinator: SearchCoordinator?
     private var clearDataCancellable: AnyCancellable?
     private let shortcutService: ShortcutService
     private var shortcutCancellable: AnyCancellable?
@@ -195,6 +196,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 imageStorageService: imageStorageService,
                 restorationState: restorationState
             )
+            searchCoordinator = SearchCoordinator(
+                provider: SearchCandidateProvider(databaseURL: try applicationSupportService.databaseURL)
+            )
             logger.info("Local storage initialized")
 
             // Perform data cleanup on startup (expired records, count limits, storage caps)
@@ -221,7 +225,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let viewModel = ClipboardHistoryViewModel(
             repository: clipboardHistoryRepository,
             writer: clipboardWriter,
-            imageStorageService: imageStorageService
+            imageStorageService: imageStorageService,
+            searchCoordinator: searchCoordinator
         )
         let controller = mainWindowController ?? createHistoryPanelController(
             viewModel: viewModel,

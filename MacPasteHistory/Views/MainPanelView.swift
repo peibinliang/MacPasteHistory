@@ -147,29 +147,15 @@ struct MainPanelView: View {
     }
 
     private var searchField: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(.tertiary)
-
-            TextField(L10n.string("Search clipboard content"), text: $viewModel.searchText)
-                .textFieldStyle(.plain)
-                .font(.body)
-                .onSubmit { viewModel.search() }
-                .onChange(of: viewModel.searchText) { viewModel.search() }
-
-            if viewModel.searchText.isEmpty == false {
-                Button {
-                    viewModel.searchText = ""
-                    viewModel.search()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.tertiary)
-                .accessibilityLabel(L10n.string("Clear Search"))
-            }
-        }
+        SearchBarView(
+            text: $viewModel.searchText,
+            tokens: viewModel.searchTokens,
+            suggestions: viewModel.searchSuggestions,
+            textDidChange: viewModel.updateSearchText,
+            acceptSuggestion: viewModel.acceptSuggestion,
+            removeToken: viewModel.removeSearchToken,
+            dismissSuggestions: viewModel.dismissSearchSuggestions
+        )
         .padding(.horizontal, 14)
         .frame(height: 42)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.72))
@@ -193,7 +179,7 @@ struct MainPanelView: View {
                         isSelected: viewModel.selectedSourceOption == nil
                     ) {
                         viewModel.selectedSourceOption = nil
-                        viewModel.loadHistory()
+                        viewModel.refreshSearch()
                     }
 
                     ForEach(recentSources) { source in
@@ -206,7 +192,7 @@ struct MainPanelView: View {
                             viewModel.selectedSourceOption = viewModel.sourceOptions.first {
                                 $0.bundleID == source.bundleID
                             }
-                            viewModel.loadHistory()
+                            viewModel.refreshSearch()
                         }
                     }
                 }
@@ -253,10 +239,10 @@ struct MainPanelView: View {
         .accessibilityLabel(L10n.string("Filters"))
         .onChange(of: selectedFilter) {
             viewModel.selectedContentType = selectedFilter.contentType
-            viewModel.loadHistory()
+            viewModel.refreshSearch()
         }
-        .onChange(of: viewModel.selectedTimeRange) { viewModel.loadHistory() }
-        .onChange(of: viewModel.isFavoritesOnly) { viewModel.loadHistory() }
+        .onChange(of: viewModel.selectedTimeRange) { viewModel.refreshSearch() }
+        .onChange(of: viewModel.isFavoritesOnly) { viewModel.refreshSearch() }
     }
 
     @ViewBuilder
@@ -276,6 +262,7 @@ struct MainPanelView: View {
                     HistoryTimelineView(
                         sections: timelineSections,
                         selectedItemID: $selectedKeyboardItem,
+                        highlightedTerms: viewModel.highlightedTerms,
                         detailAction: { selectedItem = $0 },
                         favoriteAction: { viewModel.toggleFavorite($0) },
                         restoreAction: { restoreAndShowFeedback($0) },

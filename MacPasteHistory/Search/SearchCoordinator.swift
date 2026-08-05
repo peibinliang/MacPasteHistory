@@ -1,5 +1,11 @@
 import Foundation
 
+protocol SearchCoordinating: Sendable {
+    func immediateResults(input: String, loadedItems: [ClipboardHistoryItem], filters: SearchUIFilters) async -> SearchResponse
+    func search(input: String, loadedItems: [ClipboardHistoryItem], filters: SearchUIFilters) async -> SearchResponse
+    func cancelCurrentSearch() async
+}
+
 protocol SearchSleeping: Sendable {
     func sleep(for delay: TimeInterval) async throws
 }
@@ -17,7 +23,7 @@ struct DefaultSearchSleeper: SearchSleeping {
     }
 }
 
-actor SearchCoordinator {
+actor SearchCoordinator: SearchCoordinating {
     private static let debounceDelay: TimeInterval = 0.15
 
     private let provider: any SearchCandidateProviding

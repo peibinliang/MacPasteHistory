@@ -35,6 +35,7 @@ struct HistoryRowPresentation {
 struct HistoryRowView: View {
     let item: ClipboardHistoryItem
     let isSelected: Bool
+    let highlightedTerms: [String]
     let detailAction: () -> Void
     let favoriteAction: () -> Void
     let restoreAction: () -> Void
@@ -48,7 +49,10 @@ struct HistoryRowView: View {
             preview
             VStack(alignment: .leading, spacing: 4) {
                 Text(presentation.metadataTitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                Text(presentation.previewText).font(.body.weight(isSelected ? .medium : .regular)).lineLimit(isSelected ? 2 : 1).frame(maxWidth: .infinity, alignment: .leading)
+                KeywordHighlightedText(text: presentation.previewText, terms: highlightedTerms)
+                    .font(.body.weight(isSelected ? .medium : .regular))
+                    .lineLimit(isSelected ? 2 : 1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 if let selectedRowHint = presentation.selectedRowHint {
                     Text(selectedRowHint).font(.caption).foregroundStyle(Color.accentColor).transition(.opacity)
                 } else if item.contentType == .image {
