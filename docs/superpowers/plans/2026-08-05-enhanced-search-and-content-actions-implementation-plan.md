@@ -560,7 +560,7 @@ var isDerived: Bool {
 
 ### LOOP steps
 
-- [ ] **Step 1: Add model behavior tests**
+- [x] **Step 1: Add model behavior tests**
 
 Test exact priority and fallback:
 
@@ -578,7 +578,7 @@ func testDisplayDate_shouldPreferLastCapturedAt() {
 }
 ```
 
-- [ ] **Step 2: Add repository mapping tests**
+- [x] **Step 2: Add repository mapping tests**
 
 Save a text record, update every new column using SQL, reload it through the repository and assert all values map correctly. Include nullable dates, `Double` confidence, OCR fields and derived fields.
 
@@ -594,11 +594,11 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 Expected: compile or assertion failure because the model and SELECT mapping do not include V3 fields.
 
-- [ ] **Step 3: Implement models and stable initializers**
+- [x] **Step 3: Implement models and stable initializers**
 
 Provide an explicit `ClipboardHistoryItem` initializer. New arguments must have defaults so existing tests and call sites remain source-compatible. Clamp `detectionConfidence` to `0...1` when constructing `ContentDetectionResult`; invalid database values are decoded as nil rather than crashing.
 
-- [ ] **Step 4: Expand repository SELECT mapping**
+- [x] **Step 4: Expand repository SELECT mapping**
 
 Update `selectHistorySQL` once and keep the index mapping centralized. Add helper decoders:
 
@@ -611,11 +611,11 @@ private func ocrStatus(from value: String?) -> OCRStatus
 
 Do not duplicate SELECT column lists in individual methods.
 
-- [ ] **Step 5: Change timeline metadata to `displayDate`**
+- [x] **Step 5: Change timeline metadata to `displayDate`**
 
 In `HistoryTimelineOrganizer` and recent source generation, replace `item.createdAt` with `item.displayDate`. In list/detail display formatting use `displayDate` for “recent copy” context; retain `createdAt` in detailed metadata as the first-seen date when both are displayed later.
 
-- [ ] **Step 6: Run Task 2 verification**
+- [x] **Step 6: Run Task 2 verification**
 
 ```bash
 xcodegen generate
@@ -627,7 +627,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   -only-testing:MacPasteHistoryTests/HistoryDisplayFormatterTests test
 ```
 
-- [ ] **Step 7: Commit Task 2**
+- [x] **Step 7: Commit Task 2**
 
 ```bash
 git add MacPasteHistory/Models MacPasteHistory/Database/ClipboardHistoryRepository.swift \

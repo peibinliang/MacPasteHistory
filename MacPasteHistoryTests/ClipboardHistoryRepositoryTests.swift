@@ -209,4 +209,91 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
         XCTAssertEqual(imageItems.count, 1)
         XCTAssertEqual(imageItems.first?.filePath, "/tmp/second.png")
     }
+
+    func testFetchHistory_whenV3MetadataExists_shouldMapEveryNewField() throws {
+        let source = try repository.saveText("source record", sourceApp: nil, sourceBundleID: nil)
+        let item = try repository.saveText("derived record", sourceApp: nil, sourceBundleID: nil)
+        try database.execute("""
+        UPDATE clipboard_history SET
+            searchable_text = 'searchable derived record',
+            detected_type = 'json',
+            user_override_type = 'url',
+            detection_confidence = 0.75,
+            detection_version = 3,
+            detected_at = '2026-08-05 01:02:03',
+            first_captured_at = '2026-08-01 01:02:03',
+            last_captured_at = '2026-08-05 04:05:06',
+            capture_count = 7,
+            reuse_copy_count = 4,
+            paste_count = 2,
+            last_reuse_copied_at = NULL,
+            last_pasted_at = '2026-08-05 05:06:07',
+            ocr_status = 'recognized',
+            ocr_text = 'recognized text',
+            ocr_updated_at = NULL,
+            ocr_error_code = 'none',
+            derived_from_history_id = \(source.id),
+            derived_action_id = 'summarize',
+            derived_action_summary = 'Summarized source',
+            derived_at = '2026-08-05 06:07:08',
+            derived_source_preview = 'source preview',
+            derived_source_hash = 'source-hash'
+        WHERE id = \(item.id);
+        """)
+
+        let reloaded = try XCTUnwrap(repository.fetchHistory(query: HistoryQuery()).first { $0.id == item.id })
+
+        XCTAssertEqual(reloaded.searchableText, "searchable derived record")
+        XCTAssertEqual(reloaded.detectedType, .json)
+        XCTAssertEqual(reloaded.userOverrideType, .url)
+        XCTAssertEqual(reloaded.detectionConfidence, 0.75)
+        XCTAssertEqual(reloaded.detectionVersion, 3)
+        XCTAssertEqual(reloaded.captureCount, 7)
+        XCTAssertEqual(reloaded.reuseCopyCount, 4)
+        XCTAssertEqual(reloaded.pasteCount, 2)
+        XCTAssertEqual(reloaded.ocrStatus, .recognized)
+        XCTAssertEqual(reloaded.ocrText, "recognized text")
+        XCTAssertEqual(reloaded.ocrErrorCode, "none")
+        XCTAssertEqual(reloaded.derivedFromHistoryID, source.id)
+        XCTAssertEqual(reloaded.derivedActionID, "summarize")
+        XCTAssertEqual(reloaded.derivedActionSummary, "Summarized source")
+        XCTAssertEqual(reloaded.derivedSourcePreview, "source preview")
+        XCTAssertEqual(reloaded.derivedSourceHash, "source-hash")
+        XCTAssertNil(reloaded.lastReuseCopiedAt)
+        XCTAssertNil(reloaded.ocrUpdatedAt)
+        XCTAssertEqual(reloaded.detectedAt, Self.date("2026-08-05 01:02:03"))
+        XCTAssertEqual(reloaded.firstCapturedAt, Self.date("2026-08-01 01:02:03"))
+        XCTAssertEqual(reloaded.lastCapturedAt, Self.date("2026-08-05 04:05:06"))
+        XCTAssertEqual(reloaded.lastPastedAt, Self.date("2026-08-05 05:06:07"))
+        XCTAssertEqual(reloaded.derivedAt, Self.date("2026-08-05 06:07:08"))
+    }
+
+    func testFetchHistory_whenV3ValuesAreInvalid_shouldDecodeSafely() throws {
+        let item = try repository.saveText("invalid metadata", sourceApp: nil, sourceBundleID: nil)
+        try database.execute("""
+        UPDATE clipboard_history SET
+            detected_type = 'not-a-real-type',
+            user_override_type = 'also-invalid',
+            detection_confidence = 'not-a-number',
+            detected_at = 'not-a-date',
+            ocr_status = 'unknown-status'
+        WHERE id = \(item.id);
+        """)
+
+        let reloaded = try XCTUnwrap(repository.fetchHistory(query: HistoryQuery()).first { $0.id == item.id })
+
+        XCTAssertNil(reloaded.detectedType)
+        XCTAssertNil(reloaded.userOverrideType)
+        XCTAssertNil(reloaded.detectionConfidence)
+        XCTAssertNil(reloaded.detectedAt)
+        XCTAssertEqual(reloaded.ocrStatus, .notStarted)
+    }
+
+    private static func date(_ value: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return formatter.date(from: value)
+    }
 }

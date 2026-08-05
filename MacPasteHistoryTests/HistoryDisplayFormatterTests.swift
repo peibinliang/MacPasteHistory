@@ -28,10 +28,24 @@ final class HistoryDisplayFormatterTests: XCTestCase {
         XCTAssertEqual(sections.map(\.group), [.today])
     }
 
+    func testTimelineSections_whenItemWasRecaptured_shouldUseLastCapturedAt() throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 8, day: 5, hour: 12)))
+        let item = makeItem(
+            id: 1,
+            createdAt: now.addingTimeInterval(-86_400),
+            lastCapturedAt: now.addingTimeInterval(-60)
+        )
+
+        let sections = HistoryTimelineOrganizer(calendar: calendar).sections(for: [item], now: now)
+
+        XCTAssertEqual(sections.map(\.group), [.recent])
+    }
+
     func testRecentSources_shouldDeduplicateSourcesAndPreserveNewestOrder() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let items = [
-            makeItem(id: 1, sourceApp: "Xcode", sourceBundleID: "com.apple.dt.Xcode", createdAt: now),
+            makeItem(id: 1, sourceApp: "Xcode", sourceBundleID: "com.apple.dt.Xcode", createdAt: now.addingTimeInterval(-100), lastCapturedAt: now),
             makeItem(id: 2, sourceApp: "Safari", sourceBundleID: "com.apple.Safari", createdAt: now.addingTimeInterval(-10)),
             makeItem(id: 3, sourceApp: "Xcode", sourceBundleID: "com.apple.dt.Xcode", createdAt: now.addingTimeInterval(-20)),
             makeItem(id: 4, sourceApp: nil, sourceBundleID: nil, createdAt: now.addingTimeInterval(-30))
@@ -103,7 +117,8 @@ final class HistoryDisplayFormatterTests: XCTestCase {
         id: Int64,
         sourceApp: String? = "TextEdit",
         sourceBundleID: String? = "com.apple.TextEdit",
-        createdAt: Date
+        createdAt: Date,
+        lastCapturedAt: Date? = nil
     ) -> ClipboardHistoryItem {
         ClipboardHistoryItem(
             id: id,
@@ -122,7 +137,8 @@ final class HistoryDisplayFormatterTests: XCTestCase {
             isFavorite: false,
             isSensitive: false,
             createdAt: createdAt,
-            updatedAt: createdAt
+            updatedAt: createdAt,
+            lastCapturedAt: lastCapturedAt
         )
     }
 }

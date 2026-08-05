@@ -108,7 +108,7 @@ struct HistoryTimelineOrganizer {
         now: Date = Date()
     ) -> [HistoryTimelineSection] {
         let groupedItems = Dictionary(grouping: items) { item in
-            group(for: item.createdAt, now: now)
+            group(for: item.displayDate, now: now)
         }
 
         return HistoryTimelineGroup.allCases.compactMap { group in
@@ -143,7 +143,7 @@ struct HistoryTimelineOrganizer {
                 HistoryRecentSource(
                     title: title,
                     bundleID: bundleID,
-                    lastUsedAt: item.createdAt
+                    lastUsedAt: item.displayDate
                 )
             )
             if sources.count == limit {

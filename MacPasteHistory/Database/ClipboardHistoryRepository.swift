@@ -502,10 +502,10 @@ final class ClipboardHistoryRepository {
     }
 
     private func item(from statement: OpaquePointer?) throws -> ClipboardHistoryItem {
-        let contentTypeValue = stringValue(statement, index: 1)
+        let contentTypeValue = stringValue(statement, index: HistoryColumn.contentType.rawValue)
         let contentType = ClipboardContentType(rawValue: contentTypeValue) ?? .text
-        let createdAtValue = stringValue(statement, index: 15)
-        let updatedAtValue = stringValue(statement, index: 16)
+        let createdAtValue = stringValue(statement, index: HistoryColumn.createdAt.rawValue)
+        let updatedAtValue = stringValue(statement, index: HistoryColumn.updatedAt.rawValue)
 
         guard let createdAt = dateFormatter.date(from: createdAtValue) else {
             throw DatabaseError.invalidDate(createdAtValue)
@@ -515,23 +515,46 @@ final class ClipboardHistoryRepository {
         }
 
         return ClipboardHistoryItem(
-            id: sqlite3_column_int64(statement, 0),
+            id: sqlite3_column_int64(statement, HistoryColumn.id.rawValue),
             contentType: contentType,
-            textContent: nullableStringValue(statement, index: 2) ?? "",
-            filePath: nullableStringValue(statement, index: 3),
-            thumbnailPath: nullableStringValue(statement, index: 4),
-            sourceApp: nullableStringValue(statement, index: 5),
-            sourceBundleID: nullableStringValue(statement, index: 6),
-            contentHash: stringValue(statement, index: 7),
-            textLength: Int(sqlite3_column_int(statement, 8)),
-            fileSize: nullableIntValue(statement, index: 9),
-            imageWidth: nullableIntValue(statement, index: 10),
-            imageHeight: nullableIntValue(statement, index: 11),
-            imageFormat: imageFormat(from: nullableStringValue(statement, index: 12)),
-            isFavorite: sqlite3_column_int(statement, 13) == 1,
-            isSensitive: sqlite3_column_int(statement, 14) == 1,
+            textContent: nullableStringValue(statement, index: HistoryColumn.textContent.rawValue) ?? "",
+            filePath: nullableStringValue(statement, index: HistoryColumn.filePath.rawValue),
+            thumbnailPath: nullableStringValue(statement, index: HistoryColumn.thumbnailPath.rawValue),
+            sourceApp: nullableStringValue(statement, index: HistoryColumn.sourceApp.rawValue),
+            sourceBundleID: nullableStringValue(statement, index: HistoryColumn.sourceBundleID.rawValue),
+            contentHash: stringValue(statement, index: HistoryColumn.contentHash.rawValue),
+            textLength: Int(sqlite3_column_int(statement, HistoryColumn.textLength.rawValue)),
+            fileSize: nullableIntValue(statement, index: HistoryColumn.fileSize.rawValue),
+            imageWidth: nullableIntValue(statement, index: HistoryColumn.imageWidth.rawValue),
+            imageHeight: nullableIntValue(statement, index: HistoryColumn.imageHeight.rawValue),
+            imageFormat: imageFormat(from: nullableStringValue(statement, index: HistoryColumn.imageFormat.rawValue)),
+            isFavorite: sqlite3_column_int(statement, HistoryColumn.isFavorite.rawValue) == 1,
+            isSensitive: sqlite3_column_int(statement, HistoryColumn.isSensitive.rawValue) == 1,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            searchableText: nullableStringValue(statement, index: HistoryColumn.searchableText.rawValue),
+            detectedType: detectedType(from: nullableStringValue(statement, index: HistoryColumn.detectedType.rawValue)),
+            userOverrideType: detectedType(from: nullableStringValue(statement, index: HistoryColumn.userOverrideType.rawValue)),
+            detectionConfidence: nullableDoubleValue(statement, index: HistoryColumn.detectionConfidence.rawValue),
+            detectionVersion: nullableIntValue(statement, index: HistoryColumn.detectionVersion.rawValue),
+            detectedAt: try nullableDateValue(statement, index: HistoryColumn.detectedAt.rawValue),
+            firstCapturedAt: try nullableDateValue(statement, index: HistoryColumn.firstCapturedAt.rawValue),
+            lastCapturedAt: try nullableDateValue(statement, index: HistoryColumn.lastCapturedAt.rawValue),
+            captureCount: nullableIntValue(statement, index: HistoryColumn.captureCount.rawValue) ?? 1,
+            reuseCopyCount: nullableIntValue(statement, index: HistoryColumn.reuseCopyCount.rawValue) ?? 0,
+            pasteCount: nullableIntValue(statement, index: HistoryColumn.pasteCount.rawValue) ?? 0,
+            lastReuseCopiedAt: try nullableDateValue(statement, index: HistoryColumn.lastReuseCopiedAt.rawValue),
+            lastPastedAt: try nullableDateValue(statement, index: HistoryColumn.lastPastedAt.rawValue),
+            ocrStatus: ocrStatus(from: nullableStringValue(statement, index: HistoryColumn.ocrStatus.rawValue)),
+            ocrText: nullableStringValue(statement, index: HistoryColumn.ocrText.rawValue),
+            ocrUpdatedAt: try nullableDateValue(statement, index: HistoryColumn.ocrUpdatedAt.rawValue),
+            ocrErrorCode: nullableStringValue(statement, index: HistoryColumn.ocrErrorCode.rawValue),
+            derivedFromHistoryID: nullableInt64Value(statement, index: HistoryColumn.derivedFromHistoryID.rawValue),
+            derivedActionID: nullableStringValue(statement, index: HistoryColumn.derivedActionID.rawValue),
+            derivedActionSummary: nullableStringValue(statement, index: HistoryColumn.derivedActionSummary.rawValue),
+            derivedAt: try nullableDateValue(statement, index: HistoryColumn.derivedAt.rawValue),
+            derivedSourcePreview: nullableStringValue(statement, index: HistoryColumn.derivedSourcePreview.rawValue),
+            derivedSourceHash: nullableStringValue(statement, index: HistoryColumn.derivedSourceHash.rawValue)
         )
     }
 
@@ -584,6 +607,40 @@ final class ClipboardHistoryRepository {
         return Int(sqlite3_column_int(statement, index))
     }
 
+    private func nullableInt64Value(_ statement: OpaquePointer?, index: Int32) -> Int64? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL else {
+            return nil
+        }
+        return sqlite3_column_int64(statement, index)
+    }
+
+    private func nullableDoubleValue(_ statement: OpaquePointer?, index: Int32) -> Double? {
+        let columnType = sqlite3_column_type(statement, index)
+        guard columnType == SQLITE_FLOAT || columnType == SQLITE_INTEGER else {
+            return nil
+        }
+        let value = sqlite3_column_double(statement, index)
+        guard value.isFinite, (0...1).contains(value) else {
+            return nil
+        }
+        return value
+    }
+
+    private func nullableDateValue(_ statement: OpaquePointer?, index: Int32) throws -> Date? {
+        guard let value = nullableStringValue(statement, index: index) else {
+            return nil
+        }
+        return dateFormatter.date(from: value)
+    }
+
+    private func detectedType(from value: String?) -> DetectedContentType? {
+        value.flatMap(DetectedContentType.init(rawValue:))
+    }
+
+    private func ocrStatus(from value: String?) -> OCRStatus {
+        value.flatMap(OCRStatus.init(rawValue:)) ?? .notStarted
+    }
+
     private func imageFormat(from value: String?) -> ClipboardImageFormat? {
         guard let value else {
             return nil
@@ -609,9 +666,75 @@ final class ClipboardHistoryRepository {
         is_favorite,
         is_sensitive,
         created_at,
-        updated_at
+        updated_at,
+        searchable_text,
+        detected_type,
+        user_override_type,
+        detection_confidence,
+        detection_version,
+        detected_at,
+        first_captured_at,
+        last_captured_at,
+        capture_count,
+        reuse_copy_count,
+        paste_count,
+        last_reuse_copied_at,
+        last_pasted_at,
+        ocr_status,
+        ocr_text,
+        ocr_updated_at,
+        ocr_error_code,
+        derived_from_history_id,
+        derived_action_id,
+        derived_action_summary,
+        derived_at,
+        derived_source_preview,
+        derived_source_hash
     FROM clipboard_history
     """
+
+    private enum HistoryColumn: Int32 {
+        case id
+        case contentType
+        case textContent
+        case filePath
+        case thumbnailPath
+        case sourceApp
+        case sourceBundleID
+        case contentHash
+        case textLength
+        case fileSize
+        case imageWidth
+        case imageHeight
+        case imageFormat
+        case isFavorite
+        case isSensitive
+        case createdAt
+        case updatedAt
+        case searchableText
+        case detectedType
+        case userOverrideType
+        case detectionConfidence
+        case detectionVersion
+        case detectedAt
+        case firstCapturedAt
+        case lastCapturedAt
+        case captureCount
+        case reuseCopyCount
+        case pasteCount
+        case lastReuseCopiedAt
+        case lastPastedAt
+        case ocrStatus
+        case ocrText
+        case ocrUpdatedAt
+        case ocrErrorCode
+        case derivedFromHistoryID
+        case derivedActionID
+        case derivedActionSummary
+        case derivedAt
+        case derivedSourcePreview
+        case derivedSourceHash
+    }
 }
 
 private extension DateFormatter {
