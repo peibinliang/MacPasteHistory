@@ -23,6 +23,7 @@ final class AccessibilityPermissionService {
     private let permissionChecker: AccessibilityPermissionChecking
     private let settingsOpener: AccessibilitySettingsOpening
     private var didRemindOnLaunch = false
+    private var didRemindForAutomaticPaste = false
 
     init(
         permissionChecker: AccessibilityPermissionChecking = SystemAccessibilityPermissionChecker(),
@@ -45,6 +46,10 @@ final class AccessibilityPermissionService {
             didRemindOnLaunch = true
             return true
         case .automaticPaste:
+            guard didRemindForAutomaticPaste == false else {
+                return false
+            }
+            didRemindForAutomaticPaste = true
             return true
         }
     }

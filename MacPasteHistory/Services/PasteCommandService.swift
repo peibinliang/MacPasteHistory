@@ -43,7 +43,7 @@ final class PasteCommandService {
 
 private final class SystemPasteCommandSender: PasteCommandSending {
     func sendCommandVPaste() {
-        guard accessibilityPermissionIsGrantedOrRequested() else {
+        guard AXIsProcessTrusted() else {
             return
         }
 
@@ -57,17 +57,5 @@ private final class SystemPasteCommandSender: PasteCommandSending {
         keyUp.flags = .maskCommand
         keyDown.post(tap: .cghidEventTap)
         keyUp.post(tap: .cghidEventTap)
-    }
-
-    private func accessibilityPermissionIsGrantedOrRequested() -> Bool {
-        guard AXIsProcessTrusted() == false else {
-            return true
-        }
-
-        let options = [
-            "AXTrustedCheckOptionPrompt": true
-        ] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
-        return false
     }
 }

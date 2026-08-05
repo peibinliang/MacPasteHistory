@@ -13,14 +13,14 @@ final class AccessibilityPermissionServiceTests: XCTestCase {
         XCTAssertFalse(service.reminderIfNeeded(for: .launch))
     }
 
-    func testReminderIfNeeded_onAutomaticPasteWithoutPermission_shouldReturnReminderEveryTime() {
+    func testReminderIfNeeded_onAutomaticPasteWithoutPermission_shouldReturnReminderOnce() {
         let service = AccessibilityPermissionService(
             permissionChecker: FakeAccessibilityPermissionChecker(isTrusted: false),
             settingsOpener: FakeAccessibilitySettingsOpener()
         )
 
         XCTAssertTrue(service.reminderIfNeeded(for: .automaticPaste))
-        XCTAssertTrue(service.reminderIfNeeded(for: .automaticPaste))
+        XCTAssertFalse(service.reminderIfNeeded(for: .automaticPaste))
     }
 
     func testReminderIfNeeded_whenPermissionIsGranted_shouldNotReturnReminder() {
