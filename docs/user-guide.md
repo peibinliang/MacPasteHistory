@@ -1,10 +1,10 @@
-# MacPasteHistory User Guide
+# 粘易 User Guide
 
-MacPasteHistory is a macOS menu bar clipboard history app. It records supported text and image clipboard items locally so you can search, preview, restore, favorite, and delete previous copies.
+粘易 is a macOS menu bar clipboard history app. It records supported text and image clipboard items locally so you can search, preview, restore, favorite, and delete previous copies.
 
 ## Start And Open
 
-Launch `MacPasteHistory.app`. The app runs from the menu bar with a clipboard icon. Choose **Open History** from the menu bar item, or press the global shortcut `Command + Shift + V` when it is available.
+Launch `粘易.app`. The app runs from the menu bar with a clipboard-and-paste icon. Choose **Open History** from the menu bar item, or press the global shortcut `Command + Shift + V` when it is available.
 
 ## Record Clipboard History
 
@@ -16,9 +16,9 @@ The main history window shows text and image records in newest-first order. Use 
 
 ## Restore Items
 
-Select a record and click the restore button, or use keyboard selection and press `Enter`. The app writes the selected text or image back to the system clipboard. Double-click a history row to restore that item, close the history window, return focus to the app that was active before opening history, and send `Command + V`.
+Single-click a history row to restore that item, close the history panel, return focus to the app that was active before opening history, and send `Command + V`. Use the row's details button to preview long text or images without pasting. The restore button and keyboard `Enter` action only write the selected item back to the system clipboard.
 
-The first double-click paste may ask for macOS Accessibility permission because the app must send a keyboard shortcut to another app. After granting permission in System Settings, reopen history and double-click the item again.
+The first direct paste may ask for macOS Accessibility permission because the app must send a keyboard shortcut to another app. After granting permission in System Settings, reopen history and click the item again.
 
 ## Manage Data
 

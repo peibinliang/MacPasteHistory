@@ -1,4 +1,4 @@
-# MacPasteHistory Docs
+# 粘易 Docs
 
 This directory records project architecture, development decisions, database design, testing notes, and release preparation.
 

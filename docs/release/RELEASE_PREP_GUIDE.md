@@ -1,4 +1,4 @@
-# MacPasteHistory 发布准备操作指引
+# 粘易发布准备操作指引
 
 > **版本**: v0.1.0 | **目标**: Apple Silicon / Intel macOS 14.0+ | **最后更新**: 2026-07-02
 
@@ -245,7 +245,7 @@ scripts/verify-release-app-signature.sh --build --allow-adhoc
 5. 验证签名配置：
 
 ```bash
- codesign -dvv /path/to/MacPasteHistory.app 2>&1 | head -10
+ codesign -dvv /path/to/粘易.app 2>&1 | head -10
 ```
 
 #### ⚠️ 注意事项
@@ -352,7 +352,7 @@ ExportOptions.plist 内容：
 手动启动验证：
 
 ```bash
-open ./build/export/MacPasteHistory.app
+open ./build/export/粘易.app
 ```
 
 当前本机 Release 构建产物也可以直接预览：
@@ -635,7 +635,7 @@ osascript -e 'id of app "DingTalk"'  # 返回 com.alibaba.DingTalk
 #### 文档大纲
 
 ```markdown
-# MacPasteHistory 用户指南
+# 粘易用户指南
 
 ## 简介
 MacPasteHistory 是一款 macOS 菜单栏工具，自动记录剪贴板历史。
@@ -713,7 +713,7 @@ MacPasteHistory 是一款 macOS 菜单栏工具，自动记录剪贴板历史。
 #### 文档大纲
 
 ```markdown
-# MacPasteHistory 隐私政策
+# 粘易隐私政策
 
 **更新日期**: 2026-07-02
 

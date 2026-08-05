@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added a new branded app icon and a matching monochrome menu bar template icon for 粘易.
+- Added single-click direct paste from the history list, including clipboard replacement, previous-app reactivation, and Command+V dispatch.
 - Initialized macOS SwiftUI app project foundation.
 - Added XcodeGen project configuration.
 - Added menu bar app shell with main and settings windows.
@@ -70,6 +72,11 @@
 ### Fixed
 
 - Fixed the clipboard history overlay becoming unresponsive when opening a record detail Sheet.
+- Moved record details to a dedicated button so row clicks can paste without conflicting with the detail Sheet gesture.
+
+### Changed
+
+- Renamed the user-facing application and executable from MacPasteHistory to 粘易 while preserving the bundle identifier, Swift module, and Application Support path for compatibility.
 - Fixed history shortcut invocation over fullscreen applications by presenting a nonactivating top overlay in the current Space instead of activating a standard window.
 - Stabilized image dimension tests across Retina and non-Retina environments.
 - Fixed cleanup storage-limit wiring to use the total storage cap instead of the single-image size limit.

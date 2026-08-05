@@ -2,6 +2,12 @@
 
 ## 2026-08-05
 
+### Changed
+
+- Renamed the user-facing product to 粘易 while retaining `com.peibin.MacPasteHistory`, the `MacPasteHistory` Swift module, and the existing Application Support directory.
+- Replaced the generated app icon with a clipboard, paste-arrow, and text-cursor brand mark, and added a matching monochrome menu bar template icon.
+- Changed history-row single click to restore the selected clipboard item, dismiss the overlay, reactivate the previous foreground app, and send `Command + V`; details now use a dedicated info button.
+
 ### Fixed
 
 - Replaced the standard clipboard history window with a rounded, translucent top overlay.
@@ -16,10 +22,13 @@
 
 ### Verification
 
+- Added brand and row-interaction regression tests; the final full test suite passed with 107 tests and 0 failures.
+- App icon verification passed for all 10 macOS icon slots and both 18/36-pixel menu bar template assets.
+- Release identity and Xcode file-reference validation passed after regenerating the project.
 - Added `HistoryPanelWindowTests` for nonactivating style, fullscreen auxiliary behavior, cross-Space behavior, popup level, key input support, transparency, and top-center positioning.
 - Added focus-policy regression tests covering attached Sheets, regained key status, and genuine outside focus changes.
 - Targeted window tests passed with 7 tests and 0 failures; the window module remains above 96% line coverage.
-- The final full test suite passed with 105 tests and 0 failures.
+- The overlay regression test suite passed with 105 tests and 0 failures before the branding and direct-paste additions.
 - Manual fullscreen verification remains required against representative native and third-party applications.
 
 ### Compatibility

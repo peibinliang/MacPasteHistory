@@ -1,8 +1,8 @@
-# MacPasteHistory Privacy Policy
+# 粘易 Privacy Policy
 
 Last updated: 2026-07-02
 
-MacPasteHistory is designed as a local-first macOS clipboard history tool. This policy describes what the app records, where data is stored, and what controls are available.
+粘易 is designed as a local-first macOS clipboard history tool. This policy describes what the app records, where data is stored, and what controls are available.
 
 ## Data The App Processes
 
@@ -15,6 +15,8 @@ Clipboard history is stored locally under the user's Application Support directo
 ```text
 ~/Library/Application Support/MacPasteHistory/
 ```
+
+The internal storage directory retains the legacy `MacPasteHistory` name so an app update preserves existing clipboard history.
 
 Text and metadata are stored in SQLite. Image originals and thumbnails are stored as local files. The app does not intentionally upload clipboard history, images, hashes, or settings to a cloud service.
 
