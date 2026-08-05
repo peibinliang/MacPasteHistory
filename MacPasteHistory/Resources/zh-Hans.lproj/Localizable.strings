@@ -135,3 +135,27 @@
 "Last 30 Days" = "最近 30 天";
 "All Sources" = "全部来源";
 "Unknown Source" = "未知来源";
+
+/* 情境时间线改版 */
+"Search clipboard content" = "搜索剪贴板内容";
+"Clear Search" = "清除搜索";
+"Just Now" = "刚刚";
+"Earlier" = "更早";
+"Filters" = "筛选";
+"Unable to Load History" = "无法载入历史记录";
+"No History Yet" = "还没有历史记录";
+"Copy text or an image and it will appear here. Your history stays on this Mac." = "复制文字或图片后会显示在这里，历史记录只保存在这台 Mac。";
+"Select any item to paste into the previous app" = "选择任意内容即可粘贴到前台应用";
+"Navigate" = "移动";
+"Paste" = "粘贴";
+"Close" = "关闭";
+"Click to paste into the previous app" = "单击粘贴到前台应用";
+"From %@" = "来自 %@";
+"More Actions" = "更多操作";
+"Copy to Clipboard" = "复制到剪贴板";
+"General" = "通用";
+"Privacy" = "隐私";
+"Storage and Data" = "存储与数据";
+"Recording, startup, shortcuts, and language" = "记录、启动、快捷键与语言";
+"Control where clipboard history is recorded" = "控制在哪些应用中记录剪贴板历史";
+"Retention, limits, and local data" = "保留周期、容量限制与本地数据";

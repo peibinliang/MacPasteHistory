@@ -135,3 +135,27 @@
 "Last 30 Days" = "Last 30 Days";
 "All Sources" = "All Sources";
 "Unknown Source" = "Unknown Source";
+
+/* Context Timeline Redesign */
+"Search clipboard content" = "Search clipboard content";
+"Clear Search" = "Clear Search";
+"Just Now" = "Just Now";
+"Earlier" = "Earlier";
+"Filters" = "Filters";
+"Unable to Load History" = "Unable to Load History";
+"No History Yet" = "No History Yet";
+"Copy text or an image and it will appear here. Your history stays on this Mac." = "Copy text or an image and it will appear here. Your history stays on this Mac.";
+"Select any item to paste into the previous app" = "Select any item to paste into the previous app";
+"Navigate" = "Navigate";
+"Paste" = "Paste";
+"Close" = "Close";
+"Click to paste into the previous app" = "Click to paste into the previous app";
+"From %@" = "From %@";
+"More Actions" = "More Actions";
+"Copy to Clipboard" = "Copy to Clipboard";
+"General" = "General";
+"Privacy" = "Privacy";
+"Storage and Data" = "Storage and Data";
+"Recording, startup, shortcuts, and language" = "Recording, startup, shortcuts, and language";
+"Control where clipboard history is recorded" = "Control where clipboard history is recorded";
+"Retention, limits, and local data" = "Retention, limits, and local data";

@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Rebuilt the history overlay from the selected Context Timeline design, with a recent-source ribbon, chronological sections, inline keyboard selection, compact filtering, and clearer paste affordances.
+- Reorganized Settings into General, Privacy, and Storage and Data categories, and rebuilt history detail as a fixed-header/fixed-action sheet with independently scrolling content.
 - Renamed the user-facing product to 粘易 while retaining `com.peibin.MacPasteHistory`, the `MacPasteHistory` Swift module, and the existing Application Support directory.
 - Replaced the multi-element clipboard mark with an original graphite folded-paper loop icon and a matching one-color menu bar reduction, improving recognition at Dock and 18-point menu sizes.
 - Changed history-row single click to restore the selected clipboard item, dismiss the overlay, reactivate the previous foreground app, and send `Command + V`; details now use a dedicated info button.
@@ -22,6 +24,8 @@
 
 ### Verification
 
+- Added timeline organization tests for recent/today/earlier grouping, empty-group omission, and deduplicated source ordering; the targeted suite passed with 8 tests and 0 failures.
+- Completed a same-canvas visual comparison against design option 3; `design-qa.md` records a passing result with no actionable P0/P1/P2 findings.
 - Added brand and row-interaction regression tests; the final full test suite passed with 107 tests and 0 failures.
 - App icon verification passed for all 10 macOS icon slots and both 18/36-pixel menu bar template assets.
 - Release identity and Xcode file-reference validation passed after regenerating the project.

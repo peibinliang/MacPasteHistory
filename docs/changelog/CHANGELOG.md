@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added the Context Timeline interface: recent-source ribbon, chronological record groups, inline keyboard selection, compact filters, and persistent paste shortcuts.
+- Added timeline organization coverage for recent, today, and earlier groups plus deduplicated recent application sources.
 - Redesigned the 粘易 app icon as an original monochrome folded-paper loop mark, with a matching simplified menu bar template icon for clear small-size rendering.
 - Added single-click direct paste from the history list, including clipboard replacement, previous-app reactivation, and Command+V dispatch.
 - Initialized macOS SwiftUI app project foundation.

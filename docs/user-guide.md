@@ -12,11 +12,11 @@ Text recording and image recording can be enabled or disabled in **Settings**. S
 
 ## Browse, Search, And Filter
 
-The main history window shows text and image records in newest-first order. Use the search field to filter text history, the type segmented control to switch between all/text/image records, and the favorites checkbox to show only starred records. Long text opens in the detail view; image records show thumbnails and an image detail preview.
+The history overlay groups records into **Just Now**, **Today**, and **Earlier** sections. Use the recent-source ribbon to focus on an application, the search field to filter text history, and the filter menu to choose all/text/image records, a time range, or favorites. Long text opens in the detail view; image records show thumbnails and an image detail preview.
 
 ## Restore Items
 
-Single-click a history row to restore that item, close the history panel, return focus to the app that was active before opening history, and send `Command + V`. Use the row's details button to preview long text or images without pasting. The restore button and keyboard `Enter` action only write the selected item back to the system clipboard.
+Single-click a history row to restore that item, close the history panel, return focus to the app that was active before opening history, and send `Command + V`. Use the row's **More Actions** menu to preview long text or images without pasting. Arrow keys move the inline selection, and `Enter` directly pastes the selected item.
 
 The first direct paste may ask for macOS Accessibility permission because the app must send a keyboard shortcut to another app. After granting permission in System Settings, reopen history and click the item again.
 
@@ -26,7 +26,7 @@ Use row actions to favorite, restore, or delete individual records. **Clear Text
 
 ## Settings
 
-Settings include text/image recording toggles, launch-at-login preference backed by macOS Login Items, Dock icon preference, history retention days, text/image count limits, single-image size limit, and total storage cap. The single-image size limit applies to new image captures, while cleanup runs on startup and uses the count and storage limits to bound local data growth.
+Settings are organized into **General**, **Privacy**, and **Storage and Data**. They include text/image recording toggles, launch-at-login preference backed by macOS Login Items, Dock icon preference, history retention days, text/image count limits, single-image size limit, and total storage cap. The single-image size limit applies to new image captures, while cleanup runs on startup and uses the count and storage limits to bound local data growth.
 
 ## Privacy Notes
 

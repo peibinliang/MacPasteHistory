@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct MainPanelView: View {
@@ -5,13 +6,17 @@ struct MainPanelView: View {
     private let pasteCommandService: PasteCommandService
     private let pasteTargetApplication: NSRunningApplication?
     private let dismissAction: (() -> Void)?
+
     @State private var selectedItem: ClipboardHistoryItem?
     @State private var selectedFilter: HistoryContentFilter = .all
     @State private var selectedKeyboardItem: Int64?
-    @FocusState private var isListFocused: Bool
     @State private var showToast = false
     @State private var toastMessage = ""
+    @FocusState private var isListFocused: Bool
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openSettings) private var openSettings
+
+    private let timelineOrganizer = HistoryTimelineOrganizer()
 
     init(
         viewModel: ClipboardHistoryViewModel,
@@ -26,14 +31,15 @@ struct MainPanelView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 0) {
             header
             searchField
-            filterBar
+            sourceRibbon
+            Divider().opacity(0.55)
             historyContent
+            footer
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(.ultraThinMaterial)
         .clipShape(
             RoundedRectangle(
@@ -41,29 +47,43 @@ struct MainPanelView: View {
                 style: .continuous
             )
         )
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: HistoryPanelWindow.cornerRadius,
+                style: .continuous
+            )
+            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
         .onAppear {
             viewModel.loadHistory()
+            selectedKeyboardItem = viewModel.items.first?.id
             isListFocused = true
-            if let first = viewModel.items.first {
-                selectedKeyboardItem = first.id
+        }
+        .onChange(of: viewModel.items) {
+            guard let selectedKeyboardItem,
+                  viewModel.items.contains(where: { $0.id == selectedKeyboardItem }) else {
+                self.selectedKeyboardItem = viewModel.items.first?.id
+                return
             }
         }
         .overlay(alignment: .bottom) {
             if showToast {
                 Text(toastMessage)
+                    .font(.callout.weight(.medium))
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(.thinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .padding(.bottom, 16)
-                    .transition(.opacity)
+                    .padding(.vertical, 9)
+                    .background(.regularMaterial)
+                    .clipShape(Capsule())
+                    .shadow(color: .black.opacity(0.12), radius: 12, y: 5)
+                    .padding(.bottom, 42)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .sheet(item: $selectedItem) { item in
             HistoryDetailView(
                 item: item,
                 restoreAction: {
-                    viewModel.restore(item)
+                    restoreAndShowFeedback(item)
                 },
                 deleteAction: {
                     viewModel.delete(item)
@@ -78,31 +98,263 @@ struct MainPanelView: View {
     }
 
     private var header: some View {
-        HStack {
-                Text(L10n.string("Clipboard History"))
-                .font(.headline)
+        HStack(spacing: 10) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 28, height: 28)
+                .accessibilityHidden(true)
+
+            Text(AppBrand.displayName)
+                .font(.headline.weight(.semibold))
+
             Spacer()
+
             Button {
+                closePanel()
+                openSettings()
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 15, weight: .medium))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel(L10n.string("Settings"))
+            .help(L10n.string("Settings"))
+        }
+        .padding(.horizontal, 18)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.tertiary)
+
+            TextField(L10n.string("Search clipboard content"), text: $viewModel.searchText)
+                .textFieldStyle(.plain)
+                .font(.body)
+                .onSubmit { viewModel.search() }
+                .onChange(of: viewModel.searchText) { viewModel.search() }
+
+            if viewModel.searchText.isEmpty == false {
+                Button {
+                    viewModel.searchText = ""
+                    viewModel.search()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tertiary)
+                .accessibilityLabel(L10n.string("Clear Search"))
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 42)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.primary.opacity(0.09), lineWidth: 1)
+        }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 12)
+    }
+
+    private var sourceRibbon: some View {
+        HStack(spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    SourceRibbonButton(
+                        title: L10n.string("All"),
+                        subtitle: L10n.string("Just Now"),
+                        systemImage: "clock",
+                        isSelected: viewModel.selectedSourceOption == nil
+                    ) {
+                        viewModel.selectedSourceOption = nil
+                        viewModel.loadHistory()
+                    }
+
+                    ForEach(recentSources) { source in
+                        SourceRibbonButton(
+                            title: source.title,
+                            subtitle: relativeSourceTime(source.lastUsedAt),
+                            bundleID: source.bundleID,
+                            isSelected: viewModel.selectedSourceOption?.bundleID == source.bundleID
+                        ) {
+                            viewModel.selectedSourceOption = viewModel.sourceOptions.first {
+                                $0.bundleID == source.bundleID
+                            }
+                            viewModel.loadHistory()
+                        }
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+
+            filterMenu
+        }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 12)
+    }
+
+    private var filterMenu: some View {
+        Menu {
+            Picker(L10n.string("Type"), selection: $selectedFilter) {
+                ForEach(HistoryContentFilter.allCases) { filter in
+                    Text(filter.title).tag(filter)
+                }
+            }
+
+            Picker(L10n.string("Time"), selection: $viewModel.selectedTimeRange) {
+                ForEach(HistoryQuery.TimeRange.allCases) { range in
+                    Text(range.title).tag(range)
+                }
+            }
+
+            Toggle(L10n.string("Favorites"), isOn: $viewModel.isFavoritesOnly)
+
+            Divider()
+
+            Button(role: .destructive) {
                 viewModel.clearTextHistory()
             } label: {
                 Label(L10n.string("Clear Text"), systemImage: "trash")
             }
             .disabled(viewModel.items.isEmpty)
+        } label: {
+            Image(systemName: hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                .font(.system(size: 17))
+                .frame(width: 36, height: 36)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .accessibilityLabel(L10n.string("Filters"))
+        .onChange(of: selectedFilter) {
+            viewModel.selectedContentType = selectedFilter.contentType
+            viewModel.loadHistory()
+        }
+        .onChange(of: viewModel.selectedTimeRange) { viewModel.loadHistory() }
+        .onChange(of: viewModel.isFavoritesOnly) { viewModel.loadHistory() }
+    }
+
+    @ViewBuilder
+    private var historyContent: some View {
+        if let errorMessage = viewModel.errorMessage {
+            ContentUnavailableView(
+                L10n.string("Unable to Load History"),
+                systemImage: "exclamationmark.triangle",
+                description: Text(errorMessage)
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if viewModel.items.isEmpty {
+            emptyState
+        } else {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 14) {
+                    ForEach(timelineSections) { section in
+                        TimelineSectionView(
+                            section: section,
+                            selectedItemID: $selectedKeyboardItem,
+                            detailAction: { selectedItem = $0 },
+                            favoriteAction: { viewModel.toggleFavorite($0) },
+                            restoreAction: { restoreAndShowFeedback($0) },
+                            pasteAction: { pasteIntoPreviousApplication($0) },
+                            deleteAction: { viewModel.delete($0) },
+                            loadMoreAction: { viewModel.loadMoreIfNeeded(currentItem: $0) }
+                        )
+                    }
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 14)
+            }
+            .onKeyPress(.upArrow) {
+                moveSelectionUp()
+                return .handled
+            }
+            .onKeyPress(.downArrow) {
+                moveSelectionDown()
+                return .handled
+            }
+            .onKeyPress(.return) {
+                if let item = selectedItemFromKeyboard {
+                    pasteIntoPreviousApplication(item)
+                }
+                return .handled
+            }
+            .onKeyPress(.escape) {
+                closePanel()
+                return .handled
+            }
+            .focusable()
+            .focused($isListFocused)
         }
     }
 
-    private var searchField: some View {
-        TextField(L10n.string("Search text history"), text: $viewModel.searchText)
-            .textFieldStyle(.roundedBorder)
-            .onSubmit {
-                viewModel.search()
-            }
-            .onChange(of: viewModel.searchText) {
-                viewModel.search()
-            }
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "doc.on.clipboard")
+                .font(.system(size: 38, weight: .light))
+                .foregroundStyle(.secondary)
+            Text(L10n.string("No History Yet"))
+                .font(.title3.weight(.semibold))
+            Text(L10n.string("Copy text or an image and it will appear here. Your history stays on this Mac."))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 330)
+            Text("⇧⌘V")
+                .font(.system(.callout, design: .rounded, weight: .semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.primary.opacity(0.06))
+                .clipShape(Capsule())
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(32)
     }
 
-    // MARK: - Keyboard navigation
+    private var footer: some View {
+        HStack {
+            Text(L10n.string("Select any item to paste into the previous app"))
+            Spacer()
+            Text("↑↓  \(L10n.string("Navigate"))   ↩  \(L10n.string("Paste"))   esc  \(L10n.string("Close"))")
+        }
+        .font(.caption)
+        .foregroundStyle(.tertiary)
+        .padding(.horizontal, 18)
+        .frame(height: 34)
+        .background(.thinMaterial)
+        .overlay(alignment: .top) { Divider().opacity(0.45) }
+    }
+
+    private var timelineSections: [HistoryTimelineSection] {
+        timelineOrganizer.sections(for: viewModel.items)
+    }
+
+    private var recentSources: [HistoryRecentSource] {
+        timelineOrganizer.recentSources(from: viewModel.items, limit: 6)
+    }
+
+    private var selectedItemFromKeyboard: ClipboardHistoryItem? {
+        selectedKeyboardItem.flatMap { id in
+            viewModel.items.first { $0.id == id }
+        }
+    }
+
+    private var hasActiveFilters: Bool {
+        selectedFilter != .all ||
+            viewModel.selectedTimeRange != .all ||
+            viewModel.isFavoritesOnly
+    }
+
+    private func relativeSourceTime(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
 
     private func moveSelectionUp() {
         guard let current = selectedKeyboardItem,
@@ -128,10 +380,10 @@ struct MainPanelView: View {
 
     private func showCopyToast() {
         toastMessage = L10n.string("Copied to clipboard")
-        withAnimation { showToast = true }
+        withAnimation(.easeOut(duration: 0.18)) { showToast = true }
         Task {
             try? await Task.sleep(nanoseconds: 1_500_000_000)
-            withAnimation { showToast = false }
+            withAnimation(.easeIn(duration: 0.18)) { showToast = false }
         }
     }
 
@@ -141,127 +393,12 @@ struct MainPanelView: View {
     }
 
     private func pasteIntoPreviousApplication(_ item: ClipboardHistoryItem) {
-        guard viewModel.restore(item) else {
-            return
-        }
+        guard viewModel.restore(item) else { return }
         closePanel()
         pasteTargetApplication?.activate(options: [])
         Task {
             try? await Task.sleep(nanoseconds: 150_000_000)
             pasteCommandService.sendPasteCommand()
-        }
-    }
-
-    private var filterBar: some View {
-        HStack(spacing: 12) {
-            Toggle(isOn: $viewModel.isFavoritesOnly) {
-                Label(L10n.string("Favorites"), systemImage: "star.fill")
-            }
-            .toggleStyle(.checkbox)
-            .onChange(of: viewModel.isFavoritesOnly) {
-                viewModel.loadHistory()
-            }
-
-            Picker(L10n.string("Type"), selection: $selectedFilter) {
-                ForEach(HistoryContentFilter.allCases) { filter in
-                    Text(filter.title).tag(filter)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 220)
-            .onChange(of: selectedFilter) {
-                viewModel.selectedContentType = selectedFilter.contentType
-                viewModel.loadHistory()
-            }
-
-            Picker(L10n.string("Time"), selection: $viewModel.selectedTimeRange) {
-                ForEach(HistoryQuery.TimeRange.allCases) { range in
-                    Text(range.title).tag(range)
-                }
-            }
-            .frame(width: 140)
-            .onChange(of: viewModel.selectedTimeRange) {
-                viewModel.loadHistory()
-            }
-
-            Picker(L10n.string("Source"), selection: sourceSelectionBinding) {
-                Text(L10n.string("All Sources")).tag("")
-                ForEach(viewModel.sourceOptions) { option in
-                    Text(option.title).tag(option.id)
-                }
-            }
-            .frame(width: 180)
-            .onChange(of: viewModel.selectedSourceOption) {
-                viewModel.loadHistory()
-            }
-        }
-    }
-
-    private var sourceSelectionBinding: Binding<String> {
-        Binding(
-            get: { viewModel.selectedSourceOption?.id ?? "" },
-            set: { id in
-                viewModel.selectedSourceOption = viewModel.sourceOptions.first { $0.id == id }
-                viewModel.loadHistory()
-            }
-        )
-    }
-
-    @ViewBuilder
-    private var historyContent: some View {
-        if let errorMessage = viewModel.errorMessage {
-            Text(errorMessage)
-                .foregroundStyle(.red)
-        } else if viewModel.items.isEmpty {
-            ContentUnavailableView(L10n.string("No History"), systemImage: "doc.on.clipboard")
-        } else {
-            List(selection: $selectedKeyboardItem) {
-                ForEach(viewModel.items) { item in
-                    HistoryRowView(
-                        item: item,
-                        detailAction: {
-                            selectedItem = item
-                        },
-                        favoriteAction: {
-                            viewModel.toggleFavorite(item)
-                        },
-                        restoreAction: {
-                            restoreAndShowFeedback(item)
-                        },
-                        pasteAction: {
-                            pasteIntoPreviousApplication(item)
-                        },
-                        deleteAction: {
-                            viewModel.delete(item)
-                        }
-                    )
-                    .tag(item.id)
-                    .onAppear {
-                        viewModel.loadMoreIfNeeded(currentItem: item)
-                    }
-                }
-            }
-            .listStyle(.inset)
-            .onKeyPress(.upArrow) {
-                moveSelectionUp()
-                return .handled
-            }
-            .onKeyPress(.downArrow) {
-                moveSelectionDown()
-                return .handled
-            }
-            .onKeyPress(.return) {
-                if let item = selectedKeyboardItem.flatMap({ id in viewModel.items.first(where: { $0.id == id }) }) {
-                    restoreAndShowFeedback(item)
-                }
-                return .handled
-            }
-            .onKeyPress(.escape) {
-                closePanel()
-                return .handled
-            }
-            .focusable()
-            .focused($isListFocused)
         }
     }
 }
@@ -271,35 +408,146 @@ private enum HistoryContentFilter: String, CaseIterable, Identifiable {
     case text
     case image
 
-    var id: String {
-        rawValue
-    }
+    var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .all:
-            return L10n.string("All")
-        case .text:
-            return L10n.string("Text")
-        case .image:
-            return L10n.string("Image")
+        case .all: return L10n.string("All")
+        case .text: return L10n.string("Text")
+        case .image: return L10n.string("Image")
         }
     }
 
     var contentType: ClipboardContentType? {
         switch self {
-        case .all:
-            return nil
-        case .text:
-            return .text
-        case .image:
-            return .image
+        case .all: return nil
+        case .text: return .text
+        case .image: return .image
+        }
+    }
+}
+
+private struct SourceRibbonButton: View {
+    let title: String
+    let subtitle: String
+    var bundleID: String?
+    var systemImage: String?
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 9) {
+                sourceIcon
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.callout.weight(isSelected ? .semibold : .medium))
+                        .foregroundStyle(isSelected ? Color.accentColor : .primary)
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 11)
+            .frame(height: 50)
+            .background(isSelected ? Color.accentColor.opacity(0.09) : Color.primary.opacity(0.035))
+            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+            .overlay(alignment: .bottom) {
+                if isSelected {
+                    Capsule()
+                        .fill(Color.accentColor)
+                        .frame(height: 2)
+                        .padding(.horizontal, 10)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(subtitle)")
+    }
+
+    @ViewBuilder
+    private var sourceIcon: some View {
+        if let bundleID,
+           let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                .resizable()
+                .frame(width: 27, height: 27)
+        } else {
+            Image(systemName: systemImage ?? "app")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                .frame(width: 27, height: 27)
+        }
+    }
+}
+
+private struct TimelineSectionView: View {
+    let section: HistoryTimelineSection
+    @Binding var selectedItemID: Int64?
+    let detailAction: (ClipboardHistoryItem) -> Void
+    let favoriteAction: (ClipboardHistoryItem) -> Void
+    let restoreAction: (ClipboardHistoryItem) -> Void
+    let pasteAction: (ClipboardHistoryItem) -> Void
+    let deleteAction: (ClipboardHistoryItem) -> Void
+    let loadMoreAction: (ClipboardHistoryItem) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Circle()
+                    .stroke(Color.secondary.opacity(0.55), lineWidth: 1.5)
+                    .frame(width: 9, height: 9)
+                Text(section.group.title)
+                    .font(.callout.weight(.semibold))
+            }
+            .foregroundStyle(.secondary)
+
+            VStack(spacing: 0) {
+                ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
+                    HistoryRowView(
+                        item: item,
+                        isSelected: selectedItemID == item.id,
+                        detailAction: { detailAction(item) },
+                        favoriteAction: { favoriteAction(item) },
+                        restoreAction: { restoreAction(item) },
+                        pasteAction: {
+                            selectedItemID = item.id
+                            pasteAction(item)
+                        },
+                        deleteAction: { deleteAction(item) }
+                    )
+                    .onHover { hovering in
+                        if hovering { selectedItemID = item.id }
+                    }
+                    .onAppear { loadMoreAction(item) }
+
+                    if index < section.items.count - 1 {
+                        Divider().padding(.leading, 78)
+                    }
+                }
+            }
+            .background(Color(nsColor: .controlBackgroundColor).opacity(0.62))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.primary.opacity(0.065), lineWidth: 1)
+            }
+            .padding(.leading, 16)
+        }
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.16))
+                .frame(width: 1)
+                .padding(.top, 20)
+                .padding(.bottom, -14)
+                .offset(x: 4)
         }
     }
 }
 
 private struct HistoryRowView: View {
     let item: ClipboardHistoryItem
+    let isSelected: Bool
     let detailAction: () -> Void
     let favoriteAction: () -> Void
     let restoreAction: () -> Void
@@ -309,84 +557,108 @@ private struct HistoryRowView: View {
     private let formatter = HistoryDisplayFormatter()
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            HStack(alignment: .center, spacing: 12) {
-                if item.contentType == .image {
-                    HistoryImagePreview(path: item.thumbnailPath, size: NSSize(width: 64, height: 48))
-                }
+        HStack(spacing: 12) {
+            preview
 
-                VStack(alignment: .leading, spacing: 6) {
-                    metadataLine
-                    Text(previewText)
-                        .font(.body)
-                        .lineLimit(3, reservesSpace: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(metadataTitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Text(previewText)
+                    .font(.body.weight(isSelected ? .medium : .regular))
+                    .lineLimit(isSelected ? 2 : 1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if isSelected {
+                    Text(L10n.string("Click to paste into the previous app"))
+                        .font(.caption)
+                        .foregroundStyle(Color.accentColor)
+                        .transition(.opacity)
+                } else if item.contentType == .image {
+                    Text(sizeTitle)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-            .gesture(
-                ExclusiveGesture(
-                    TapGesture(count: 2),
-                    TapGesture(count: 1)
-                )
-                .onEnded { value in
-                    switch value {
-                    case .first, .second:
-                        performPrimaryAction()
-                    }
-                }
-            )
 
-            HStack(spacing: 6) {
+            if isSelected {
+                Label(L10n.string("Paste"), systemImage: "arrow.turn.down.left")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .labelStyle(.titleAndIcon)
+                    .padding(.horizontal, 10)
+                    .accessibilityHidden(true)
+            }
+
+            Button(action: favoriteAction) {
+                Image(systemName: item.isFavorite ? "star.fill" : "star")
+                    .foregroundStyle(item.isFavorite ? Color.accentColor : .secondary)
+                    .frame(width: 26, height: 26)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(favoriteTitle)
+            .help(favoriteTitle)
+
+            Menu {
                 Button(action: detailAction) {
                     Label(L10n.string("Details"), systemImage: "info.circle")
                 }
-                .labelStyle(.iconOnly)
-                .help(L10n.string("Details"))
-
-                Button(action: favoriteAction) {
-                    Label(favoriteTitle, systemImage: item.isFavorite ? "star.fill" : "star")
-                }
-                .labelStyle(.iconOnly)
-                .help(favoriteTitle)
-
                 Button(action: restoreAction) {
-                    Label(L10n.string("Restore"), systemImage: "arrow.uturn.backward")
+                    Label(L10n.string("Restore"), systemImage: "doc.on.clipboard")
                 }
-                .labelStyle(.iconOnly)
-                .help(L10n.string("Restore"))
-
+                Divider()
                 Button(role: .destructive, action: deleteAction) {
                     Label(L10n.string("Delete"), systemImage: "trash")
                 }
-                .labelStyle(.iconOnly)
-                .help(L10n.string("Delete"))
+            } label: {
+                Image(systemName: "ellipsis")
+                    .frame(width: 26, height: 26)
             }
-            .buttonStyle(.borderless)
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .accessibilityLabel(L10n.string("More Actions"))
         }
-        .padding(.vertical, 8)
-    }
-
-    private func performPrimaryAction() {
-        switch HistoryRowInteraction.primaryAction {
-        case .paste:
-            pasteAction()
-        }
-    }
-
-    private var metadataLine: some View {
-        HStack(spacing: 8) {
-            Label(contentTypeTitle, systemImage: item.contentType == .text ? "doc.text" : "photo")
-            Text(formatter.displayTime(for: item.createdAt))
-            Text(sizeTitle)
-            if let sourceApp = item.sourceApp, sourceApp.isEmpty == false {
-                Text(sourceApp)
+        .padding(.horizontal, 12)
+        .padding(.vertical, isSelected ? 11 : 9)
+        .background(isSelected ? Color.accentColor.opacity(0.075) : Color.clear)
+        .overlay {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color.accentColor.opacity(0.8), lineWidth: 1.5)
             }
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .lineLimit(1)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: pasteAction)
+        .animation(.easeOut(duration: 0.16), value: isSelected)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(metadataTitle), \(previewText)")
+        .accessibilityHint(L10n.string("Click to paste into the previous app"))
+    }
+
+    @ViewBuilder
+    private var preview: some View {
+        if item.contentType == .image {
+            HistoryImagePreview(
+                path: item.thumbnailPath,
+                size: NSSize(width: 54, height: 44)
+            )
+        } else {
+            Image(systemName: "doc.text")
+                .font(.system(size: 22, weight: .light))
+                .foregroundStyle(.secondary)
+                .frame(width: 54, height: 44)
+                .background(Color.primary.opacity(0.035))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+    }
+
+    private var metadataTitle: String {
+        var parts = [item.contentType == .text ? L10n.string("Text") : L10n.string("Image")]
+        if let sourceApp = item.sourceApp, sourceApp.isEmpty == false {
+            parts.append(String(format: L10n.string("From %@"), sourceApp))
+        }
+        parts.append(formatter.displayTime(for: item.createdAt))
+        return parts.joined(separator: " · ")
     }
 
     private var previewText: String {
@@ -396,16 +668,8 @@ private struct HistoryRowView: View {
             }
             return String(format: L10n.string("Image %lldx%lld"), width, height)
         }
-
-        guard item.textContent.isEmpty == false else {
-            return L10n.string("Empty text")
-        }
-
+        guard item.textContent.isEmpty == false else { return L10n.string("Empty text") }
         return formatter.preview(for: item.textContent)
-    }
-
-    private var contentTypeTitle: String {
-        item.contentType == .text ? L10n.string("Text") : L10n.string("Image")
     }
 
     private var favoriteTitle: String {
@@ -413,14 +677,8 @@ private struct HistoryRowView: View {
     }
 
     private var sizeTitle: String {
-        if item.contentType == .image {
-            guard let fileSize = item.fileSize else {
-                return L10n.string("Image")
-            }
-            return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
-        }
-
-        return String(format: L10n.string("%lld chars"), item.textLength)
+        guard let fileSize = item.fileSize else { return L10n.string("Image") }
+        return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
     }
 }
 
@@ -434,50 +692,48 @@ private struct HistoryDetailView: View {
     private let formatter = HistoryDisplayFormatter()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(L10n.string("History Detail"))
-                        .font(.headline)
-                    Text(formatter.displayTime(for: item.createdAt))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        VStack(spacing: 0) {
+            detailHeader
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    metadataCard
+                    detailContent
                 }
-                Spacer()
-                Button(L10n.string("Done")) {
-                    dismiss()
-                }
-                .keyboardShortcut(.cancelAction)
+                .padding(20)
             }
 
-            metadataGrid
-
-            detailContent
-
-            HStack {
-                Button(action: favoriteAction) {
-                    Label(item.isFavorite ? L10n.string("Unfavorite") : L10n.string("Favorite"), systemImage: item.isFavorite ? "star.fill" : "star")
-                }
-                Spacer()
-                Button(action: restoreAction) {
-                    Label(L10n.string("Restore"), systemImage: "arrow.uturn.backward")
-                }
-                Button(role: .destructive, action: deleteAction) {
-                    Label(L10n.string("Delete"), systemImage: "trash")
-                }
-            }
+            Divider()
+            detailActions
         }
-        .padding(20)
-        .frame(minWidth: 520, minHeight: 420)
+        .frame(width: 600, height: 520)
+        .background(.regularMaterial)
     }
 
-    private var metadataGrid: some View {
-        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
+    private var detailHeader: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(L10n.string("History Detail"))
+                    .font(.headline)
+                Text(formatter.displayTime(for: item.createdAt))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button(L10n.string("Done")) { dismiss() }
+                .keyboardShortcut(.cancelAction)
+        }
+        .padding(.horizontal, 20)
+        .frame(height: 62)
+    }
+
+    private var metadataCard: some View {
+        Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 9) {
             metadataRow(L10n.string("Type"), item.contentType == .text ? L10n.string("Text") : L10n.string("Image"))
-            metadataRow(L10n.string("Created"), formatter.displayTime(for: item.createdAt))
             metadataRow(L10n.string("Size"), sizeTitle)
             if let width = item.imageWidth, let height = item.imageHeight {
-                metadataRow(L10n.string("Dimensions"), "\(width)x\(height)")
+                metadataRow(L10n.string("Dimensions"), "\(width)×\(height)")
             }
             if let imageFormat = item.imageFormat {
                 metadataRow(L10n.string("Format"), imageFormat.rawValue.uppercased())
@@ -485,55 +741,67 @@ private struct HistoryDetailView: View {
             if let sourceApp = item.sourceApp, sourceApp.isEmpty == false {
                 metadataRow(L10n.string("Source"), sourceApp)
             }
-            if let sourceBundleID = item.sourceBundleID, sourceBundleID.isEmpty == false {
-                metadataRow(L10n.string("Bundle ID"), sourceBundleID)
-            }
         }
-        .font(.caption)
+        .font(.callout)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.035))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func metadataRow(_ label: String, _ value: String) -> some View {
         GridRow {
-            Text(label)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .textSelection(.enabled)
+            Text(label).foregroundStyle(.secondary)
+            Text(value).textSelection(.enabled)
         }
     }
 
     @ViewBuilder
     private var detailContent: some View {
         if item.contentType == .image {
-            ScrollView {
-                HistoryImagePreview(path: item.filePath, size: NSSize(width: 440, height: 280))
-                    .padding(12)
-                    .frame(maxWidth: .infinity)
-            }
-            .frame(minHeight: 260)
-            .background(Color(nsColor: .textBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            HistoryImagePreview(
+                path: item.filePath,
+                size: NSSize(width: 540, height: 275)
+            )
+            .frame(maxWidth: .infinity)
         } else {
-            ScrollView {
-                Text(item.textContent)
-                    .font(.body)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-            }
-            .frame(minHeight: 220)
-            .background(Color(nsColor: .textBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            Text(item.textContent)
+                .font(.body)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(Color(nsColor: .textBackgroundColor).opacity(0.72))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
+    }
+
+    private var detailActions: some View {
+        HStack {
+            Button(action: favoriteAction) {
+                Label(favoriteTitle, systemImage: item.isFavorite ? "star.fill" : "star")
+            }
+            Button(role: .destructive, action: deleteAction) {
+                Label(L10n.string("Delete"), systemImage: "trash")
+            }
+            Spacer()
+            Button(action: restoreAction) {
+                Label(L10n.string("Copy to Clipboard"), systemImage: "doc.on.clipboard")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(.horizontal, 20)
+        .frame(height: 64)
+    }
+
+    private var favoriteTitle: String {
+        item.isFavorite ? L10n.string("Unfavorite") : L10n.string("Favorite")
     }
 
     private var sizeTitle: String {
         if item.contentType == .image {
-            guard let fileSize = item.fileSize else {
-                return L10n.string("Image")
-            }
+            guard let fileSize = item.fileSize else { return L10n.string("Image") }
             return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
         }
-
         return String(format: L10n.string("%lld chars"), item.textLength)
     }
 }
@@ -544,7 +812,7 @@ private struct HistoryImagePreview: View {
 
     var body: some View {
         Group {
-            if let image = image {
+            if let image {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFit()
@@ -556,13 +824,11 @@ private struct HistoryImagePreview: View {
         }
         .frame(width: size.width, height: size.height)
         .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     private var image: NSImage? {
-        guard let path else {
-            return nil
-        }
+        guard let path else { return nil }
         return NSImage(contentsOfFile: path)
     }
 }

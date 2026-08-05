@@ -2,7 +2,7 @@ import AppKit
 
 @MainActor
 final class HistoryPanelWindow: NSPanel {
-    static let defaultSize = NSSize(width: 760, height: 520)
+    static let defaultSize = NSSize(width: 880, height: 620)
     static let defaultTopInset: CGFloat = 12
     static let cornerRadius: CGFloat = 24
 

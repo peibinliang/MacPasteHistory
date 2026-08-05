@@ -5,21 +5,20 @@ import Carbon
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
     @State private var showClearConfirmation = false
+    @State private var selectedCategory: SettingsCategory? = .general
 
     var body: some View {
-        Form {
-            recordingSection
-            privacySection
-            shortcutSection
-            retentionSection
-            limitsSection
-            storageSection
-            languageSection
-            dataSection
+        NavigationSplitView {
+            List(SettingsCategory.allCases, selection: $selectedCategory) { category in
+                Label(category.title, systemImage: category.systemImage)
+                    .tag(category)
+            }
+            .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 220)
+        } detail: {
+            settingsPage(selectedCategory ?? .general)
         }
-        .formStyle(.grouped)
-        .padding(20)
-        .frame(minWidth: 460, minHeight: 480)
+        .navigationSplitViewStyle(.balanced)
+        .frame(minWidth: 720, minHeight: 560)
         .onAppear { viewModel.loadSettings() }
         .alert(L10n.string("Clear All Data?"), isPresented: $showClearConfirmation) {
             Button(L10n.string("Cancel"), role: .cancel) {}
@@ -56,6 +55,52 @@ struct SettingsView: View {
         } message: {
             Text(L10n.string("The app needs to restart to apply the new language. Would you like to restart now?"))
         }
+    }
+
+    @ViewBuilder
+    private func settingsPage(_ category: SettingsCategory) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Image(systemName: category.systemImage)
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 38, height: 38)
+                    .background(Color.accentColor.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(category.title)
+                        .font(.title2.weight(.semibold))
+                    Text(category.subtitle)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 18)
+
+            Divider()
+
+            Form {
+                switch category {
+                case .general:
+                    recordingSection
+                    shortcutSection
+                    languageSection
+                case .privacy:
+                    privacySection
+                case .storage:
+                    retentionSection
+                    limitsSection
+                    storageSection
+                    dataSection
+                }
+            }
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+        }
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     // MARK: - Sections
@@ -251,6 +296,41 @@ struct SettingsView: View {
     private func restartApp() {
         AppRelauncher().relaunchAfterTermination(bundlePath: Bundle.main.bundlePath)
         NSApp.terminate(nil)
+    }
+}
+
+private enum SettingsCategory: String, CaseIterable, Identifiable {
+    case general
+    case privacy
+    case storage
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .general: return L10n.string("General")
+        case .privacy: return L10n.string("Privacy")
+        case .storage: return L10n.string("Storage and Data")
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .general:
+            return L10n.string("Recording, startup, shortcuts, and language")
+        case .privacy:
+            return L10n.string("Control where clipboard history is recorded")
+        case .storage:
+            return L10n.string("Retention, limits, and local data")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .general: return "gearshape"
+        case .privacy: return "hand.raised"
+        case .storage: return "internaldrive"
+        }
     }
 }
 
