@@ -300,7 +300,7 @@ final class DatabaseConnection {
 
 ### LOOP steps
 
-- [ ] **Step 1: Add database connection failure tests**
+- [x] **Step 1: Add database connection failure tests**
 
 Create tests that verify the writer connection enables foreign keys and a read-only connection can query an initialized database:
 
@@ -338,7 +338,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 Expected: compile failure because `DatabaseOpenMode` and `foreignKeysAreEnabled()` do not exist.
 
-- [ ] **Step 2: Implement connection modes and connection pragmas**
+- [x] **Step 2: Implement connection modes and connection pragmas**
 
 Use `sqlite3_open_v2` with `SQLITE_OPEN_FULLMUTEX`:
 
@@ -382,7 +382,7 @@ func inTransaction<T>(_ operation: () throws -> T) throws -> T {
 }
 ```
 
-- [ ] **Step 3: Add migration V3 schema tests**
+- [x] **Step 3: Add migration V3 schema tests**
 
 The tests must build an actual version-2 database, run the current migrator, and assert:
 
@@ -398,7 +398,7 @@ running migrate() twice does not add another version row or fail
 
 Use `PRAGMA table_info`, `PRAGMA foreign_key_list` and `sqlite_master`; do not inspect private migration constants.
 
-- [ ] **Step 4: Implement migration version 3**
+- [x] **Step 4: Implement migration version 3**
 
 Add exactly one versioned migration named `enhanced_search_content_actions`.
 
@@ -468,7 +468,7 @@ CREATE TABLE clipboard_capture_event_summaries (
 
 Add the indexes specified by the PRD, including `last_captured_at`, effective type fields, `last_pasted_at`, and event time indexes.
 
-- [ ] **Step 5: Run Task 1 verification**
+- [x] **Step 5: Run Task 1 verification**
 
 ```bash
 xcodegen generate
@@ -481,7 +481,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 Expected: all Task 1 tests pass.
 
-- [ ] **Step 6: Commit Task 1**
+- [x] **Step 6: Commit Task 1**
 
 ```bash
 git add MacPasteHistory/Database MacPasteHistoryTests/DatabaseConnectionTests.swift \

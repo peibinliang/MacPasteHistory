@@ -20,25 +20,34 @@ final class MigrationManager {
         )
         try applyMigration(version: 1, name: "create_clipboard_history", sql: Self.createClipboardHistorySQL)
         try applyMigration(version: 2, name: "add_image_format_to_clipboard_history", sql: Self.addImageFormatSQL)
+        try applyMigration(version: 3, name: "enhanced_search_content_actions", sql: Self.enhancedHistorySQL)
     }
 
     private func applyMigration(version: Int, name: String, sql: String) throws {
         if try hasAppliedMigration(version: version) {
             return
         }
-        try database.execute("BEGIN TRANSACTION;")
-        do {
+
+        try database.inTransaction {
             try database.execute(sql)
-            try database.execute(
-                """
-                INSERT INTO schema_migrations (version, name)
-                VALUES (\(version), '\(name)');
-                """
-            )
-            try database.execute("COMMIT;")
-        } catch {
-            try? database.execute("ROLLBACK;")
-            throw error
+            try recordMigration(version: version, name: name)
+        }
+    }
+
+    private func recordMigration(version: Int, name: String) throws {
+        let statement = try database.prepare(
+            "INSERT INTO schema_migrations (version, name) VALUES (?, ?);"
+        )
+        defer { sqlite3_finalize(statement) }
+
+        guard sqlite3_bind_int(statement, 1, Int32(version)) == SQLITE_OK else {
+            throw DatabaseError.bindFailed(database.lastErrorMessage)
+        }
+        guard sqlite3_bind_text(statement, 2, name, -1, SQLITE_TRANSIENT) == SQLITE_OK else {
+            throw DatabaseError.bindFailed(database.lastErrorMessage)
+        }
+        guard sqlite3_step(statement) == SQLITE_DONE else {
+            throw DatabaseError.stepFailed(database.lastErrorMessage)
         }
     }
 
@@ -93,4 +102,81 @@ final class MigrationManager {
     ALTER TABLE clipboard_history
     ADD COLUMN image_format TEXT;
     """
+
+    private static let enhancedHistorySQL = """
+    ALTER TABLE clipboard_history ADD COLUMN searchable_text TEXT;
+    ALTER TABLE clipboard_history ADD COLUMN detected_type TEXT;
+    ALTER TABLE clipboard_history ADD COLUMN user_override_type TEXT;
+    ALTER TABLE clipboard_history ADD COLUMN detection_confidence REAL;
+    ALTER TABLE clipboard_history ADD COLUMN detection_version INTEGER;
+    ALTER TABLE clipboard_history ADD COLUMN detected_at DATETIME;
+    ALTER TABLE clipboard_history ADD COLUMN first_captured_at DATETIME;
+    ALTER TABLE clipboard_history ADD COLUMN last_captured_at DATETIME;
+    ALTER TABLE clipboard_history ADD COLUMN capture_count INTEGER NOT NULL DEFAULT 1;
+    ALTER TABLE clipboard_history ADD COLUMN reuse_copy_count INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE clipboard_history ADD COLUMN paste_count INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE clipboard_history ADD COLUMN last_reuse_copied_at DATETIME;
+    ALTER TABLE clipboard_history ADD COLUMN last_pasted_at DATETIME;
+    ALTER TABLE clipboard_history ADD COLUMN ocr_status TEXT NOT NULL DEFAULT 'notStarted';
+    ALTER TABLE clipboard_history ADD COLUMN ocr_text TEXT;
+    ALTER TABLE clipboard_history ADD COLUMN ocr_updated_at DATETIME;
+    ALTER TABLE clipboard_history ADD COLUMN ocr_error_code TEXT;
+    ALTER TABLE clipboard_history ADD COLUMN derived_from_history_id INTEGER
+        REFERENCES clipboard_history(id) ON DELETE SET NULL;
+    ALTER TABLE clipboard_history ADD COLUMN derived_action_id TEXT;
+    ALTER TABLE clipboard_history ADD COLUMN derived_action_summary TEXT;
+    ALTER TABLE clipboard_history ADD COLUMN derived_at DATETIME;
+    ALTER TABLE clipboard_history ADD COLUMN derived_source_preview TEXT;
+    ALTER TABLE clipboard_history ADD COLUMN derived_source_hash TEXT;
+
+    UPDATE clipboard_history
+    SET searchable_text = COALESCE(text_content, ''),
+        first_captured_at = created_at,
+        last_captured_at = created_at
+    WHERE first_captured_at IS NULL
+       OR last_captured_at IS NULL
+       OR searchable_text IS NULL;
+
+    CREATE TABLE clipboard_capture_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        history_id INTEGER NOT NULL,
+        source_app TEXT,
+        source_bundle_id TEXT,
+        captured_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(history_id) REFERENCES clipboard_history(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE clipboard_capture_event_summaries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        history_id INTEGER NOT NULL,
+        source_key TEXT NOT NULL,
+        source_app TEXT,
+        source_bundle_id TEXT,
+        capture_count INTEGER NOT NULL DEFAULT 0,
+        first_captured_at DATETIME NOT NULL,
+        last_captured_at DATETIME NOT NULL,
+        UNIQUE(history_id, source_key),
+        FOREIGN KEY(history_id) REFERENCES clipboard_history(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX idx_clipboard_last_captured_at
+    ON clipboard_history(last_captured_at DESC);
+
+    CREATE INDEX idx_clipboard_detected_type
+    ON clipboard_history(detected_type);
+
+    CREATE INDEX idx_clipboard_user_override_type
+    ON clipboard_history(user_override_type);
+
+    CREATE INDEX idx_clipboard_last_pasted_at
+    ON clipboard_history(last_pasted_at DESC);
+
+    CREATE INDEX idx_capture_events_history_time
+    ON clipboard_capture_events(history_id, captured_at DESC);
+
+    CREATE INDEX idx_capture_events_captured_at
+    ON clipboard_capture_events(captured_at);
+    """
 }
+
+private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
