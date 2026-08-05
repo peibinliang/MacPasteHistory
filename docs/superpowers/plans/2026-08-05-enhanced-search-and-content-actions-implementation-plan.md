@@ -823,11 +823,11 @@ func saveDerivedText(_ request: DerivedClipboardRecordRequest) throws -> Clipboa
 
 ### LOOP steps
 
-- [ ] **Step 1: Add usage-stat tests**
+- [x] **Step 1: Add usage-stat tests**
 
 Assert copy and paste counts/timestamps update independently. Updating usage must not change capture count, source app, `createdAt` or `lastCapturedAt`.
 
-- [ ] **Step 2: Add type and OCR persistence tests**
+- [x] **Step 2: Add type and OCR persistence tests**
 
 Assert:
 
@@ -841,7 +841,7 @@ markOCRFailure preserves previous ocr_text and stores a stable error code
 
 For an image, `saveOCRResult` must not change `content_type` from image.
 
-- [ ] **Step 3: Define derived-source preview behavior**
+- [x] **Step 3: Define derived-source preview behavior**
 
 Implement deterministic privacy-aware previews:
 
@@ -856,7 +856,7 @@ empty text                        → "Empty text"
 
 The stable stored values are English identifiers, not localized UI strings; UI localizes display labels later.
 
-- [ ] **Step 4: Add derived-record tests**
+- [x] **Step 4: Add derived-record tests**
 
 Assert:
 
@@ -869,7 +869,7 @@ existing canonical record provenance is not overwritten when a derived output ma
 deleting source sets derived_from_history_id to NULL while preserving summary/hash/preview
 ```
 
-- [ ] **Step 5: Implement repository methods with bound parameters**
+- [x] **Step 5: Implement repository methods with bound parameters**
 
 All values, including error code, action ID and summary, must use SQLite bindings. Do not interpolate user-controlled strings into SQL.
 
@@ -880,7 +880,7 @@ All values, including error code, action ID and summary, must use SQLite binding
 3. Return the existing record.
 4. Do not overwrite any existing derived metadata.
 
-- [ ] **Step 6: Run Task 4 verification**
+- [x] **Step 6: Run Task 4 verification**
 
 ```bash
 xcodegen generate
@@ -891,7 +891,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   -only-testing:MacPasteHistoryTests/DerivedSourcePreviewBuilderTests test
 ```
 
-- [ ] **Step 7: Commit Task 4**
+- [x] **Step 7: Commit Task 4**
 
 ```bash
 git add MacPasteHistory/Database/ClipboardHistoryRepository.swift \
