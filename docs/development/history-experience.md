@@ -12,6 +12,16 @@ This phase improves browsing and inspecting saved clipboard history after text c
 4. Selecting a row opens `HistoryDetailView` with full text and available metadata.
 5. Scrolling to the last loaded row calls `loadMoreIfNeeded(currentItem:)` to request the next page.
 
+## Overlay Presentation
+
+The history surface is hosted in `HistoryPanelWindow`, a nonactivating `NSPanel` positioned at the top center of the screen containing the pointer. The panel uses a translucent rounded background and behaves like a temporary system overlay instead of a document window.
+
+- `.canJoinAllSpaces` and `.fullScreenAuxiliary` allow it to appear over the current fullscreen Space.
+- `.nonactivatingPanel` avoids activating the app as a normal window and prevents an unwanted Space switch.
+- `.popUpMenu` keeps the panel above the fullscreen application while it is visible.
+- Escape, double-click paste, clicking outside the panel, or selecting a paste target closes the overlay.
+- The settings surface remains a standard titled window because it is a persistent editing workflow rather than a quick overlay.
+
 ## Modules
 
 | Module | Responsibility |
@@ -21,6 +31,7 @@ This phase improves browsing and inspecting saved clipboard history after text c
 | `ClipboardHistoryRepository` | Applies search, favorite, type, and pagination filters with bound SQL parameters. |
 | `ClipboardHistoryViewModel` | Owns filter state, favorite updates, refreshes, and incremental loading. |
 | `MainPanelView` | Presents filters, rows, actions, and the detail sheet. |
+| `HistoryPanelWindow` | Configures fullscreen-safe overlay behavior, active-screen positioning, and automatic dismissal. |
 
 ## Behavior
 
@@ -33,6 +44,6 @@ This phase improves browsing and inspecting saved clipboard history after text c
 
 ## Testing
 
-Automated tests cover preview truncation, date display, repository favorite persistence, content type filtering, pagination, and ViewModel filter/loading behavior.
+Automated tests cover preview truncation, date display, repository favorite persistence, content type filtering, pagination, ViewModel filter/loading behavior, overlay window flags, window level, and top-center positioning.
 
-Manual verification is still needed for visual smoothness with a large real dataset and final row/detail interaction polish in the running macOS app.
+Manual verification is still needed for visual smoothness with a large real dataset, final row/detail interaction polish, and invocation over native and third-party fullscreen applications.

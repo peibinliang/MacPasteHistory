@@ -1,5 +1,28 @@
 # Development Log
 
+## 2026-08-05
+
+### Fixed
+
+- Replaced the standard clipboard history window with a rounded, translucent top overlay.
+- Prevented global shortcut invocation from activating a normal app window and switching away from the current fullscreen Space.
+- Added outside-click and Escape dismissal while preserving keyboard navigation and double-click paste behavior.
+
+### Root Cause
+
+- `AppDelegate` created history with a standard titled `NSWindow` and called `NSApp.activate(ignoringOtherApps:)`; macOS therefore activated the app on its own Space when invoked over a fullscreen application.
+
+### Verification
+
+- Added `HistoryPanelWindowTests` for nonactivating style, fullscreen auxiliary behavior, cross-Space behavior, popup level, key input support, transparency, and top-center positioning.
+- Targeted tests passed with 4 tests and 0 failures; the new window module reached 96.36% line coverage.
+- The final full test suite passed with 102 tests and 0 failures.
+- Manual fullscreen verification remains required against representative native and third-party applications.
+
+### Compatibility
+
+- No database migration, data repair, new permission, or clipboard-history format change is required.
+
 ## 2026-07-02
 
 ### Added

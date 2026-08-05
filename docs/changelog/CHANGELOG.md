@@ -69,6 +69,7 @@
 
 ### Fixed
 
+- Fixed history shortcut invocation over fullscreen applications by presenting a nonactivating top overlay in the current Space instead of activating a standard window.
 - Stabilized image dimension tests across Retina and non-Retina environments.
 - Fixed cleanup storage-limit wiring to use the total storage cap instead of the single-image size limit.
 - Fixed expired image cleanup so original and thumbnail files are removed with expired database records.
