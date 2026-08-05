@@ -47,6 +47,33 @@ final class HistoryPanelWindowTests: XCTestCase {
         XCTAssertFalse(panel.isVisible)
     }
 
+    func testShouldHideAfterResigningKey_whenDetailSheetIsAttached_shouldKeepPanelVisible() {
+        XCTAssertFalse(
+            HistoryPanelWindow.shouldHideAfterResigningKey(
+                hasAttachedSheet: true,
+                isKeyWindow: false
+            )
+        )
+    }
+
+    func testShouldHideAfterResigningKey_whenPanelRegainsKey_shouldKeepPanelVisible() {
+        XCTAssertFalse(
+            HistoryPanelWindow.shouldHideAfterResigningKey(
+                hasAttachedSheet: false,
+                isKeyWindow: true
+            )
+        )
+    }
+
+    func testShouldHideAfterResigningKey_whenFocusMovesOutsidePanel_shouldHidePanel() {
+        XCTAssertTrue(
+            HistoryPanelWindow.shouldHideAfterResigningKey(
+                hasAttachedSheet: false,
+                isKeyWindow: false
+            )
+        )
+    }
+
     func testTopCenteredFrame_shouldPositionPanelBelowScreenTopEdge() {
         let screenFrame = NSRect(x: 100, y: 50, width: 1_440, height: 900)
 
