@@ -147,6 +147,53 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, NSLocalizedString("Failed to restore text to clipboard.", comment: ""))
     }
 
+    func testCopyActionOutput_whenWriteSucceeds_shouldRecordReuseCopy() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+
+        XCTAssertTrue(viewModel.copyActionOutput("result", sourceItem: source))
+
+        XCTAssertEqual(try historyItem(id: source.id).reuseCopyCount, 1)
+        XCTAssertEqual(try historyItem(id: source.id).pasteCount, 0)
+        XCTAssertEqual(pasteboard.string(forType: .string), "result")
+    }
+
+    func testPasteActionOutput_whenDispatchSucceeds_shouldRecordPasteOnly() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+
+        XCTAssertTrue(viewModel.pasteActionOutput("result", sourceItem: source, pasteCommandService: PasteCommandService(sender: TestPasteCommandSender(didDispatch: true))))
+
+        XCTAssertEqual(try historyItem(id: source.id).reuseCopyCount, 0)
+        XCTAssertEqual(try historyItem(id: source.id).pasteCount, 1)
+    }
+
+    func testPasteActionOutput_whenDispatchFails_shouldRecordManualCopyOnly() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+
+        XCTAssertFalse(viewModel.pasteActionOutput("result", sourceItem: source, pasteCommandService: PasteCommandService(sender: TestPasteCommandSender(didDispatch: false))))
+
+        XCTAssertEqual(try historyItem(id: source.id).reuseCopyCount, 1)
+        XCTAssertEqual(try historyItem(id: source.id).pasteCount, 0)
+        XCTAssertEqual(viewModel.errorMessage, NSLocalizedString("Paste was not sent. Press Command-V to paste manually.", comment: ""))
+    }
+
+    func testSaveDerivedActionOutput_shouldPersistMetadataWithoutUsageIncrement() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+        let action = TextContentAction(kind: .uppercase)
+        let result = try action.execute(input: source.textContent)
+        var session = ActionSession(sourceItem: source)
+        session.append(action: action, result: result, input: source.textContent)
+
+        let saved = try XCTUnwrap(viewModel.saveDerivedActionOutput(from: session))
+
+        XCTAssertEqual(saved.textContent, "SOURCE")
+        XCTAssertEqual(saved.derivedFromHistoryID, source.id)
+        XCTAssertEqual(saved.derivedActionID, action.id.rawValue)
+        XCTAssertEqual(saved.derivedActionSummary, action.titleKey)
+        XCTAssertEqual(viewModel.selectedItemID, saved.id)
+        XCTAssertEqual(try historyItem(id: source.id).reuseCopyCount, 0)
+        XCTAssertEqual(try historyItem(id: source.id).pasteCount, 0)
+    }
+
     func testDelete_whenItemIsImage_shouldRemoveDatabaseRecordAndImageFiles() throws {
         let item = try saveImageRecord(pngData: makePNGData())
         let filePath = try XCTUnwrap(item.filePath)
@@ -165,6 +212,10 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         return try repository.saveImage(storedImage, sourceApp: nil, sourceBundleID: nil)
     }
 
+    private func historyItem(id: Int64) throws -> ClipboardHistoryItem {
+        try XCTUnwrap(repository.fetchHistory(query: HistoryQuery()).first { $0.id == id })
+    }
+
     private func makePNGData() throws -> Data {
         let image = NSImage(size: NSSize(width: 8, height: 8))
         image.lockFocus()
@@ -178,6 +229,18 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
             throw TestImageError.encodingFailed
         }
         return pngData
+    }
+}
+
+private final class TestPasteCommandSender: PasteCommandSending {
+    let didDispatch: Bool
+
+    init(didDispatch: Bool) {
+        self.didDispatch = didDispatch
+    }
+
+    func sendCommandVPaste() -> Bool {
+        didDispatch
     }
 }
 

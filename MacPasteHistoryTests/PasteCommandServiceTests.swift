@@ -6,8 +6,9 @@ final class PasteCommandServiceTests: XCTestCase {
         let sender = FakePasteCommandSender()
         let service = PasteCommandService(sender: sender)
 
-        service.sendPasteCommand()
+        let didDispatch = service.sendPasteCommand()
 
+        XCTAssertTrue(didDispatch)
         XCTAssertEqual(sender.sendCommandVPasteCallCount, 1)
     }
 }
@@ -15,7 +16,8 @@ final class PasteCommandServiceTests: XCTestCase {
 private final class FakePasteCommandSender: PasteCommandSending {
     private(set) var sendCommandVPasteCallCount = 0
 
-    func sendCommandVPaste() {
+    func sendCommandVPaste() -> Bool {
         sendCommandVPasteCallCount += 1
+        return true
     }
 }

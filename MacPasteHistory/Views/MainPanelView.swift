@@ -407,7 +407,7 @@ struct MainPanelView: View {
         pasteTargetApplication?.activate(options: PasteActivationPolicy.options)
         Task {
             try? await Task.sleep(nanoseconds: 250_000_000)
-            pasteCommandService.sendPasteCommand()
+            _ = pasteCommandService.sendPasteCommand()
         }
     }
 }

@@ -17,6 +17,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
     @Published private(set) var sourceOptions: [HistorySourceOption] = []
     @Published private(set) var errorMessage: String?
     @Published private(set) var isLoadingMore = false
+    @Published private(set) var selectedItemID: Int64?
 
     private let repository: ClipboardHistoryRepository
     private let writer: ClipboardWriter
@@ -207,6 +208,67 @@ final class ClipboardHistoryViewModel: ObservableObject {
             loadHistory()
         } catch {
             errorMessage = L10n.string("Failed to clear clipboard history.")
+        }
+    }
+
+    @discardableResult
+    func copyActionOutput(_ output: String, sourceItem: ClipboardHistoryItem) -> Bool {
+        guard writer.writeText(output) else {
+            errorMessage = L10n.string("Failed to restore text to clipboard.")
+            return false
+        }
+        do {
+            try repository.recordReuseCopy(historyID: sourceItem.id, at: Date())
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = L10n.string("Failed to record clipboard usage.")
+            return false
+        }
+    }
+
+    @discardableResult
+    func pasteActionOutput(_ output: String, sourceItem: ClipboardHistoryItem, pasteCommandService: PasteCommandService) -> Bool {
+        guard writer.writeText(output) else {
+            errorMessage = L10n.string("Failed to restore text to clipboard.")
+            return false
+        }
+        do {
+            if pasteCommandService.sendPasteCommand() {
+                try repository.recordPaste(historyID: sourceItem.id, at: Date())
+                errorMessage = nil
+                return true
+            }
+            try repository.recordReuseCopy(historyID: sourceItem.id, at: Date())
+            errorMessage = L10n.string("Paste was not sent. Press Command-V to paste manually.")
+            return false
+        } catch {
+            errorMessage = L10n.string("Failed to record clipboard usage.")
+            return false
+        }
+    }
+
+    @discardableResult
+    func saveDerivedActionOutput(from session: ActionSession) -> ClipboardHistoryItem? {
+        guard let lastStep = session.steps.last else { return nil }
+        do {
+            let source = session.sourceItem
+            let item = try repository.saveDerivedText(DerivedClipboardRecordRequest(
+                text: session.currentOutput,
+                sourceHistoryID: source.id,
+                actionID: lastStep.actionID.rawValue,
+                actionSummary: session.actionSummary,
+                sourcePreview: DerivedSourcePreviewBuilder.build(for: source),
+                sourceHash: source.contentHash,
+                detection: ContentClassifier().classifyFast(session.currentOutput)
+            ))
+            refreshSearch()
+            selectedItemID = item.id
+            errorMessage = item.id == source.id ? L10n.string("Existing clipboard record was reused.") : nil
+            return item
+        } catch {
+            errorMessage = L10n.string("Failed to save derived clipboard content.")
+            return nil
         }
     }
 
