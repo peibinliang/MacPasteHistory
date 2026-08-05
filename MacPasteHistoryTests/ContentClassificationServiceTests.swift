@@ -13,8 +13,9 @@ final class ContentClassificationServiceTests: XCTestCase {
         try repository.updateUserOverrideType(id: item.id, type: .url)
 
         let reloaded = try XCTUnwrap(repository.historyItem(id: item.id))
-        let service = ContentClassificationService(repository: repository)
+        let service = ContentClassificationService(databaseURL: url)
 
-        XCTAssertEqual(await service.effectiveType(for: reloaded), .url)
+        let effectiveType = await service.effectiveType(for: reloaded)
+        XCTAssertEqual(effectiveType, .url)
     }
 }
