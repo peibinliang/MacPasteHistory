@@ -57,3 +57,111 @@ final class HistoryDisplayFormatter {
         return dateTimeFormatter.string(from: date)
     }
 }
+
+enum HistoryTimelineGroup: Int, CaseIterable, Equatable {
+    case recent
+    case today
+    case earlier
+
+    var title: String {
+        switch self {
+        case .recent:
+            return L10n.string("Just Now")
+        case .today:
+            return L10n.string("Today")
+        case .earlier:
+            return L10n.string("Earlier")
+        }
+    }
+}
+
+struct HistoryTimelineSection: Identifiable, Equatable {
+    let group: HistoryTimelineGroup
+    let items: [ClipboardHistoryItem]
+
+    var id: HistoryTimelineGroup {
+        group
+    }
+}
+
+struct HistoryRecentSource: Identifiable, Equatable {
+    let title: String
+    let bundleID: String
+    let lastUsedAt: Date
+
+    var id: String {
+        bundleID
+    }
+}
+
+struct HistoryTimelineOrganizer {
+    private let calendar: Calendar
+    private let recentInterval: TimeInterval
+
+    init(calendar: Calendar = .current, recentInterval: TimeInterval = 10 * 60) {
+        self.calendar = calendar
+        self.recentInterval = recentInterval
+    }
+
+    func sections(
+        for items: [ClipboardHistoryItem],
+        now: Date = Date()
+    ) -> [HistoryTimelineSection] {
+        let groupedItems = Dictionary(grouping: items) { item in
+            group(for: item.createdAt, now: now)
+        }
+
+        return HistoryTimelineGroup.allCases.compactMap { group in
+            guard let items = groupedItems[group], items.isEmpty == false else {
+                return nil
+            }
+            return HistoryTimelineSection(group: group, items: items)
+        }
+    }
+
+    func recentSources(
+        from items: [ClipboardHistoryItem],
+        limit: Int
+    ) -> [HistoryRecentSource] {
+        guard limit > 0 else {
+            return []
+        }
+
+        var seenBundleIDs = Set<String>()
+        var sources: [HistoryRecentSource] = []
+
+        for item in items {
+            guard let title = item.sourceApp?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  title.isEmpty == false,
+                  let bundleID = item.sourceBundleID?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  bundleID.isEmpty == false,
+                  seenBundleIDs.insert(bundleID).inserted else {
+                continue
+            }
+
+            sources.append(
+                HistoryRecentSource(
+                    title: title,
+                    bundleID: bundleID,
+                    lastUsedAt: item.createdAt
+                )
+            )
+            if sources.count == limit {
+                break
+            }
+        }
+
+        return sources
+    }
+
+    private func group(for date: Date, now: Date) -> HistoryTimelineGroup {
+        if now.timeIntervalSince(date) >= 0,
+           now.timeIntervalSince(date) <= recentInterval {
+            return .recent
+        }
+        if calendar.isDate(date, inSameDayAs: now) {
+            return .today
+        }
+        return .earlier
+    }
+}
