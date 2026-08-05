@@ -273,18 +273,16 @@ struct MainPanelView: View {
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
-                    ForEach(timelineSections) { section in
-                        TimelineSectionView(
-                            section: section,
-                            selectedItemID: $selectedKeyboardItem,
-                            detailAction: { selectedItem = $0 },
-                            favoriteAction: { viewModel.toggleFavorite($0) },
-                            restoreAction: { restoreAndShowFeedback($0) },
-                            pasteAction: { pasteIntoPreviousApplication($0) },
-                            deleteAction: { viewModel.delete($0) },
-                            loadMoreAction: { viewModel.loadMoreIfNeeded(currentItem: $0) }
-                        )
-                    }
+                    HistoryTimelineView(
+                        sections: timelineSections,
+                        selectedItemID: $selectedKeyboardItem,
+                        detailAction: { selectedItem = $0 },
+                        favoriteAction: { viewModel.toggleFavorite($0) },
+                        restoreAction: { restoreAndShowFeedback($0) },
+                        pasteAction: { pasteIntoPreviousApplication($0) },
+                        deleteAction: { viewModel.delete($0) },
+                        loadMoreAction: { viewModel.loadMoreIfNeeded(currentItem: $0) }
+                    )
                 }
                 .padding(.horizontal, 18)
                 .padding(.vertical, 14)
@@ -505,7 +503,7 @@ private struct SourceRibbonButton: View {
     }
 }
 
-private struct TimelineSectionView: View {
+private struct LegacyTimelineSectionView: View {
     let section: HistoryTimelineSection
     @Binding var selectedItemID: Int64?
     let detailAction: (ClipboardHistoryItem) -> Void
@@ -528,7 +526,7 @@ private struct TimelineSectionView: View {
 
             VStack(spacing: 0) {
                 ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
-                    HistoryRowView(
+                    LegacyHistoryRowView(
                         item: item,
                         isSelected: selectedItemID == item.id,
                         detailAction: { detailAction(item) },
@@ -569,7 +567,7 @@ private struct TimelineSectionView: View {
     }
 }
 
-private struct HistoryRowView: View {
+private struct LegacyHistoryRowView: View {
     let item: ClipboardHistoryItem
     let isSelected: Bool
     let detailAction: () -> Void
@@ -706,7 +704,7 @@ private struct HistoryRowView: View {
     }
 }
 
-private struct HistoryDetailView: View {
+private struct LegacyHistoryDetailView: View {
     let item: ClipboardHistoryItem
     let restoreAction: () -> Void
     let deleteAction: () -> Void
@@ -827,32 +825,5 @@ private struct HistoryDetailView: View {
             return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
         }
         return String(format: L10n.string("%lld chars"), item.textLength)
-    }
-}
-
-private struct HistoryImagePreview: View {
-    let path: String?
-    let size: NSSize
-
-    var body: some View {
-        Group {
-            if let image {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFit()
-            } else {
-                Image(systemName: "photo")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(width: size.width, height: size.height)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-
-    private var image: NSImage? {
-        guard let path else { return nil }
-        return NSImage(contentsOfFile: path)
     }
 }

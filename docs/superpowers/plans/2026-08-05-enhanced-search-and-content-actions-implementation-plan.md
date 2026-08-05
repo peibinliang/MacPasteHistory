@@ -1236,7 +1236,7 @@ struct HistoryImagePreview: View
 
 ### LOOP steps
 
-- [ ] **Step 1: Capture current presentation behavior in tests**
+- [x] **Step 1: Capture current presentation behavior in tests**
 
 Extract pure presentation helpers from the private row view and test:
 
@@ -1248,11 +1248,11 @@ favorite accessibility title
 selected-row hint
 ```
 
-- [ ] **Step 2: Move private views to focused files**
+- [x] **Step 2: Move private views to focused files**
 
 Move code without changing strings, gestures, keyboard behavior, colors or layout. `MainPanelView` retains panel-level state and orchestration only.
 
-- [ ] **Step 3: Verify no behavior drift**
+- [x] **Step 3: Verify no behavior drift**
 
 ```bash
 xcodegen generate
@@ -1271,7 +1271,7 @@ rg -n "HistoryPanel|MainPanel|direct paste|keyboard" MacPasteHistoryTests
 
 Record the exact discovered class in the LOOP report; do not create a duplicate test class for existing behavior.
 
-- [ ] **Step 4: Commit Task 7**
+- [x] **Step 4: Commit Task 7**
 
 ```bash
 git add MacPasteHistory/Views/MainPanelView.swift MacPasteHistory/Views/History MacPasteHistoryTests
