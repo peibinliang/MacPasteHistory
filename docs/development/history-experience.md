@@ -20,6 +20,7 @@ The history surface is hosted in `HistoryPanelWindow`, a nonactivating `NSPanel`
 - `.nonactivatingPanel` avoids activating the app as a normal window and prevents an unwanted Space switch.
 - `.popUpMenu` keeps the panel above the fullscreen application while it is visible.
 - Escape, double-click paste, clicking outside the panel, or selecting a paste target closes the overlay.
+- Opening the detail Sheet temporarily transfers key-window status without dismissing the parent panel; outside-click dismissal is deferred until AppKit has attached the Sheet.
 - The settings surface remains a standard titled window because it is a persistent editing workflow rather than a quick overlay.
 
 ## Modules
@@ -44,6 +45,6 @@ The history surface is hosted in `HistoryPanelWindow`, a nonactivating `NSPanel`
 
 ## Testing
 
-Automated tests cover preview truncation, date display, repository favorite persistence, content type filtering, pagination, ViewModel filter/loading behavior, overlay window flags, window level, and top-center positioning.
+Automated tests cover preview truncation, date display, repository favorite persistence, content type filtering, pagination, ViewModel filter/loading behavior, overlay window flags, window level, top-center positioning, detail Sheet focus transfer, and outside-click dismissal.
 
 Manual verification is still needed for visual smoothness with a large real dataset, final row/detail interaction polish, and invocation over native and third-party fullscreen applications.

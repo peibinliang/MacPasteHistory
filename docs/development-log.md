@@ -7,16 +7,19 @@
 - Replaced the standard clipboard history window with a rounded, translucent top overlay.
 - Prevented global shortcut invocation from activating a normal app window and switching away from the current fullscreen Space.
 - Added outside-click and Escape dismissal while preserving keyboard navigation and double-click paste behavior.
+- Fixed the history panel becoming unresponsive after opening a record detail Sheet.
 
 ### Root Cause
 
 - `AppDelegate` created history with a standard titled `NSWindow` and called `NSApp.activate(ignoringOtherApps:)`; macOS therefore activated the app on its own Space when invoked over a fullscreen application.
+- The overlay initially hid itself synchronously from `resignKey()`. Opening a SwiftUI detail Sheet also makes the parent resign key status, so the parent was hidden while its modal Sheet remained active.
 
 ### Verification
 
 - Added `HistoryPanelWindowTests` for nonactivating style, fullscreen auxiliary behavior, cross-Space behavior, popup level, key input support, transparency, and top-center positioning.
-- Targeted tests passed with 4 tests and 0 failures; the new window module reached 96.36% line coverage.
-- The final full test suite passed with 102 tests and 0 failures.
+- Added focus-policy regression tests covering attached Sheets, regained key status, and genuine outside focus changes.
+- Targeted window tests passed with 7 tests and 0 failures; the window module remains above 96% line coverage.
+- The final full test suite passed with 105 tests and 0 failures.
 - Manual fullscreen verification remains required against representative native and third-party applications.
 
 ### Compatibility

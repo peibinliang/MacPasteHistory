@@ -69,6 +69,7 @@
 
 ### Fixed
 
+- Fixed the clipboard history overlay becoming unresponsive when opening a record detail Sheet.
 - Fixed history shortcut invocation over fullscreen applications by presenting a nonactivating top overlay in the current Space instead of activating a standard window.
 - Stabilized image dimension tests across Retina and non-Retina environments.
 - Fixed cleanup storage-limit wiring to use the total storage cap instead of the single-image size limit.
