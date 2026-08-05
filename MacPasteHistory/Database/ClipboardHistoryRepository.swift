@@ -432,6 +432,25 @@ final class ClipboardHistoryRepository {
         return try collectItems(from: statement)
     }
 
+    func fetchSearchCandidates(request: SearchCandidateRequest) throws -> [ClipboardHistoryItem] {
+        let query = SearchCandidateSQLBuilder().build(request: request)
+        let statement = try database.prepare(query.sql)
+        defer { sqlite3_finalize(statement) }
+
+        for (offset, binding) in query.bindings.enumerated() {
+            let index = Int32(offset + 1)
+            switch binding {
+            case let .text(value):
+                try bindText(value, to: statement, index: index)
+            case let .date(value):
+                try bindText(dateFormatter.string(from: value), to: statement, index: index)
+            case let .integer(value):
+                try bindInt(value, to: statement, index: index)
+            }
+        }
+        return try collectItems(from: statement)
+    }
+
     func fetchSourceOptions() throws -> [HistorySourceOption] {
         let statement = try database.prepare(
             """
@@ -1056,7 +1075,7 @@ final class ClipboardHistoryRepository {
         return ClipboardImageFormat(rawValue: value)
     }
 
-    private static let selectHistorySQL = """
+    static let selectHistorySQL = """
     SELECT
         id,
         content_type,

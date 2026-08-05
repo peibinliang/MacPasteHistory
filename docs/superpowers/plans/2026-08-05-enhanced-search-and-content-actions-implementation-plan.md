@@ -1087,7 +1087,7 @@ actor SearchCoordinator {
 
 ### LOOP steps
 
-- [ ] **Step 1: Add SQL builder tests**
+- [x] **Step 1: Add SQL builder tests**
 
 Verify generated SQL and bound values for every structured filter. The builder must:
 
@@ -1098,7 +1098,7 @@ Verify generated SQL and bound values for every structured filter. The builder m
 - never interpolate search text into SQL;
 - end with `LIMIT ?` capped at 500.
 
-- [ ] **Step 2: Implement candidate fetching on an isolated read connection**
+- [x] **Step 2: Implement candidate fetching on an isolated read connection**
 
 `SearchCandidateProvider` opens a `.readOnly` `DatabaseConnection` inside its actor for each full query, closes it in `defer`, and constructs a repository over that connection. It must never share the app writer connection across detached tasks.
 
@@ -1108,7 +1108,7 @@ Add to repository:
 func fetchSearchCandidates(request: SearchCandidateRequest) throws -> [ClipboardHistoryItem]
 ```
 
-- [ ] **Step 3: Add matcher and ranker tests**
+- [x] **Step 3: Add matcher and ranker tests**
 
 Required precedence:
 
@@ -1127,7 +1127,7 @@ normalized Levenshtein similarity below 0.60 yields no fuzzy match
 
 Test that an unmatched record cannot enter results solely through favorite or usage scores.
 
-- [ ] **Step 4: Implement centralized ranking weights**
+- [x] **Step 4: Implement centralized ranking weights**
 
 Use these defaults:
 
@@ -1160,17 +1160,17 @@ Use 7-day capture half-life and 14-day paste half-life. Count score uses bounded
 minimum(maximum, log2(Double(count) + 1) / log2(65) * maximum)
 ```
 
-- [ ] **Step 5: Add coordinator race/cancellation tests**
+- [x] **Step 5: Add coordinator race/cancellation tests**
 
 Use a fake provider with controlled continuations. Start search `j`, then `json`; resume `json` first and `j` last. Assert only `json` is marked current. Test explicit cancellation and 150ms debounce using an injected sleeper/clock abstraction rather than real wall-clock sleeps.
 
-- [ ] **Step 6: Implement coordinator**
+- [x] **Step 6: Implement coordinator**
 
 The actor owns a monotonically increasing generation. Every new search or cancellation increments it. After debounce and candidate query, compare the captured generation before returning a current response. A stale response must be returned with `isCurrent = false` and ignored by the ViewModel.
 
 `immediateResults` parses and ranks only loaded items without awaiting SQLite.
 
-- [ ] **Step 7: Add performance tests**
+- [x] **Step 7: Add performance tests**
 
 Generate 500 in-memory items and assert ranker work using `measure`. Add a database performance test with 500 synthetic rows. Do not fail on a single noisy sample; use XCTest metrics and document the target:
 
@@ -1181,7 +1181,7 @@ read query plus rank target < 100ms on the development Mac
 
 Performance tests may be excluded from the fastest per-edit command, but must run in the Task 6 gate.
 
-- [ ] **Step 8: Run Task 6 verification**
+- [x] **Step 8: Run Task 6 verification**
 
 ```bash
 xcodegen generate
@@ -1195,7 +1195,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   -only-testing:MacPasteHistoryTests/SearchPerformanceTests test
 ```
 
-- [ ] **Step 9: Commit Task 6**
+- [x] **Step 9: Commit Task 6**
 
 ```bash
 git add MacPasteHistory/Search MacPasteHistory/Database/ClipboardHistoryRepository.swift \
