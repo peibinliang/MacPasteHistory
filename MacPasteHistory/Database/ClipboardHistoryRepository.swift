@@ -16,50 +16,140 @@ final class ClipboardHistoryRepository {
         let normalizedText = hashService.normalize(text)
         let contentHash = hashService.hash(for: normalizedText)
 
-        if let existingItem = try fetchItem(contentHash: contentHash) {
-            try updateDuplicateTextItem(id: existingItem.id, sourceApp: sourceApp, sourceBundleID: sourceBundleID)
-            guard let updatedItem = try fetchItem(id: existingItem.id) else {
-                throw DatabaseError.stepFailed("Updated text history item could not be reloaded")
+        return try database.inTransaction {
+            if let existingItem = try fetchItem(contentHash: contentHash) {
+                try updateDuplicateTextItem(id: existingItem.id, sourceApp: sourceApp, sourceBundleID: sourceBundleID)
+                try insertCaptureEvent(historyID: existingItem.id, sourceApp: sourceApp, sourceBundleID: sourceBundleID)
+                guard let updatedItem = try fetchItem(id: existingItem.id) else {
+                    throw DatabaseError.stepFailed("Updated text history item could not be reloaded")
+                }
+                return updatedItem
             }
-            return updatedItem
-        }
 
-        let statement = try database.prepare(
-            """
-            INSERT INTO clipboard_history (
-                content_type,
-                text_content,
-                source_app,
-                source_bundle_id,
-                content_hash,
-                text_length
+            let statement = try database.prepare(
+                """
+                INSERT INTO clipboard_history (
+                    content_type,
+                    text_content,
+                    source_app,
+                    source_bundle_id,
+                    content_hash,
+                    text_length,
+                    searchable_text,
+                    first_captured_at,
+                    last_captured_at,
+                    capture_count
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
+                """
             )
-            VALUES (?, ?, ?, ?, ?, ?);
-            """
-        )
-        defer {
-            sqlite3_finalize(statement)
-        }
+            defer { sqlite3_finalize(statement) }
 
-        try bindText(ClipboardContentType.text.rawValue, to: statement, index: 1)
-        try bindText(normalizedText, to: statement, index: 2)
-        try bindNullableText(sourceApp, to: statement, index: 3)
-        try bindNullableText(sourceBundleID, to: statement, index: 4)
-        try bindText(contentHash, to: statement, index: 5)
-        try bindInt(normalizedText.count, to: statement, index: 6)
+            try bindText(ClipboardContentType.text.rawValue, to: statement, index: 1)
+            try bindText(normalizedText, to: statement, index: 2)
+            try bindNullableText(sourceApp, to: statement, index: 3)
+            try bindNullableText(sourceBundleID, to: statement, index: 4)
+            try bindText(contentHash, to: statement, index: 5)
+            try bindInt(normalizedText.count, to: statement, index: 6)
+            try bindText(normalizedText, to: statement, index: 7)
 
-        guard sqlite3_step(statement) == SQLITE_DONE else {
-            throw DatabaseError.stepFailed(database.lastErrorMessage)
-        }
+            guard sqlite3_step(statement) == SQLITE_DONE else {
+                throw DatabaseError.stepFailed(database.lastErrorMessage)
+            }
 
-        guard let item = try fetchItem(id: database.lastInsertedRowID) else {
-            throw DatabaseError.stepFailed("Inserted text history item could not be loaded")
+            let itemID = database.lastInsertedRowID
+            try insertCaptureEvent(historyID: itemID, sourceApp: sourceApp, sourceBundleID: sourceBundleID)
+            guard let item = try fetchItem(id: itemID) else {
+                throw DatabaseError.stepFailed("Inserted text history item could not be loaded")
+            }
+            return item
         }
-        return item
     }
 
     func fetchTextHistory(matching keyword: String?) throws -> [ClipboardHistoryItem] {
         try fetchHistory(query: HistoryQuery(keyword: keyword, contentType: .text))
+    }
+
+    func fetchCaptureEvents(historyID: Int64, since date: Date) throws -> [ClipboardCaptureEvent] {
+        let statement = try database.prepare(
+            """
+            SELECT id, history_id, source_app, source_bundle_id, captured_at
+            FROM clipboard_capture_events
+            WHERE history_id = ? AND datetime(captured_at) >= datetime(?)
+            ORDER BY datetime(captured_at) DESC, id DESC;
+            """
+        )
+        defer { sqlite3_finalize(statement) }
+
+        try bindInt64(historyID, to: statement, index: 1)
+        try bindText(dateFormatter.string(from: date), to: statement, index: 2)
+
+        var events: [ClipboardCaptureEvent] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let capturedAtValue = stringValue(statement, index: 4)
+            guard let capturedAt = dateFormatter.date(from: capturedAtValue) else {
+                throw DatabaseError.invalidDate(capturedAtValue)
+            }
+            events.append(
+                ClipboardCaptureEvent(
+                    id: sqlite3_column_int64(statement, 0),
+                    historyID: sqlite3_column_int64(statement, 1),
+                    sourceApp: nullableStringValue(statement, index: 2),
+                    sourceBundleID: nullableStringValue(statement, index: 3),
+                    capturedAt: capturedAt
+                )
+            )
+        }
+        return events
+    }
+
+    func fetchCaptureSummaries(historyID: Int64) throws -> [ClipboardCaptureEventSummary] {
+        let statement = try database.prepare(
+            """
+            SELECT id, history_id, source_key, source_app, source_bundle_id,
+                   capture_count, first_captured_at, last_captured_at
+            FROM clipboard_capture_event_summaries
+            WHERE history_id = ?
+            ORDER BY datetime(last_captured_at) DESC, id DESC;
+            """
+        )
+        defer { sqlite3_finalize(statement) }
+
+        try bindInt64(historyID, to: statement, index: 1)
+        var summaries: [ClipboardCaptureEventSummary] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let firstCapturedAtValue = stringValue(statement, index: 6)
+            let lastCapturedAtValue = stringValue(statement, index: 7)
+            guard let firstCapturedAt = dateFormatter.date(from: firstCapturedAtValue) else {
+                throw DatabaseError.invalidDate(firstCapturedAtValue)
+            }
+            guard let lastCapturedAt = dateFormatter.date(from: lastCapturedAtValue) else {
+                throw DatabaseError.invalidDate(lastCapturedAtValue)
+            }
+            summaries.append(
+                ClipboardCaptureEventSummary(
+                    id: sqlite3_column_int64(statement, 0),
+                    historyID: sqlite3_column_int64(statement, 1),
+                    sourceKey: stringValue(statement, index: 2),
+                    sourceApp: nullableStringValue(statement, index: 3),
+                    sourceBundleID: nullableStringValue(statement, index: 4),
+                    captureCount: Int(sqlite3_column_int(statement, 5)),
+                    firstCapturedAt: firstCapturedAt,
+                    lastCapturedAt: lastCapturedAt
+                )
+            )
+        }
+        return summaries
+    }
+
+    func aggregateCaptureEvents(before cutoff: Date) throws {
+        try database.inTransaction {
+            let aggregates = try captureEventAggregates(before: cutoff)
+            for aggregate in aggregates.values {
+                try upsertCaptureEventSummary(aggregate)
+            }
+            try deleteCaptureEvents(before: cutoff)
+        }
     }
 
     func saveImage(
@@ -67,59 +157,66 @@ final class ClipboardHistoryRepository {
         sourceApp: String?,
         sourceBundleID: String?
     ) throws -> ClipboardHistoryItem {
-        if let existingItem = try fetchItem(contentHash: image.contentHash) {
-            try updateDuplicateImageItem(
-                id: existingItem.id,
-                image: image,
-                sourceApp: sourceApp,
-                sourceBundleID: sourceBundleID
-            )
-            guard let updatedItem = try fetchItem(id: existingItem.id) else {
-                throw DatabaseError.stepFailed("Updated image history item could not be reloaded")
+        return try database.inTransaction {
+            if let existingItem = try fetchItem(contentHash: image.contentHash) {
+                try updateDuplicateImageItem(
+                    id: existingItem.id,
+                    image: image,
+                    sourceApp: sourceApp,
+                    sourceBundleID: sourceBundleID
+                )
+                try insertCaptureEvent(historyID: existingItem.id, sourceApp: sourceApp, sourceBundleID: sourceBundleID)
+                guard let updatedItem = try fetchItem(id: existingItem.id) else {
+                    throw DatabaseError.stepFailed("Updated image history item could not be reloaded")
+                }
+                return updatedItem
             }
-            return updatedItem
-        }
 
-        let statement = try database.prepare(
-            """
-            INSERT INTO clipboard_history (
-                content_type,
-                file_path,
-                thumbnail_path,
-                source_app,
-                source_bundle_id,
-                content_hash,
-                file_size,
-                image_width,
-                image_height,
-                image_format
+            let statement = try database.prepare(
+                """
+                INSERT INTO clipboard_history (
+                    content_type,
+                    file_path,
+                    thumbnail_path,
+                    source_app,
+                    source_bundle_id,
+                    content_hash,
+                    file_size,
+                    image_width,
+                    image_height,
+                    image_format,
+                    searchable_text,
+                    first_captured_at,
+                    last_captured_at,
+                    capture_count
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);
+                """
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-            """
-        )
-        defer {
-            sqlite3_finalize(statement)
-        }
+            defer { sqlite3_finalize(statement) }
 
-        try bindText(ClipboardContentType.image.rawValue, to: statement, index: 1)
-        try bindText(image.fileURL.path, to: statement, index: 2)
-        try bindText(image.thumbnailURL.path, to: statement, index: 3)
-        try bindNullableText(sourceApp, to: statement, index: 4)
-        try bindNullableText(sourceBundleID, to: statement, index: 5)
-        try bindText(image.contentHash, to: statement, index: 6)
-        try bindInt(image.fileSize, to: statement, index: 7)
-        try bindInt(image.width, to: statement, index: 8)
-        try bindInt(image.height, to: statement, index: 9)
-        try bindText(image.format.rawValue, to: statement, index: 10)
+            try bindText(ClipboardContentType.image.rawValue, to: statement, index: 1)
+            try bindText(image.fileURL.path, to: statement, index: 2)
+            try bindText(image.thumbnailURL.path, to: statement, index: 3)
+            try bindNullableText(sourceApp, to: statement, index: 4)
+            try bindNullableText(sourceBundleID, to: statement, index: 5)
+            try bindText(image.contentHash, to: statement, index: 6)
+            try bindInt(image.fileSize, to: statement, index: 7)
+            try bindInt(image.width, to: statement, index: 8)
+            try bindInt(image.height, to: statement, index: 9)
+            try bindText(image.format.rawValue, to: statement, index: 10)
 
-        guard sqlite3_step(statement) == SQLITE_DONE else {
-            throw DatabaseError.stepFailed(database.lastErrorMessage)
-        }
+            guard sqlite3_step(statement) == SQLITE_DONE else {
+                throw DatabaseError.stepFailed(database.lastErrorMessage)
+            }
 
-        guard let item = try fetchItem(id: database.lastInsertedRowID) else {
-            throw DatabaseError.stepFailed("Inserted image history item could not be loaded")
+            let itemID = database.lastInsertedRowID
+            try insertCaptureEvent(historyID: itemID, sourceApp: sourceApp, sourceBundleID: sourceBundleID)
+            guard let item = try fetchItem(id: itemID) else {
+                throw DatabaseError.stepFailed("Inserted image history item could not be loaded")
+            }
+            return item
         }
-        return item
     }
 
     func fetchHistory(query: HistoryQuery) throws -> [ClipboardHistoryItem] {
@@ -405,7 +502,8 @@ final class ClipboardHistoryRepository {
             UPDATE clipboard_history
             SET source_app = ?,
                 source_bundle_id = ?,
-                created_at = CURRENT_TIMESTAMP,
+                last_captured_at = CURRENT_TIMESTAMP,
+                capture_count = capture_count + 1,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ? AND content_type = ?;
             """
@@ -441,7 +539,8 @@ final class ClipboardHistoryRepository {
                 image_width = ?,
                 image_height = ?,
                 image_format = ?,
-                created_at = CURRENT_TIMESTAMP,
+                last_captured_at = CURRENT_TIMESTAMP,
+                capture_count = capture_count + 1,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ? AND content_type = ?;
             """
@@ -461,6 +560,105 @@ final class ClipboardHistoryRepository {
         try bindInt64(id, to: statement, index: 9)
         try bindText(ClipboardContentType.image.rawValue, to: statement, index: 10)
 
+        guard sqlite3_step(statement) == SQLITE_DONE else {
+            throw DatabaseError.stepFailed(database.lastErrorMessage)
+        }
+    }
+
+    private func insertCaptureEvent(historyID: Int64, sourceApp: String?, sourceBundleID: String?) throws {
+        let statement = try database.prepare(
+            """
+            INSERT INTO clipboard_capture_events (history_id, source_app, source_bundle_id)
+            VALUES (?, ?, ?);
+            """
+        )
+        defer { sqlite3_finalize(statement) }
+
+        try bindInt64(historyID, to: statement, index: 1)
+        try bindNullableText(sourceApp, to: statement, index: 2)
+        try bindNullableText(sourceBundleID, to: statement, index: 3)
+        guard sqlite3_step(statement) == SQLITE_DONE else {
+            throw DatabaseError.stepFailed(database.lastErrorMessage)
+        }
+    }
+
+    private func captureEventAggregates(before cutoff: Date) throws -> [CaptureEventAggregateKey: CaptureEventAggregate] {
+        let statement = try database.prepare(
+            """
+            SELECT history_id, source_app, source_bundle_id, captured_at
+            FROM clipboard_capture_events
+            WHERE datetime(captured_at) < datetime(?);
+            """
+        )
+        defer { sqlite3_finalize(statement) }
+
+        try bindText(dateFormatter.string(from: cutoff), to: statement, index: 1)
+        var aggregates: [CaptureEventAggregateKey: CaptureEventAggregate] = [:]
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let capturedAtValue = stringValue(statement, index: 3)
+            guard let capturedAt = dateFormatter.date(from: capturedAtValue) else {
+                throw DatabaseError.invalidDate(capturedAtValue)
+            }
+            let identity = CaptureSourceIdentity(
+                appName: nullableStringValue(statement, index: 1),
+                bundleID: nullableStringValue(statement, index: 2)
+            )
+            let key = CaptureEventAggregateKey(historyID: sqlite3_column_int64(statement, 0), sourceKey: identity.key)
+            if var aggregate = aggregates[key] {
+                aggregate.captureCount += 1
+                aggregate.firstCapturedAt = min(aggregate.firstCapturedAt, capturedAt)
+                aggregate.lastCapturedAt = max(aggregate.lastCapturedAt, capturedAt)
+                aggregates[key] = aggregate
+            } else {
+                aggregates[key] = CaptureEventAggregate(
+                    historyID: key.historyID,
+                    identity: identity,
+                    captureCount: 1,
+                    firstCapturedAt: capturedAt,
+                    lastCapturedAt: capturedAt
+                )
+            }
+        }
+        return aggregates
+    }
+
+    private func upsertCaptureEventSummary(_ aggregate: CaptureEventAggregate) throws {
+        let statement = try database.prepare(
+            """
+            INSERT INTO clipboard_capture_event_summaries (
+                history_id, source_key, source_app, source_bundle_id,
+                capture_count, first_captured_at, last_captured_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(history_id, source_key) DO UPDATE SET
+                source_app = excluded.source_app,
+                source_bundle_id = excluded.source_bundle_id,
+                capture_count = clipboard_capture_event_summaries.capture_count + excluded.capture_count,
+                first_captured_at = MIN(clipboard_capture_event_summaries.first_captured_at, excluded.first_captured_at),
+                last_captured_at = MAX(clipboard_capture_event_summaries.last_captured_at, excluded.last_captured_at);
+            """
+        )
+        defer { sqlite3_finalize(statement) }
+
+        try bindInt64(aggregate.historyID, to: statement, index: 1)
+        try bindText(aggregate.identity.key, to: statement, index: 2)
+        try bindNullableText(aggregate.identity.appName, to: statement, index: 3)
+        try bindNullableText(aggregate.identity.bundleID, to: statement, index: 4)
+        try bindInt(aggregate.captureCount, to: statement, index: 5)
+        try bindText(dateFormatter.string(from: aggregate.firstCapturedAt), to: statement, index: 6)
+        try bindText(dateFormatter.string(from: aggregate.lastCapturedAt), to: statement, index: 7)
+        guard sqlite3_step(statement) == SQLITE_DONE else {
+            throw DatabaseError.stepFailed(database.lastErrorMessage)
+        }
+    }
+
+    private func deleteCaptureEvents(before cutoff: Date) throws {
+        let statement = try database.prepare(
+            "DELETE FROM clipboard_capture_events WHERE datetime(captured_at) < datetime(?);"
+        )
+        defer { sqlite3_finalize(statement) }
+
+        try bindText(dateFormatter.string(from: cutoff), to: statement, index: 1)
         guard sqlite3_step(statement) == SQLITE_DONE else {
             throw DatabaseError.stepFailed(database.lastErrorMessage)
         }
@@ -734,6 +932,19 @@ final class ClipboardHistoryRepository {
         case derivedAt
         case derivedSourcePreview
         case derivedSourceHash
+    }
+
+    private struct CaptureEventAggregateKey: Hashable {
+        let historyID: Int64
+        let sourceKey: String
+    }
+
+    private struct CaptureEventAggregate {
+        let historyID: Int64
+        let identity: CaptureSourceIdentity
+        var captureCount: Int
+        var firstCapturedAt: Date
+        var lastCapturedAt: Date
     }
 }
 

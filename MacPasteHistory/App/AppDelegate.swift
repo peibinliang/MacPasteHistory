@@ -200,7 +200,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Perform data cleanup on startup (expired records, count limits, storage caps)
             let cleanupService = DataCleanupService(
                 repository: repository,
-                imageStorageService: imageStorageService
+                imageStorageService: imageStorageService,
+                captureEventAggregationService: CaptureEventAggregationService(
+                    repository: repository,
+                    preferences: CaptureEventAggregationPreferences(defaults: .standard)
+                )
             )
             cleanupService.performStartupCleanup()
         } catch {

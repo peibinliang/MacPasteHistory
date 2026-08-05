@@ -685,7 +685,7 @@ func aggregateCaptureEvents(before cutoff: Date) throws
 
 ### LOOP steps
 
-- [ ] **Step 1: Define source identity tests**
+- [x] **Step 1: Define source identity tests**
 
 Required keys:
 
@@ -697,7 +697,7 @@ no source             → unknown
 
 This key is database identity only and must never be displayed to users.
 
-- [ ] **Step 2: Add atomic capture tests**
+- [x] **Step 2: Add atomic capture tests**
 
 Tests must prove:
 
@@ -713,7 +713,7 @@ failure inserting an event rolls back the corresponding main-record update
 
 For the rollback test, add a temporary trigger that aborts inserts into `clipboard_capture_events`, call `saveText`, and assert no partial main-record change remains.
 
-- [ ] **Step 3: Implement atomic save/capture behavior**
+- [x] **Step 3: Implement atomic save/capture behavior**
 
 Wrap insert/update plus event insert in `database.inTransaction`. Change duplicate updates from:
 
@@ -733,7 +733,7 @@ updated_at = CURRENT_TIMESTAMP
 
 New records must initialize `searchable_text`, `first_captured_at`, `last_captured_at`, `capture_count = 1`, then insert the first event.
 
-- [ ] **Step 4: Add aggregation tests**
+- [x] **Step 4: Add aggregation tests**
 
 Create events at 31 days and 5 days before a fixed `now`. Assert:
 
@@ -747,7 +747,7 @@ triggered failure rolls back summary updates and event deletion
 same calendar day causes aggregateIfNeeded to skip the repository call
 ```
 
-- [ ] **Step 5: Implement aggregation SQL**
+- [x] **Step 5: Implement aggregation SQL**
 
 Within one transaction:
 
@@ -758,11 +758,11 @@ Within one transaction:
 
 `aggregateIfNeeded` calculates `cutoff = now - 30 days`, records the successful day in preferences, and does not mark success when repository aggregation throws.
 
-- [ ] **Step 6: Integrate startup cleanup**
+- [x] **Step 6: Integrate startup cleanup**
 
 Inject `CaptureEventAggregationService` into `DataCleanupService`. Run aggregation as an independent cleanup step so failure does not prevent expiry/count/storage cleanup. `AppDelegate` must construct it using the existing repository and `UserDefaults.standard` preferences.
 
-- [ ] **Step 7: Run Task 3 verification**
+- [x] **Step 7: Run Task 3 verification**
 
 ```bash
 xcodegen generate
@@ -774,7 +774,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   -only-testing:MacPasteHistoryTests/DataCleanupServiceTests test
 ```
 
-- [ ] **Step 8: Commit Task 3**
+- [x] **Step 8: Commit Task 3**
 
 ```bash
 git add MacPasteHistory/Database/ClipboardHistoryRepository.swift \

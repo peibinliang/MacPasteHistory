@@ -48,6 +48,41 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
         XCTAssertEqual(items.count, 1)
     }
 
+    func testSaveText_shouldCreateCaptureEventForNewAndDuplicateCaptures() throws {
+        let firstItem = try repository.saveText(
+            "captured text",
+            sourceApp: "Old Source",
+            sourceBundleID: "com.example.old"
+        )
+        try database.execute("""
+        UPDATE clipboard_history
+        SET created_at = '2020-01-01 00:00:00',
+            first_captured_at = '2020-01-01 00:00:00',
+            last_captured_at = '2020-01-01 00:00:00'
+        WHERE id = \(firstItem.id);
+        """)
+
+        let duplicateItem = try repository.saveText(
+            "captured text",
+            sourceApp: "Latest Source",
+            sourceBundleID: "com.example.latest"
+        )
+        let events = try repository.fetchCaptureEvents(
+            historyID: firstItem.id,
+            since: Date(timeIntervalSince1970: 0)
+        )
+
+        XCTAssertEqual(duplicateItem.id, firstItem.id)
+        XCTAssertEqual(duplicateItem.captureCount, 2)
+        XCTAssertEqual(duplicateItem.sourceApp, "Latest Source")
+        XCTAssertEqual(duplicateItem.sourceBundleID, "com.example.latest")
+        XCTAssertEqual(duplicateItem.createdAt, Self.date("2020-01-01 00:00:00"))
+        XCTAssertEqual(duplicateItem.firstCapturedAt, Self.date("2020-01-01 00:00:00"))
+        XCTAssertGreaterThan(duplicateItem.lastCapturedAt ?? .distantPast, duplicateItem.firstCapturedAt ?? .distantFuture)
+        XCTAssertEqual(events.count, 2)
+        XCTAssertEqual(events.map(\.sourceApp), ["Latest Source", "Old Source"])
+    }
+
     func testFetchTextHistory_whenKeywordProvided_shouldReturnMatchingRecords() throws {
         _ = try repository.saveText("alpha note", sourceApp: nil, sourceBundleID: nil)
         _ = try repository.saveText("beta memo", sourceApp: nil, sourceBundleID: nil)
@@ -208,6 +243,59 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
         XCTAssertEqual(firstItem.id, secondItem.id)
         XCTAssertEqual(imageItems.count, 1)
         XCTAssertEqual(imageItems.first?.filePath, "/tmp/second.png")
+    }
+
+    func testSaveImage_shouldCreateCaptureEventForNewAndDuplicateCaptures() throws {
+        let firstImage = StoredClipboardImage(
+            fileURL: URL(fileURLWithPath: "/tmp/capture-first.png"),
+            thumbnailURL: URL(fileURLWithPath: "/tmp/capture-first-thumb.png"),
+            contentHash: "capture-image-hash",
+            fileSize: 100,
+            width: 10,
+            height: 10,
+            format: .png
+        )
+        let secondImage = StoredClipboardImage(
+            fileURL: URL(fileURLWithPath: "/tmp/capture-second.png"),
+            thumbnailURL: URL(fileURLWithPath: "/tmp/capture-second-thumb.png"),
+            contentHash: "capture-image-hash",
+            fileSize: 100,
+            width: 10,
+            height: 10,
+            format: .png
+        )
+
+        let firstItem = try repository.saveImage(firstImage, sourceApp: "Preview", sourceBundleID: "com.apple.Preview")
+        let duplicateItem = try repository.saveImage(secondImage, sourceApp: "Finder", sourceBundleID: "com.apple.finder")
+        let events = try repository.fetchCaptureEvents(
+            historyID: firstItem.id,
+            since: Date(timeIntervalSince1970: 0)
+        )
+
+        XCTAssertEqual(duplicateItem.id, firstItem.id)
+        XCTAssertEqual(duplicateItem.captureCount, 2)
+        XCTAssertEqual(events.count, 2)
+        XCTAssertEqual(events.map(\.sourceApp), ["Finder", "Preview"])
+    }
+
+    func testSaveText_whenCaptureEventInsertFails_shouldRollBackDuplicateUpdate() throws {
+        let item = try repository.saveText("rollback capture", sourceApp: "Original", sourceBundleID: "com.example.original")
+        try database.execute("""
+        CREATE TRIGGER fail_capture_event_insert
+        BEFORE INSERT ON clipboard_capture_events
+        BEGIN
+            SELECT RAISE(ABORT, 'capture event failure');
+        END;
+        """)
+
+        XCTAssertThrowsError(
+            try repository.saveText("rollback capture", sourceApp: "Changed", sourceBundleID: "com.example.changed")
+        )
+
+        let reloaded = try XCTUnwrap(repository.fetchHistory(query: HistoryQuery()).first { $0.id == item.id })
+        XCTAssertEqual(reloaded.captureCount, 1)
+        XCTAssertEqual(reloaded.sourceApp, "Original")
+        XCTAssertEqual(reloaded.sourceBundleID, "com.example.original")
     }
 
     func testFetchHistory_whenV3MetadataExists_shouldMapEveryNewField() throws {
