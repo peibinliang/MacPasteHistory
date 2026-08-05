@@ -43,12 +43,12 @@ final class ContentActionPanelViewModel: ObservableObject {
         return registry.recommended(for: session.sourceItem.effectiveDetectedType)
     }
 
-    func present(for item: ClipboardHistoryItem, recommendedOnly: Bool = false) {
-        session = ActionSession(sourceItem: item)
+    func present(for item: ClipboardHistoryItem, sourceText: String? = nil, recommendedOnly: Bool = false) {
+        session = ActionSession(sourceItem: item, sourceText: sourceText)
         selectedAction = nil
         copyVariants = []
         notices = []
-        editedOutput = item.textContent
+        editedOutput = sourceText ?? item.textContent
         showsRecommendedActions = recommendedOnly
         state = .choosing
     }

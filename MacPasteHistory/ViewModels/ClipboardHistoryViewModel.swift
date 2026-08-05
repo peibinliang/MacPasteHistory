@@ -207,6 +207,10 @@ final class ClipboardHistoryViewModel: ObservableObject {
         return (try? repository.historyItem(id: sourceID)) != nil
     }
 
+    func makeOCRViewModel() -> OCRViewModel {
+        OCRViewModel(repository: repository, didSave: { [weak self] in self?.refreshSearch() })
+    }
+
     func clearTextHistory() {
         do {
             try repository.clearTextHistory()

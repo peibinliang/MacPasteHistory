@@ -8,6 +8,7 @@ struct HistoryDetailView: View {
     let favoriteAction: () -> Void
     let setTypeAction: (DetectedContentType?) -> Void
     let sourceRecordExists: Bool
+    @ObservedObject var ocrViewModel: OCRViewModel
 
     @Environment(\.dismiss) private var dismiss
     private let formatter = HistoryDisplayFormatter()
@@ -46,6 +47,7 @@ struct HistoryDetailView: View {
     @ViewBuilder private var content: some View {
         if item.contentType == .image { HistoryImagePreview(path: item.filePath, size: NSSize(width: 540, height: 275)).frame(maxWidth: .infinity) }
         else { Text(item.textContent).font(.body).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(16).background(Color(nsColor: .textBackgroundColor).opacity(0.72)).clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous)) }
+        if item.contentType == .image { OCRResultView(viewModel: ocrViewModel, item: item) }
     }
 
     private var actions: some View {

@@ -2,8 +2,14 @@ import Foundation
 
 struct ActionSession: Equatable {
     let sourceItem: ClipboardHistoryItem
+    let sourceText: String
     private(set) var steps: [ActionSessionStep] = []
     private(set) var currentIndex: Int?
+
+    init(sourceItem: ClipboardHistoryItem, sourceText: String? = nil) {
+        self.sourceItem = sourceItem
+        self.sourceText = sourceText ?? sourceItem.textContent
+    }
 
     mutating func append(action: any ContentAction, result: ContentActionResult, input: String) {
         let retainedStepCount = currentIndex.map { $0 + 1 } ?? 0
@@ -34,7 +40,7 @@ struct ActionSession: Equatable {
     }
 
     var currentOutput: String {
-        guard let currentIndex else { return sourceItem.textContent }
+        guard let currentIndex else { return sourceText }
         return steps[currentIndex].editedOutput
     }
 

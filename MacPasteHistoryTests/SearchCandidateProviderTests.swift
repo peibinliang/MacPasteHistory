@@ -68,4 +68,23 @@ final class SearchCandidateProviderTests: XCTestCase {
 
         XCTAssertEqual(candidates.map(\.id), [saved.id])
     }
+
+    func testCandidates_findsOCRTextWhileImageFilterStillIncludesDetectedJSONImage() async throws {
+        let image = try repository.saveImage(
+            StoredClipboardImage(fileURL: URL(fileURLWithPath: "/tmp/ocr-image.png"), thumbnailURL: URL(fileURLWithPath: "/tmp/ocr-thumb.png"), contentHash: "ocr-image", fileSize: 1, width: 1, height: 1, format: .png),
+            sourceApp: nil,
+            sourceBundleID: nil
+        )
+        try repository.saveOCRResult(id: image.id, text: "invoice {\"id\": 1}", detection: ContentDetectionResult(type: .json, confidence: 0.9, version: 1, detectedAt: Date()))
+        let provider = SearchCandidateProvider(databaseURL: temporaryDatabase.url)
+
+        let imageRequest = SearchCandidateRequest(parsedQuery: SearchQueryParser().parse("invoice type:image"), storageContentType: .image, sourceFilter: .all, timeRange: .all, favoritesOnly: false, limit: 10)
+        let jsonRequest = SearchCandidateRequest(parsedQuery: SearchQueryParser().parse("type:json"), storageContentType: nil, sourceFilter: .all, timeRange: .all, favoritesOnly: false, limit: 10)
+
+        let imageCandidates = try await provider.candidates(for: imageRequest)
+        let jsonCandidates = try await provider.candidates(for: jsonRequest)
+
+        XCTAssertEqual(imageCandidates.map(\.id), [image.id])
+        XCTAssertEqual(jsonCandidates.map(\.id), [image.id])
+    }
 }

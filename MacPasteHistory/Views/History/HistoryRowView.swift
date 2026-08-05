@@ -53,7 +53,7 @@ struct HistoryRowView: View {
             preview
             VStack(alignment: .leading, spacing: 4) {
                 Text(presentation.metadataTitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                KeywordHighlightedText(text: presentation.previewText, terms: highlightedTerms)
+                KeywordHighlightedText(text: visiblePreviewText, terms: highlightedTerms)
                     .font(.body.weight(isSelected ? .medium : .regular))
                     .lineLimit(isSelected ? 2 : 1)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -87,7 +87,7 @@ struct HistoryRowView: View {
         .background(isSelected ? Color.accentColor.opacity(0.075) : Color.clear)
         .overlay { if isSelected { RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.accentColor.opacity(0.8), lineWidth: 1.5) } }
         .contentShape(Rectangle()).onTapGesture(perform: pasteAction).animation(.easeOut(duration: 0.16), value: isSelected)
-        .accessibilityElement(children: .contain).accessibilityLabel("\(presentation.metadataTitle), \(presentation.previewText)").accessibilityHint(L10n.string("Click to paste into the previous app"))
+        .accessibilityElement(children: .contain).accessibilityLabel("\(presentation.metadataTitle), \(visiblePreviewText)").accessibilityHint(L10n.string("Click to paste into the previous app"))
     }
 
     @ViewBuilder private var preview: some View {
@@ -124,5 +124,14 @@ struct HistoryRowView: View {
         case .shell: "terminal"
         case .plainText, .image: nil
         }
+    }
+
+    private var visiblePreviewText: String {
+        guard item.contentType == .image,
+              let ocrText = item.ocrText,
+              highlightedTerms.contains(where: { ocrText.localizedCaseInsensitiveContains($0) }) else {
+            return presentation.previewText
+        }
+        return HistoryDisplayFormatter().preview(for: ocrText)
     }
 }

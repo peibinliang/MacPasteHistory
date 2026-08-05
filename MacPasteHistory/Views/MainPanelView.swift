@@ -437,7 +437,8 @@ struct MainPanelView: View {
                 selectedItem = viewModel.items.first(where: { $0.id == item.id })
             },
             setTypeAction: { viewModel.setUserOverrideType($0, for: item) },
-            sourceRecordExists: viewModel.sourceRecordExists(for: item)
+            sourceRecordExists: viewModel.sourceRecordExists(for: item),
+            ocrViewModel: viewModel.makeOCRViewModel()
         )
     }
 
@@ -492,11 +493,11 @@ struct MainPanelView: View {
     }
 
     private func openAllActions(for item: ClipboardHistoryItem) {
-        actionViewModel.present(for: item)
+        actionViewModel.present(for: item, sourceText: item.ocrText ?? item.textContent)
     }
 
     private func openRecommendedActions(for item: ClipboardHistoryItem) {
-        actionViewModel.present(for: item, recommendedOnly: true)
+        actionViewModel.present(for: item, sourceText: item.ocrText ?? item.textContent, recommendedOnly: true)
     }
 
     private func handleActionEscape() {

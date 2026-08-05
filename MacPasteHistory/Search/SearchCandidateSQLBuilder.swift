@@ -90,7 +90,7 @@ struct SearchCandidateSQLBuilder {
         to conditions: inout [String],
         bindings: inout [SearchCandidateSQLBinding]
     ) {
-        guard let type = request.parsedQuery.type else { return }
+        guard let type = request.parsedQuery.type, type != .image else { return }
         conditions.append("\(Self.effectiveTypeExpression) = ?")
         bindings.append(.text(type.rawValue))
     }
