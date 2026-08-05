@@ -16,8 +16,35 @@ final class HistoryPanelWindowTests: XCTestCase {
         XCTAssertTrue(panel.collectionBehavior.contains(.transient))
         XCTAssertEqual(panel.level, .popUpMenu)
         XCTAssertTrue(panel.canBecomeKey)
+        XCTAssertFalse(panel.canBecomeMain)
         XCTAssertFalse(panel.hidesOnDeactivate)
         XCTAssertFalse(panel.isOpaque)
+    }
+
+    func testPositionOnActiveScreen_shouldPlacePanelAtTopCenterOfPointerScreen() throws {
+        let panel = HistoryPanelWindow(contentRect: NSRect(origin: .zero, size: NSSize(width: 720, height: 480)))
+        let pointerScreen = try XCTUnwrap(
+            NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
+        )
+
+        panel.positionOnActiveScreen()
+
+        let expectedFrame = HistoryPanelWindow.topCenteredFrame(
+            panelSize: panel.frame.size,
+            screenFrame: pointerScreen.visibleFrame,
+            topInset: HistoryPanelWindow.defaultTopInset
+        )
+        XCTAssertEqual(panel.frame, expectedFrame)
+    }
+
+    func testResignKey_shouldHideVisiblePanel() {
+        let panel = HistoryPanelWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: 480))
+        panel.orderFront(nil)
+        XCTAssertTrue(panel.isVisible)
+
+        panel.resignKey()
+
+        XCTAssertFalse(panel.isVisible)
     }
 
     func testTopCenteredFrame_shouldPositionPanelBelowScreenTopEdge() {
