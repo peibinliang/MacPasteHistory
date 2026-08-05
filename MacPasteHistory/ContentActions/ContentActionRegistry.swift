@@ -12,5 +12,5 @@ struct ContentActionRegistry {
 
     static let defaultActions: [any ContentAction] =
         TextContentAction.Kind.allCases.map(TextContentAction.init(kind:)) +
-        [JSONContentAction(kind: .format), JSONContentAction(kind: .minify), JSONContentAction(kind: .validate), JSONContentAction(kind: .escape), JSONContentAction(kind: .unescape), URLContentAction(kind: .encodeQueryValue), URLContentAction(kind: .decode), URLContentAction(kind: .extractHost), URLContentAction(kind: .parseQuery), Base64ContentAction(kind: .encode), Base64ContentAction(kind: .decode), Base64ContentAction(kind: .decodeURLSafe), Base64ContentAction(kind: .validate)]
+        [JSONContentAction(kind: .format), JSONContentAction(kind: .minify), JSONContentAction(kind: .validate), JSONContentAction(kind: .escape), JSONContentAction(kind: .unescape), URLContentAction(kind: .encodeQueryValue), URLContentAction(kind: .decode), URLContentAction(kind: .extractHost), URLContentAction(kind: .parseQuery), Base64ContentAction(kind: .encode), Base64ContentAction(kind: .decode), Base64ContentAction(kind: .decodeURLSafe), Base64ContentAction(kind: .validate), JWTContentAction(), TimestampContentAction(), SQLContentAction(), ShellContentAction()]
 }
