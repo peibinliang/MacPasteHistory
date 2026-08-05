@@ -950,7 +950,7 @@ struct SearchQueryParser {
 
 ### LOOP steps
 
-- [ ] **Step 1: Add tokenizer/parser tests**
+- [x] **Step 1: Add tokenizer/parser tests**
 
 Required cases:
 
@@ -973,13 +973,13 @@ repeated app/type/fav/before/after uses the final valid value
 unterminated quote becomes a normal term plus a nonfatal issue
 ```
 
-- [ ] **Step 2: Implement a single-pass tokenizer**
+- [x] **Step 2: Implement a single-pass tokenizer**
 
 The parser must preserve the raw input and support escaped quote/backslash inside quoted values. It must not use a regular expression that loses character ranges required by removable token UI.
 
 Each `SearchToken` stores its original `Range<String.Index>` so removing a token can edit only that range.
 
-- [ ] **Step 3: Add suggestion tests**
+- [x] **Step 3: Add suggestion tests**
 
 Given known sources `[Terminal, Visual Studio Code]`, assert:
 
@@ -992,11 +992,11 @@ Given known sources `[Terminal, Visual Studio Code]`, assert:
 accepted suggestion returns replacement text and cursor offset
 ```
 
-- [ ] **Step 4: Implement SearchSuggestionProvider**
+- [x] **Step 4: Implement SearchSuggestionProvider**
 
 Suggestions are pure values; the provider must not own UI focus. Sort source suggestions by case-insensitive title. Limit visible suggestions to 10.
 
-- [ ] **Step 5: Define filter precedence with tests**
+- [x] **Step 5: Define filter precedence with tests**
 
 `SearchFilterMerger` combines syntax with existing ribbon/filter state:
 
@@ -1010,7 +1010,7 @@ for dimensions absent from syntax, existing controls remain active
 
 This avoids contradictory hidden filters while preserving the existing UI.
 
-- [ ] **Step 6: Run Task 5 verification**
+- [x] **Step 6: Run Task 5 verification**
 
 ```bash
 xcodegen generate
@@ -1022,7 +1022,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   -only-testing:MacPasteHistoryTests/SearchFilterMergerTests test
 ```
 
-- [ ] **Step 7: Commit Task 5**
+- [x] **Step 7: Commit Task 5**
 
 ```bash
 git add MacPasteHistory/Search MacPasteHistoryTests/SearchQueryParserTests.swift \
