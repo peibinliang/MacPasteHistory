@@ -6,6 +6,8 @@ struct HistoryDetailView: View {
     let restoreAction: () -> Void
     let deleteAction: () -> Void
     let favoriteAction: () -> Void
+    let setTypeAction: (DetectedContentType?) -> Void
+    let sourceRecordExists: Bool
 
     @Environment(\.dismiss) private var dismiss
     private let formatter = HistoryDisplayFormatter()
@@ -34,6 +36,7 @@ struct HistoryDetailView: View {
             if let width = item.imageWidth, let height = item.imageHeight { row(L10n.string("Dimensions"), "\(width)×\(height)") }
             if let imageFormat = item.imageFormat { row(L10n.string("Format"), imageFormat.rawValue.uppercased()) }
             if let sourceApp = item.sourceApp, sourceApp.isEmpty == false { row(L10n.string("Source"), sourceApp) }
+            if item.isDerived, sourceRecordExists == false { row(L10n.string("Origin"), L10n.string("Source record deleted")) }
         }
         .font(.callout).padding(14).frame(maxWidth: .infinity, alignment: .leading).background(Color.primary.opacity(0.035)).clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
@@ -46,7 +49,7 @@ struct HistoryDetailView: View {
     }
 
     private var actions: some View {
-        HStack { Button(action: favoriteAction) { Label(favoriteTitle, systemImage: item.isFavorite ? "star.fill" : "star") }; Button(role: .destructive, action: deleteAction) { Label(L10n.string("Delete"), systemImage: "trash") }; Spacer(); Button(action: restoreAction) { Label(L10n.string("Copy to Clipboard"), systemImage: "doc.on.clipboard") }.buttonStyle(.borderedProminent) }
+            HStack { Button(action: favoriteAction) { Label(favoriteTitle, systemImage: item.isFavorite ? "star.fill" : "star") }; Menu { Button(L10n.string("Automatic")) { setTypeAction(nil) }; ForEach(DetectedContentType.allCases, id: \.self) { type in Button(type.rawValue) { setTypeAction(type) } } } label: { Label(L10n.string("Type"), systemImage: "tag") }; Button(role: .destructive, action: deleteAction) { Label(L10n.string("Delete"), systemImage: "trash") }; Spacer(); Button(action: restoreAction) { Label(L10n.string("Copy to Clipboard"), systemImage: "doc.on.clipboard") }.buttonStyle(.borderedProminent) }
             .padding(.horizontal, 20).frame(height: 64)
     }
 

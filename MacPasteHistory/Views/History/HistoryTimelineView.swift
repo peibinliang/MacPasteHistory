@@ -9,6 +9,10 @@ struct HistoryTimelineView: View {
     let restoreAction: (ClipboardHistoryItem) -> Void
     let pasteAction: (ClipboardHistoryItem) -> Void
     let deleteAction: (ClipboardHistoryItem) -> Void
+    let recommendedActions: (ClipboardHistoryItem) -> [any ContentAction]
+    let contentAction: (ClipboardHistoryItem, ContentActionID) -> Void
+    let allActionsAction: (ClipboardHistoryItem) -> Void
+    let recommendedActionsAction: (ClipboardHistoryItem) -> Void
     let loadMoreAction: (ClipboardHistoryItem) -> Void
 
     var body: some View {
@@ -18,7 +22,7 @@ struct HistoryTimelineView: View {
                     .foregroundStyle(.secondary)
                 VStack(spacing: 0) {
                     ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
-                        HistoryRowView(item: item, isSelected: selectedItemID == item.id, highlightedTerms: highlightedTerms, detailAction: { detailAction(item) }, favoriteAction: { favoriteAction(item) }, restoreAction: { restoreAction(item) }, pasteAction: { selectedItemID = item.id; pasteAction(item) }, deleteAction: { deleteAction(item) })
+                        HistoryRowView(item: item, isSelected: selectedItemID == item.id, highlightedTerms: highlightedTerms, detailAction: { detailAction(item) }, favoriteAction: { favoriteAction(item) }, restoreAction: { restoreAction(item) }, pasteAction: { selectedItemID = item.id; pasteAction(item) }, deleteAction: { deleteAction(item) }, recommendedActions: recommendedActions(item), contentAction: { contentAction(item, $0) }, allActionsAction: { allActionsAction(item) }, recommendedActionsAction: { recommendedActionsAction(item) })
                             .onHover { if $0 { selectedItemID = item.id } }.onAppear { loadMoreAction(item) }
                         if index < section.items.count - 1 { Divider().padding(.leading, 78) }
                     }

@@ -325,6 +325,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let panel = controller.window as? HistoryPanelWindow else {
             return
         }
+        panel.resizeForActiveScreen()
         panel.positionOnActiveScreen()
         controller.showWindow(nil)
         panel.makeKeyAndOrderFront(nil)

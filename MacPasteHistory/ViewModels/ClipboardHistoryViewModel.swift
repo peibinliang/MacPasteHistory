@@ -202,6 +202,11 @@ final class ClipboardHistoryViewModel: ObservableObject {
         }
     }
 
+    func sourceRecordExists(for item: ClipboardHistoryItem) -> Bool {
+        guard let sourceID = item.derivedFromHistoryID else { return true }
+        return (try? repository.historyItem(id: sourceID)) != nil
+    }
+
     func clearTextHistory() {
         do {
             try repository.clearTextHistory()

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MainPanelView: View {
     @StateObject private var viewModel: ClipboardHistoryViewModel
+    @StateObject private var actionViewModel: ContentActionPanelViewModel
     private let pasteCommandService: PasteCommandService
     private let accessibilityPermissionService: AccessibilityPermissionService
     private let pasteTargetApplication: NSRunningApplication?
@@ -28,6 +29,7 @@ struct MainPanelView: View {
         dismissAction: (() -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _actionViewModel = StateObject(wrappedValue: ContentActionPanelViewModel())
         self.pasteCommandService = pasteCommandService
         self.accessibilityPermissionService = accessibilityPermissionService
         self.pasteTargetApplication = pasteTargetApplication
@@ -40,7 +42,7 @@ struct MainPanelView: View {
             searchField
             sourceRibbon
             Divider().opacity(0.55)
-            historyContent
+            actionArea
             footer
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -98,21 +100,13 @@ struct MainPanelView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .sheet(item: $selectedItem) { item in
-            HistoryDetailView(
-                item: item,
-                restoreAction: {
-                    restoreAndShowFeedback(item)
-                },
-                deleteAction: {
-                    viewModel.delete(item)
-                    selectedItem = nil
-                },
-                favoriteAction: {
-                    viewModel.toggleFavorite(item)
-                    selectedItem = viewModel.items.first { $0.id == item.id }
-                }
-            )
+        .sheet(item: $selectedItem, content: historyDetailSheet)
+        .onKeyPress(keys: [KeyEquivalent("k")]) { keyPress in
+            if keyPress.modifiers.contains(.command), let item = selectedItemFromKeyboard {
+                openAllActions(for: item)
+                return .handled
+            }
+            return .ignored
         }
     }
 
@@ -246,6 +240,65 @@ struct MainPanelView: View {
     }
 
     @ViewBuilder
+    private var actionArea: some View {
+        GeometryReader { geometry in
+            let isExpanded = geometry.size.width >= 1_100
+            if actionViewModel.state == .closed {
+                historyContent
+            } else if isExpanded {
+                HStack(spacing: 0) {
+                    historyContent
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Divider()
+                    actionSidePanel
+                        .frame(width: 400)
+                }
+            } else {
+                actionSidePanel
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .onKeyPress(.escape) {
+            handleActionEscape()
+            return .handled
+        }
+    }
+
+    @ViewBuilder
+    private var actionSidePanel: some View {
+        switch actionViewModel.state {
+        case .choosing, .executing:
+            ContentActionCommandPalette(viewModel: actionViewModel)
+        case .previewing, .failed:
+            ContentActionPreviewView(
+                actionViewModel: actionViewModel,
+                copyAction: { output, source in
+                    if viewModel.copyActionOutput(output, sourceItem: source) { showCopyToast() }
+                },
+                pasteAction: { output, source in
+                    actionViewModel.close()
+                    closePanel()
+                    pasteTargetApplication?.activate(options: PasteActivationPolicy.options)
+                    Task {
+                        try? await Task.sleep(nanoseconds: 250_000_000)
+                        _ = viewModel.pasteActionOutput(output, sourceItem: source, pasteCommandService: pasteCommandService)
+                    }
+                },
+                saveAction: { session in
+                    if let saved = viewModel.saveDerivedActionOutput(from: session) {
+                        selectedKeyboardItem = saved.id
+                        actionViewModel.close()
+                    }
+                },
+                backAction: { actionViewModel.moveBack() },
+                closeAction: { actionViewModel.close() }
+            )
+        case .closed:
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
     private var historyContent: some View {
         if let errorMessage = viewModel.errorMessage {
             ContentUnavailableView(
@@ -268,6 +321,15 @@ struct MainPanelView: View {
                         restoreAction: { restoreAndShowFeedback($0) },
                         pasteAction: { pasteIntoPreviousApplication($0) },
                         deleteAction: { viewModel.delete($0) },
+                        recommendedActions: { item in
+                            ContentActionRegistry().recommended(for: item.effectiveDetectedType)
+                        },
+                        contentAction: { item, actionID in
+                            openRecommendedActions(for: item)
+                            actionViewModel.execute(actionID: actionID)
+                        },
+                        allActionsAction: { openAllActions(for: $0) },
+                        recommendedActionsAction: { openRecommendedActions(for: $0) },
                         loadMoreAction: { viewModel.loadMoreIfNeeded(currentItem: $0) }
                     )
                 }
@@ -289,7 +351,8 @@ struct MainPanelView: View {
                 return .handled
             }
             .onKeyPress(.escape) {
-                closePanel()
+                if actionViewModel.state == .closed { closePanel() }
+                else { handleActionEscape() }
                 return .handled
             }
             .focusable()
@@ -361,6 +424,23 @@ struct MainPanelView: View {
         return formatter.localizedString(for: date, relativeTo: Date())
     }
 
+    private func historyDetailSheet(_ item: ClipboardHistoryItem) -> some View {
+        HistoryDetailView(
+            item: item,
+            restoreAction: { restoreAndShowFeedback(item) },
+            deleteAction: {
+                viewModel.delete(item)
+                selectedItem = nil
+            },
+            favoriteAction: {
+                viewModel.toggleFavorite(item)
+                selectedItem = viewModel.items.first(where: { $0.id == item.id })
+            },
+            setTypeAction: { viewModel.setUserOverrideType($0, for: item) },
+            sourceRecordExists: viewModel.sourceRecordExists(for: item)
+        )
+    }
+
     private func moveSelectionUp() {
         guard let current = selectedKeyboardItem,
               let index = viewModel.items.firstIndex(where: { $0.id == current }),
@@ -408,6 +488,27 @@ struct MainPanelView: View {
         Task {
             try? await Task.sleep(nanoseconds: 250_000_000)
             _ = pasteCommandService.sendPasteCommand()
+        }
+    }
+
+    private func openAllActions(for item: ClipboardHistoryItem) {
+        actionViewModel.present(for: item)
+    }
+
+    private func openRecommendedActions(for item: ClipboardHistoryItem) {
+        actionViewModel.present(for: item, recommendedOnly: true)
+    }
+
+    private func handleActionEscape() {
+        switch ContentActionKeyboardPolicy.escapeTarget(for: actionViewModel.state) {
+        case .closePalette:
+            actionViewModel.close()
+            isListFocused = true
+        case .closePreview:
+            actionViewModel.close()
+            isListFocused = true
+        case .closePanel:
+            closePanel()
         }
     }
 }

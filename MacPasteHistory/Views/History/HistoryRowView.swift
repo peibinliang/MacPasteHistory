@@ -41,6 +41,10 @@ struct HistoryRowView: View {
     let restoreAction: () -> Void
     let pasteAction: () -> Void
     let deleteAction: () -> Void
+    let recommendedActions: [any ContentAction]
+    let contentAction: (ContentActionID) -> Void
+    let allActionsAction: () -> Void
+    let recommendedActionsAction: () -> Void
 
     private var presentation: HistoryRowPresentation { HistoryRowPresentation(item: item, isSelected: isSelected) }
 
@@ -67,6 +71,13 @@ struct HistoryRowView: View {
             Menu {
                 Button(action: detailAction) { Label(L10n.string("Details"), systemImage: "info.circle") }
                 Button(action: restoreAction) { Label(L10n.string("Restore"), systemImage: "doc.on.clipboard") }
+                if recommendedActions.isEmpty == false {
+                    Divider()
+                    ForEach(recommendedActions, id: \.id) { action in
+                        Button(L10n.string(action.titleKey)) { contentAction(action.id) }
+                    }
+                }
+                Button(L10n.string("All Actions…"), action: allActionsAction)
                 Divider()
                 Button(role: .destructive, action: deleteAction) { Label(L10n.string("Delete"), systemImage: "trash") }
             } label: { Image(systemName: "ellipsis").frame(width: 26, height: 26) }
@@ -85,9 +96,17 @@ struct HistoryRowView: View {
             ZStack(alignment: .bottomTrailing) {
                 Image(systemName: "doc.text").font(.system(size: 22, weight: .light)).foregroundStyle(.secondary)
                 if let typeIcon = typeIcon {
-                    Image(systemName: typeIcon).font(.caption.weight(.semibold)).foregroundStyle(Color.accentColor)
-                        .accessibilityLabel(item.effectiveDetectedType.rawValue)
-                        .help(item.effectiveDetectedType.rawValue)
+                    Button(action: recommendedActionsAction) {
+                        Image(systemName: typeIcon).font(.caption.weight(.semibold)).foregroundStyle(Color.accentColor)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(item.effectiveDetectedType.rawValue)
+                    .help(item.effectiveDetectedType.rawValue)
+                }
+                if item.isDerived {
+                    Image(systemName: "arrow.triangle.branch")
+                        .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        .help(item.derivedActionSummary ?? L10n.string("Derived content"))
                 }
             }
             .frame(width: 54, height: 44).background(Color.primary.opacity(0.035)).clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))

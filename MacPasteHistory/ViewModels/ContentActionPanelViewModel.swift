@@ -18,6 +18,7 @@ final class ContentActionPanelViewModel: ObservableObject {
     @Published private(set) var copyVariants: [ContentActionCopyVariant] = []
     @Published private(set) var notices: [ContentActionNotice] = []
     @Published private(set) var editedOutput = ""
+    @Published private(set) var showsRecommendedActions = false
 
     private let registry: ContentActionRegistry
     private let executor: ContentActionExecutor
@@ -27,18 +28,28 @@ final class ContentActionPanelViewModel: ObservableObject {
         self.executor = executor ?? ContentActionExecutor(registry: registry)
     }
 
-    var allActions: [any ContentAction] { registry.search(commandSearchText) }
+    var allActions: [any ContentAction] {
+        registry.sorted.filter {
+            commandSearchText.isEmpty || L10n.string($0.titleKey).localizedCaseInsensitiveContains(commandSearchText)
+        }
+    }
+    var availableActions: [any ContentAction] {
+        showsRecommendedActions ? recommendedActions.filter { action in
+            commandSearchText.isEmpty || L10n.string(action.titleKey).localizedCaseInsensitiveContains(commandSearchText)
+        } : allActions
+    }
     var recommendedActions: [any ContentAction] {
         guard let session else { return [] }
         return registry.recommended(for: session.sourceItem.effectiveDetectedType)
     }
 
-    func present(for item: ClipboardHistoryItem) {
+    func present(for item: ClipboardHistoryItem, recommendedOnly: Bool = false) {
         session = ActionSession(sourceItem: item)
         selectedAction = nil
         copyVariants = []
         notices = []
         editedOutput = item.textContent
+        showsRecommendedActions = recommendedOnly
         state = .choosing
     }
 
@@ -76,6 +87,13 @@ final class ContentActionPanelViewModel: ObservableObject {
         state = .previewing
     }
 
+    func restoreCurrentOutput() {
+        guard var session else { return }
+        session.restoreCurrentOutput()
+        self.session = session
+        editedOutput = session.currentOutput
+    }
+
     func close() {
         state = .closed
         session = nil
@@ -83,5 +101,6 @@ final class ContentActionPanelViewModel: ObservableObject {
         copyVariants = []
         notices = []
         editedOutput = ""
+        showsRecommendedActions = false
     }
 }
