@@ -4,6 +4,11 @@ This directory records project architecture, development decisions, database des
 
 Core development must keep these documents synchronized with code changes. See `AI_CODING_RULES.md` for the full documentation requirements.
 
+## Product And Implementation Plans
+
+- `superpowers/specs/2026-08-05-enhanced-search-and-content-actions-prd.md`: approved product and technical requirements for enhanced search, developer content actions, capture events, derived records, and manual OCR.
+- `superpowers/plans/2026-08-05-enhanced-search-and-content-actions-implementation-plan.md`: Loop-based Codex implementation plan with task dependencies, file-level changes, test-first steps, commits, and release gates.
+
 ## User And Release Docs
 
 - `user-guide.md`: end-user usage guide for the current app.
