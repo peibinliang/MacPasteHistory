@@ -54,7 +54,25 @@ final class HistoryPanelWindow: NSPanel {
 
     override func resignKey() {
         super.resignKey()
-        orderOut(nil)
+        DispatchQueue.main.async { [weak self] in
+            guard let self else {
+                return
+            }
+            let shouldHide = Self.shouldHideAfterResigningKey(
+                hasAttachedSheet: attachedSheet != nil,
+                isKeyWindow: isKeyWindow
+            )
+            if shouldHide {
+                orderOut(nil)
+            }
+        }
+    }
+
+    static func shouldHideAfterResigningKey(
+        hasAttachedSheet: Bool,
+        isKeyWindow: Bool
+    ) -> Bool {
+        hasAttachedSheet == false && isKeyWindow == false
     }
 
     private func configureOverlayBehavior() {

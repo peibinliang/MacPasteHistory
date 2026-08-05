@@ -37,12 +37,13 @@ final class HistoryPanelWindowTests: XCTestCase {
         XCTAssertEqual(panel.frame, expectedFrame)
     }
 
-    func testResignKey_shouldHideVisiblePanel() {
+    func testResignKey_shouldHideVisiblePanel() async {
         let panel = HistoryPanelWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: 480))
         panel.orderFront(nil)
         XCTAssertTrue(panel.isVisible)
 
         panel.resignKey()
+        await Task.yield()
 
         XCTAssertFalse(panel.isVisible)
     }
