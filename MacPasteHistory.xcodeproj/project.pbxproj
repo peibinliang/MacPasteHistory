@@ -14,6 +14,7 @@
 		17AC1FA752FE2E3F5DBACC4F /* DatabaseError.swift in Sources */ = {isa = PBXBuildFile; fileRef = C460F95BF141E93F164222C8 /* DatabaseError.swift */; };
 		1C6F097CA9FFBFC7592C27B8 /* UserDefaultsConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB6F4680A83FC93FC8C83231 /* UserDefaultsConfigTests.swift */; };
 		22B74485D557CB9C2AB76909 /* DefaultSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B338A6B60AAD24098AED942 /* DefaultSettings.swift */; };
+		2375DDAB97E9E95B4B8CC822 /* AccessibilityPermissionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5497D8AB235434FE28BC74C2 /* AccessibilityPermissionServiceTests.swift */; };
 		2443498BC10F3C1C106775B0 /* DataCleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E6205E6E9C67B90AAA6E2D /* DataCleanupService.swift */; };
 		295A104399EE5F6714338E4A /* ClipboardRestorationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A35C0BCF17E0DE4CDC8061BE /* ClipboardRestorationState.swift */; };
 		2A70146F10A28C866750713A /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59402AFB167155D2052B9985 /* SettingsViewModel.swift */; };
@@ -114,6 +115,7 @@
 		4BB47224BFA6BE4EB45D35AD /* MacPasteHistory.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacPasteHistory.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4E10FB7CE29E874C22EEA1AA /* ShortcutServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutServiceTests.swift; sourceTree = "<group>"; };
 		548547071FD81AC03035F12B /* HistoryQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryQuery.swift; sourceTree = "<group>"; };
+		5497D8AB235434FE28BC74C2 /* AccessibilityPermissionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityPermissionServiceTests.swift; sourceTree = "<group>"; };
 		58DF15ADF1FC329CEEF688B7 /* ClipboardHistoryRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistoryRepository.swift; sourceTree = "<group>"; };
 		58FC4586C30773065939C943 /* AppRelauncherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRelauncherTests.swift; sourceTree = "<group>"; };
 		59208848085D4AB891E060B3 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -202,6 +204,7 @@
 		1209E52D3EADF6B40CE74490 /* MacPasteHistoryTests */ = {
 			isa = PBXGroup;
 			children = (
+				5497D8AB235434FE28BC74C2 /* AccessibilityPermissionServiceTests.swift */,
 				78AB745C884B8764CE5032B4 /* ApplicationSupportServiceTests.swift */,
 				31BED0192DB3783C3D7B0A3A /* AppPreferencesServiceTests.swift */,
 				58FC4586C30773065939C943 /* AppRelauncherTests.swift */,
@@ -472,6 +475,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2375DDAB97E9E95B4B8CC822 /* AccessibilityPermissionServiceTests.swift in Sources */,
 				8059994676147193B55260EA /* AppPreferencesServiceTests.swift in Sources */,
 				F83F0C57443370A6679E9E1B /* AppRelauncherTests.swift in Sources */,
 				A06277B1EB833C3D8A3D0408 /* ApplicationSupportServiceTests.swift in Sources */,
