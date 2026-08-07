@@ -77,6 +77,10 @@
 
 ### Fixed
 
+- Completed the developer content actions with strict JSON, JWT, SQL, timestamp, URL, Base64, and text handling, including useful copy variants and explicit validation failures.
+- Fixed OCR image records using image bytes for text actions, raw images offering inapplicable text actions, and failed actions exposing empty success controls.
+- Fixed untranslated action names, extracted-content labels, detected types, action summaries, shortcut keys, preview controls, notices, and errors in Chinese environments.
+- Fixed the System language option ignoring the current Simplified or Traditional Chinese preference.
 - Fixed Base64 actions for Unicode text, binary validity checks, and direct image-file encoding.
 - Fixed URL query-value encoding so reserved characters and Unicode text are percent-encoded.
 - Removed the blue keyboard focus ring that appeared as two horizontal dividers around the history list.

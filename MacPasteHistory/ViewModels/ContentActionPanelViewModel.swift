@@ -30,18 +30,31 @@ final class ContentActionPanelViewModel: ObservableObject {
     }
 
     var allActions: [any ContentAction] {
-        registry.sorted.filter {
-            commandSearchText.isEmpty || L10n.string($0.titleKey).localizedCaseInsensitiveContains(commandSearchText)
-        }
+        guard let session else { return [] }
+        let applicable = registry.sorted.filter { isApplicable($0, to: session) }
+        let recommendedIDs = Set(registry.recommended(for: session.sourceItem.effectiveDetectedType).map(\.id))
+        return applicable.filter { recommendedIDs.contains($0.id) }
+            + applicable.filter { recommendedIDs.contains($0.id) == false }
     }
     var availableActions: [any ContentAction] {
-        showsRecommendedActions ? recommendedActions.filter { action in
+        let candidates = showsRecommendedActions ? recommendedActions : allActions
+        return candidates.filter { action in
             commandSearchText.isEmpty || L10n.string(action.titleKey).localizedCaseInsensitiveContains(commandSearchText)
-        } : allActions
+        }
     }
     var recommendedActions: [any ContentAction] {
         guard let session else { return [] }
         return registry.recommended(for: session.sourceItem.effectiveDetectedType)
+            .filter { isApplicable($0, to: session) }
+    }
+
+    var failureMessageKey: String? {
+        guard case let .failed(error) = state else { return nil }
+        return error.messageKey
+    }
+
+    var hasUsableResult: Bool {
+        state == .previewing && session?.steps.isEmpty == false
     }
 
     func present(for item: ClipboardHistoryItem, sourceText: String? = nil, recommendedOnly: Bool = false) {
@@ -57,7 +70,7 @@ final class ContentActionPanelViewModel: ObservableObject {
     func execute(actionID: ContentActionID) {
         guard var session, let action = registry.action(id: actionID) else { return }
         state = .executing(actionID)
-        if session.sourceItem.contentType == .image, session.steps.isEmpty {
+        if shouldExecuteBinary(action: action, session: session) {
             executeImageAction(actionID: actionID, action: action, session: session)
             return
         }
@@ -65,9 +78,9 @@ final class ContentActionPanelViewModel: ObservableObject {
             let result = try executor.execute(id: actionID, input: session.currentOutput)
             publish(result: result, action: action, actionID: actionID, session: &session)
         } catch let error as ContentActionError {
-            state = .failed(error)
+            publishFailure(error, actionID: actionID)
         } catch {
-            state = .failed(.parseFailed(messageKey: "content-action.failed"))
+            publishFailure(.parseFailed(messageKey: "content-action.failed"), actionID: actionID)
         }
     }
 
@@ -111,11 +124,11 @@ final class ContentActionPanelViewModel: ObservableObject {
         session: ActionSession
     ) {
         guard action.supportedTypes.contains(.image) else {
-            state = .failed(.unsupportedInput(messageKey: "content-action.unsupported"))
+            publishFailure(.unsupportedInput(messageKey: "content-action.unsupported"), actionID: actionID)
             return
         }
         guard let filePath = session.sourceItem.filePath else {
-            state = .failed(.invalidInput(messageKey: "imageMissing"))
+            publishFailure(.invalidInput(messageKey: "imageMissing"), actionID: actionID)
             return
         }
         executionTask?.cancel()
@@ -131,10 +144,10 @@ final class ContentActionPanelViewModel: ObservableObject {
                 publish(result: result, action: action, actionID: actionID, session: &updatedSession)
             } catch let error as ContentActionError {
                 guard Task.isCancelled == false else { return }
-                state = .failed(error)
+                publishFailure(error, actionID: actionID)
             } catch {
                 guard Task.isCancelled == false else { return }
-                state = .failed(.parseFailed(messageKey: "content-action.failed"))
+                publishFailure(.parseFailed(messageKey: "content-action.failed"), actionID: actionID)
             }
         }
     }
@@ -152,5 +165,28 @@ final class ContentActionPanelViewModel: ObservableObject {
         notices = result.notices
         editedOutput = result.output
         state = .previewing
+    }
+
+    private func shouldExecuteBinary(action: any ContentAction, session: ActionSession) -> Bool {
+        session.sourceItem.contentType == .image
+            && session.steps.isEmpty
+            && session.sourceText.isEmpty
+            && action.supportedTypes.contains(.image)
+    }
+
+    private func isApplicable(_ action: any ContentAction, to session: ActionSession) -> Bool {
+        if session.sourceItem.contentType == .image, session.sourceText.isEmpty {
+            return action.supportedTypes.contains(.image)
+        }
+        return action.supportedTypes.contains(session.sourceItem.effectiveDetectedType)
+            || action.supportedTypes.contains(.plainText)
+    }
+
+    private func publishFailure(_ error: ContentActionError, actionID: ContentActionID) {
+        selectedAction = actionID
+        copyVariants = []
+        notices = []
+        editedOutput = ""
+        state = .failed(error)
     }
 }

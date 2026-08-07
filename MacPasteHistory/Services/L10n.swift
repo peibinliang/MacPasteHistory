@@ -3,7 +3,8 @@ import Foundation
 enum L10n {
     static func string(_ key: String, defaults: UserDefaults = .standard) -> String {
         let language = preferredLanguage(defaults: defaults)
-        guard let languageCode = language.languageCode,
+        let languageCode = language.languageCode ?? systemLanguageCode(defaults: defaults)
+        guard let languageCode,
               let bundlePath = Bundle.main.path(forResource: languageCode, ofType: "lproj"),
               let bundle = Bundle(path: bundlePath) else {
             return Bundle.main.localizedString(forKey: key, value: key, table: nil)
@@ -18,5 +19,11 @@ enum L10n {
             return .system
         }
         return language
+    }
+
+    private static func systemLanguageCode(defaults: UserDefaults) -> String? {
+        let available = AppLanguage.allCases.compactMap(\.languageCode)
+        let preferences = defaults.stringArray(forKey: "AppleLanguages") ?? Locale.preferredLanguages
+        return Bundle.preferredLocalizations(from: available, forPreferences: preferences).first
     }
 }

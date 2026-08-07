@@ -4,18 +4,30 @@
 
 ### Fixed
 
+- Completed the structured content-action set for JSON, JWT, SQL, timestamps, URL values, Base64, and text case conversion, including strict invalid-input handling and action-specific copy variants.
+- Routed OCR-backed image records through their recognized text while keeping raw images limited to binary-compatible actions.
+- Added an explicit failed-action presentation so invalid transformations cannot be mistaken for an empty successful result.
+- Localized action names, detected content types, action summaries, shortcut labels, preview controls, and detailed failure/notices across English, Simplified Chinese, and Traditional Chinese.
+- Made the System language option honor the current Apple language preference instead of falling back to the development language.
 - Allowed Base64 encoding to accept arbitrary Unicode text through the same validation path used by the action panel.
 - Made Base64 validity checks accept binary payloads without incorrectly requiring decoded UTF-8 text.
 - Added image-to-Base64 conversion using the original image file bytes, with background file loading and an explicit missing-image failure.
 
 ### Root Cause
 
+- The action panel treated every image session as binary input, including OCR records that already contained recognized text, and exposed text-only actions for raw images.
+- Several user-facing values were rendered from stable enum/action identifiers directly, while newly introduced literal and dynamic localization keys were absent from one or more language bundles.
+- Failed actions retained preview controls and an empty output, which made the error indistinguishable from a valid empty transformation.
 - The Base64 encoder reused decode validation, so ordinary text such as Chinese was rejected before encoding.
 - Base64 validation attempted to render decoded bytes as UTF-8 even though valid Base64 can represent arbitrary binary data.
 - Image action sessions supplied an empty text value and had no binary-input execution path.
 
 ### Verification
 
+- Added regression coverage for all registered action IDs, Unicode Base64, JSON/JWT/SQL/timestamp/URL edge cases, syntax token kinds, OCR/raw-image routing, failed-action state, dynamic localization keys, System-language selection, and localized persisted action summaries.
+- Targeted content-action and localization regression tests passed with 25 tests and 0 failures before the full-suite verification.
+- The complete coverage-enabled `MacPasteHistory` test suite passed with 232 tests and 0 failures; directly modified action, localization, shortcut, and action-panel logic was covered at 86%–100%, apart from the small detected-type value mapper exercised through localization assertions.
+- Localization syntax validation, three-language key parity, literal-key coverage, Xcode file-reference validation, privacy-log scanning, and `git diff --check` all passed.
 - Added executor-level Unicode encoding coverage, binary validation coverage, and action-panel image encoding/missing-file coverage.
 - Updated presentation assertions to follow the active localization and system byte-count formatting instead of assuming English output.
 - Stabilized the concurrent search-generation regression test by advancing each controlled debounce and provider request in deterministic order.

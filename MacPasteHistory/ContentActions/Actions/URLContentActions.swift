@@ -13,7 +13,11 @@ struct URLContentAction: ContentAction {
         switch kind {
         case .encodeQueryValue:
             output = input.addingPercentEncoding(withAllowedCharacters: Self.queryValueAllowedCharacters) ?? input
-        case .decode: output = input.removingPercentEncoding ?? input
+        case .decode:
+            guard let decoded = input.removingPercentEncoding else {
+                throw ContentActionError.parseFailed(messageKey: "content-action.url.invalid")
+            }
+            output = decoded
         case .extractHost:
             guard let host = URL(string: input)?.host else { throw ContentActionError.invalidInput(messageKey: "content-action.url.hostless") }; output = host
         case .parseQuery:

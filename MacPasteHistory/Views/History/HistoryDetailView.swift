@@ -51,7 +51,7 @@ struct HistoryDetailView: View {
     }
 
     private var actions: some View {
-            HStack { Button(action: favoriteAction) { Label(favoriteTitle, systemImage: item.isFavorite ? "star.fill" : "star") }; Menu { Button(L10n.string("Automatic")) { setTypeAction(nil) }; ForEach(DetectedContentType.allCases, id: \.self) { type in Button(type.rawValue) { setTypeAction(type) } } } label: { Label(L10n.string("Type"), systemImage: "tag") }; Button(role: .destructive, action: deleteAction) { Label(L10n.string("Delete"), systemImage: "trash") }; Spacer(); Button(action: restoreAction) { Label(L10n.string("Copy to Clipboard"), systemImage: "doc.on.clipboard") }.buttonStyle(.borderedProminent) }
+            HStack { Button(action: favoriteAction) { Label(favoriteTitle, systemImage: item.isFavorite ? "star.fill" : "star") }; Menu { Button(L10n.string("Automatic")) { setTypeAction(nil) }; ForEach(DetectedContentType.allCases, id: \.self) { type in Button(type.localizedTitle()) { setTypeAction(type) } } } label: { Label(L10n.string("Type"), systemImage: "tag") }; Button(role: .destructive, action: deleteAction) { Label(L10n.string("Delete"), systemImage: "trash") }; Spacer(); Button(action: restoreAction) { Label(L10n.string("Copy to Clipboard"), systemImage: "doc.on.clipboard") }.buttonStyle(.borderedProminent) }
             .padding(.horizontal, 20).frame(height: 64)
     }
 

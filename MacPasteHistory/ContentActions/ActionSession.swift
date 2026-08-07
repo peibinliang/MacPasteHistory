@@ -47,4 +47,18 @@ struct ActionSession: Equatable {
     var actionSummary: String {
         steps.map(\.actionTitleKey).joined(separator: " → ")
     }
+
+    func localizedActionSummary(defaults: UserDefaults = .standard) -> String {
+        steps.map { L10n.string($0.actionTitleKey, defaults: defaults) }.joined(separator: " → ")
+    }
+
+    static func localizedActionSummary(
+        from stableSummary: String,
+        defaults: UserDefaults = .standard
+    ) -> String {
+        stableSummary
+            .components(separatedBy: " → ")
+            .map { L10n.string($0, defaults: defaults) }
+            .joined(separator: " → ")
+    }
 }

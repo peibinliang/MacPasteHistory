@@ -10,4 +10,12 @@ enum DetectedContentType: String, CaseIterable, Codable {
     case timestamp
     case sql
     case shell
+
+    var localizationKey: String {
+        self == .plainText ? "content-type.plain-text" : "content-type.\(rawValue)"
+    }
+
+    func localizedTitle(defaults: UserDefaults = .standard) -> String {
+        L10n.string(localizationKey, defaults: defaults)
+    }
 }
