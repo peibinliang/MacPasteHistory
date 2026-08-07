@@ -58,12 +58,51 @@ final class ContentActionPanelViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state, .failed(.invalidInput(messageKey: "imageMissing")))
     }
 
-    private func makeItem(text: String) -> ClipboardHistoryItem {
-        ClipboardHistoryItem(id: 1, contentType: .text, textContent: text, filePath: nil, thumbnailPath: nil, sourceApp: nil, sourceBundleID: nil, contentHash: "hash", textLength: text.count, fileSize: nil, imageWidth: nil, imageHeight: nil, imageFormat: nil, isFavorite: false, isSensitive: false, createdAt: .distantPast, updatedAt: .distantPast)
+    func testOCRImageRunsTextActionAgainstRecognizedText() async {
+        let viewModel = ContentActionPanelViewModel()
+        let item = makeImageItem(filePath: "/tmp/not-used.png", detectedType: .json, ocrText: "{\"name\":\"粘易\"}")
+        viewModel.present(for: item, sourceText: item.ocrText, recommendedOnly: true)
+
+        viewModel.execute(actionID: ContentActionID(rawValue: "json.format"))
+
+        XCTAssertEqual(viewModel.state, .previewing)
+        XCTAssertTrue(viewModel.editedOutput.contains("\"name\" : \"粘易\""))
     }
 
-    private func makeImageItem(filePath: String) -> ClipboardHistoryItem {
-        ClipboardHistoryItem(id: 2, contentType: .image, textContent: "", filePath: filePath, thumbnailPath: nil, sourceApp: nil, sourceBundleID: nil, contentHash: "image-hash", textLength: 0, fileSize: nil, imageWidth: 1, imageHeight: 1, imageFormat: .png, isFavorite: false, isSensitive: false, createdAt: .distantPast, updatedAt: .distantPast)
+    func testRawImageOnlyOffersApplicableBinaryActions() {
+        let viewModel = ContentActionPanelViewModel()
+        viewModel.present(for: makeImageItem(filePath: "/tmp/image.png"))
+
+        XCTAssertEqual(viewModel.allActions.map(\.id.rawValue), ["base64.encode"])
+    }
+
+    func testAllActionsPutRecommendedActionsFirstAndFilterByLocalizedTitle() {
+        let viewModel = ContentActionPanelViewModel()
+        viewModel.present(for: makeItem(text: "{\"a\":1}", detectedType: .json))
+
+        XCTAssertEqual(Array(viewModel.allActions.prefix(5)).map(\.id.rawValue), [
+            "json.escape", "json.format", "json.minify", "json.unescape", "json.validate"
+        ])
+        viewModel.commandSearchText = L10n.string("json.format")
+        XCTAssertEqual(viewModel.availableActions.map(\.id.rawValue), ["json.format"])
+    }
+
+    func testFailureExposesMessageAndDoesNotExposeSuccessfulOutput() {
+        let viewModel = ContentActionPanelViewModel()
+        viewModel.present(for: makeItem(text: "bad%2"))
+
+        viewModel.execute(actionID: ContentActionID(rawValue: "url.decode"))
+
+        XCTAssertEqual(viewModel.failureMessageKey, "content-action.url.invalid")
+        XCTAssertFalse(viewModel.hasUsableResult)
+    }
+
+    private func makeItem(text: String, detectedType: DetectedContentType? = nil) -> ClipboardHistoryItem {
+        ClipboardHistoryItem(id: 1, contentType: .text, textContent: text, filePath: nil, thumbnailPath: nil, sourceApp: nil, sourceBundleID: nil, contentHash: "hash", textLength: text.count, fileSize: nil, imageWidth: nil, imageHeight: nil, imageFormat: nil, isFavorite: false, isSensitive: false, createdAt: .distantPast, updatedAt: .distantPast, detectedType: detectedType)
+    }
+
+    private func makeImageItem(filePath: String, detectedType: DetectedContentType? = nil, ocrText: String? = nil) -> ClipboardHistoryItem {
+        ClipboardHistoryItem(id: 2, contentType: .image, textContent: "", filePath: filePath, thumbnailPath: nil, sourceApp: nil, sourceBundleID: nil, contentHash: "image-hash", textLength: 0, fileSize: nil, imageWidth: 1, imageHeight: 1, imageFormat: .png, isFavorite: false, isSensitive: false, createdAt: .distantPast, updatedAt: .distantPast, detectedType: detectedType, ocrText: ocrText)
     }
 
     private func waitUntil(_ condition: @escaping @MainActor () -> Bool) async {
