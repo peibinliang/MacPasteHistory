@@ -55,6 +55,7 @@ final class ActionSessionTests: XCTestCase {
 
         XCTAssertEqual(session.currentStep?.actionID, first.id)
         XCTAssertEqual(session.currentActionSummary, "action.first")
+        XCTAssertEqual(session.actionSummary, "action.first")
     }
 
     private func result(_ output: String) -> ContentActionResult {

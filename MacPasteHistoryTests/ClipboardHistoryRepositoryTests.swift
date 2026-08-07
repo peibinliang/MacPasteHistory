@@ -160,7 +160,7 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
     func testFetchHistory_whenTimeRangeProvided_shouldReturnItemsInsideRange() throws {
         let oldItem = try repository.saveText("old note", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
         _ = try repository.saveText("new note", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
-        try database.execute("UPDATE clipboard_history SET created_at = '2001-01-01 00:00:00' WHERE id = \(oldItem.id);")
+        try database.execute("UPDATE clipboard_history SET created_at = '2001-01-01 00:00:00', last_captured_at = '2001-01-01 00:00:00' WHERE id = \(oldItem.id);")
 
         let items = try repository.fetchHistory(query: HistoryQuery(timeRange: .last7Days))
 

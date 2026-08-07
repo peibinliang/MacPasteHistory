@@ -23,17 +23,20 @@ struct MergedSearchFilters: Equatable {
     let sourceFilter: HistoryQuery.SourceFilter
     let storageContentType: ClipboardContentType?
     let favoritesOnly: Bool
+    let favoriteFilter: Bool?
     let timeRange: HistoryQuery.TimeRange
 }
 
 struct SearchFilterMerger {
     func merge(parsedQuery: ParsedSearchQuery, controls: SearchUIFilters) -> MergedSearchFilters {
-        MergedSearchFilters(
+        let favoriteFilter = parsedQuery.favorite ?? (controls.isFavoritesOnly ? true : nil)
+        return MergedSearchFilters(
             sourceFilter: parsedQuery.app.map { HistoryQuery.SourceFilter(appName: $0, bundleID: nil) }
                 ?? controls.selectedSourceOption?.filter
                 ?? .all,
             storageContentType: parsedQuery.type.map(storageContentType(for:)) ?? controls.selectedContentType,
-            favoritesOnly: parsedQuery.favorite ?? controls.isFavoritesOnly,
+            favoritesOnly: favoriteFilter == true,
+            favoriteFilter: favoriteFilter,
             timeRange: parsedQuery.before == nil && parsedQuery.after == nil ? controls.selectedTimeRange : .all
         )
     }

@@ -67,7 +67,13 @@ struct SearchSuggestionProvider {
             }
             .sorted { $0.title.caseInsensitiveCompare($1.title) == .orderedAscending }
             .prefix(Self.maximumVisibleSuggestions)
-            .map { suggestion(title: $0.title, replacement: "app:\($0.title)", range: range) }
+            .map { option in
+                suggestion(
+                    title: option.title,
+                    replacement: "app:\(quotedFilterValue(option.title))",
+                    range: range
+                )
+            }
     }
 
     private func favoriteSuggestions(matching value: String, range: Range<String.Index>) -> [SearchSuggestion] {
@@ -83,6 +89,16 @@ struct SearchSuggestionProvider {
 
     private func suggestion(title: String, replacement: String, range: Range<String.Index>) -> SearchSuggestion {
         SearchSuggestion(title: title, replacement: replacement, replacementRange: range)
+    }
+
+    private func quotedFilterValue(_ value: String) -> String {
+        guard value.contains(where: { $0.isWhitespace || $0 == "\"" || $0 == "\\" }) else {
+            return value
+        }
+        let escaped = value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        return "\"\(escaped)\""
     }
 
     private func activeTokenRange(in input: String) -> Range<String.Index> {

@@ -34,7 +34,7 @@ final class AccessibilityPermissionService {
     }
 
     func reminderIfNeeded(for trigger: AccessibilityPermissionReminderTrigger) -> Bool {
-        guard permissionChecker.isProcessTrusted() == false else {
+        guard hasAccessibilityPermission == false else {
             return false
         }
 
@@ -52,6 +52,10 @@ final class AccessibilityPermissionService {
             didRemindForAutomaticPaste = true
             return true
         }
+    }
+
+    var hasAccessibilityPermission: Bool {
+        permissionChecker.isProcessTrusted()
     }
 
     func openSystemSettings() {

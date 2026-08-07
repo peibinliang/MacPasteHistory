@@ -63,6 +63,7 @@ final class ContentActionPanelViewModel: ObservableObject {
     }
 
     func present(for item: ClipboardHistoryItem, sourceText: String? = nil, recommendedOnly: Bool = false) {
+        commandSearchText = ""
         let resolvedSourceText = sourceText ?? item.textContent
         session = ActionSession(sourceItem: item, sourceText: resolvedSourceText)
         activeContentType = detectedType(for: item, sourceText: resolvedSourceText)
@@ -135,6 +136,7 @@ final class ContentActionPanelViewModel: ObservableObject {
         editedOutput = ""
         showsRecommendedActions = false
         activeContentType = .plainText
+        commandSearchText = ""
     }
 
     private func executeImageAction(
