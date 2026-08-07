@@ -6,6 +6,7 @@ struct SearchCandidateRequest: Equatable {
     let sourceFilter: HistoryQuery.SourceFilter
     let timeRange: HistoryQuery.TimeRange
     let favoritesOnly: Bool
+    let favoriteFilter: Bool?
     let limit: Int
 
     init(
@@ -21,6 +22,7 @@ struct SearchCandidateRequest: Equatable {
         self.sourceFilter = sourceFilter
         self.timeRange = timeRange
         self.favoritesOnly = favoritesOnly
+        favoriteFilter = parsedQuery.favorite ?? (favoritesOnly ? true : nil)
         self.limit = max(1, min(limit, 500))
     }
 }
@@ -107,8 +109,8 @@ struct SearchCandidateSQLBuilder {
     }
 
     private func appendFavoriteCondition(for request: SearchCandidateRequest, to conditions: inout [String]) {
-        guard request.favoritesOnly else { return }
-        conditions.append("is_favorite = 1")
+        guard let favoriteFilter = request.favoriteFilter else { return }
+        conditions.append("is_favorite = \(favoriteFilter ? 1 : 0)")
     }
 
     private func appendDateConditions(

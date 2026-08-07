@@ -19,22 +19,31 @@ final class ContentActionPanelViewModel: ObservableObject {
     @Published private(set) var notices: [ContentActionNotice] = []
     @Published private(set) var editedOutput = ""
     @Published private(set) var showsRecommendedActions = false
+    @Published private(set) var activeContentType: DetectedContentType = .plainText
 
     private let registry: ContentActionRegistry
     private let executor: ContentActionExecutor
+    private let classifier: ContentClassifier
+    private let suitabilityPolicy: ContentActionSuitabilityPolicy
     private var executionTask: Task<Void, Never>?
 
-    init(registry: ContentActionRegistry = ContentActionRegistry(), executor: ContentActionExecutor? = nil) {
+    init(
+        registry: ContentActionRegistry = ContentActionRegistry(),
+        executor: ContentActionExecutor? = nil,
+        classifier: ContentClassifier = ContentClassifier(),
+        suitabilityPolicy: ContentActionSuitabilityPolicy = ContentActionSuitabilityPolicy()
+    ) {
         self.registry = registry
         self.executor = executor ?? ContentActionExecutor(registry: registry)
+        self.classifier = classifier
+        self.suitabilityPolicy = suitabilityPolicy
     }
 
     var allActions: [any ContentAction] {
         guard let session else { return [] }
-        let applicable = registry.sorted.filter { isApplicable($0, to: session) }
-        let recommendedIDs = Set(registry.recommended(for: session.sourceItem.effectiveDetectedType).map(\.id))
-        return applicable.filter { recommendedIDs.contains($0.id) }
-            + applicable.filter { recommendedIDs.contains($0.id) == false }
+        return registry.sorted.filter { isApplicable($0, to: session) }.filter {
+            commandSearchText.isEmpty || L10n.string($0.titleKey).localizedCaseInsensitiveContains(commandSearchText)
+        }
     }
     var availableActions: [any ContentAction] {
         let candidates = showsRecommendedActions ? recommendedActions : allActions
@@ -44,21 +53,21 @@ final class ContentActionPanelViewModel: ObservableObject {
     }
     var recommendedActions: [any ContentAction] {
         guard let session else { return [] }
-        return registry.recommended(for: session.sourceItem.effectiveDetectedType)
-            .filter { isApplicable($0, to: session) }
+        return registry.sorted.filter { isApplicable($0, to: session) }
     }
-
     var failureMessageKey: String? {
         guard case let .failed(error) = state else { return nil }
         return error.messageKey
     }
-
     var hasUsableResult: Bool {
         state == .previewing && session?.steps.isEmpty == false
     }
 
     func present(for item: ClipboardHistoryItem, sourceText: String? = nil, recommendedOnly: Bool = false) {
-        session = ActionSession(sourceItem: item, sourceText: sourceText)
+        commandSearchText = ""
+        let resolvedSourceText = sourceText ?? item.textContent
+        session = ActionSession(sourceItem: item, sourceText: resolvedSourceText)
+        activeContentType = detectedType(for: item, sourceText: resolvedSourceText)
         selectedAction = nil
         copyVariants = []
         notices = []
@@ -69,8 +78,15 @@ final class ContentActionPanelViewModel: ObservableObject {
 
     func execute(actionID: ContentActionID) {
         guard var session, let action = registry.action(id: actionID) else { return }
+        guard isExecutable(action, in: session) else {
+            publishFailure(.unsupportedInput(messageKey: "content-action.unsupported"), actionID: actionID)
+            return
+        }
         state = .executing(actionID)
-        if shouldExecuteBinary(action: action, session: session) {
+        if session.sourceItem.contentType == .image,
+           session.steps.isEmpty,
+           action is any BinaryContentAction,
+           action.supportedTypes.contains(.image) {
             executeImageAction(actionID: actionID, action: action, session: session)
             return
         }
@@ -116,6 +132,8 @@ final class ContentActionPanelViewModel: ObservableObject {
         notices = []
         editedOutput = ""
         showsRecommendedActions = false
+        activeContentType = .plainText
+        commandSearchText = ""
     }
 
     private func executeImageAction(
@@ -167,19 +185,26 @@ final class ContentActionPanelViewModel: ObservableObject {
         state = .previewing
     }
 
-    private func shouldExecuteBinary(action: any ContentAction, session: ActionSession) -> Bool {
-        session.sourceItem.contentType == .image
-            && session.steps.isEmpty
-            && session.sourceText.isEmpty
-            && action.supportedTypes.contains(.image)
+    private func isApplicable(_ action: any ContentAction, to session: ActionSession) -> Bool {
+        suitabilityPolicy.isSuitable(action, for: activeContentType)
+            && isExecutable(action, in: session)
     }
 
-    private func isApplicable(_ action: any ContentAction, to session: ActionSession) -> Bool {
+    private func isExecutable(_ action: any ContentAction, in session: ActionSession) -> Bool {
         if session.sourceItem.contentType == .image, session.sourceText.isEmpty {
             return action.supportedTypes.contains(.image)
         }
-        return action.supportedTypes.contains(session.sourceItem.effectiveDetectedType)
-            || action.supportedTypes.contains(.plainText)
+        return action.supportedTypes.contains(activeContentType)
+    }
+
+    private func detectedType(for item: ClipboardHistoryItem, sourceText: String) -> DetectedContentType {
+        if item.contentType == .image, sourceText.isEmpty {
+            return .image
+        }
+        if let userOverrideType = item.userOverrideType {
+            return userOverrideType
+        }
+        return classifier.classifyComplete(sourceText).type
     }
 
     private func publishFailure(_ error: ContentActionError, actionID: ContentActionID) {

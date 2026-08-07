@@ -59,6 +59,21 @@ final class ActionSessionTests: XCTestCase {
         XCTAssertEqual(session.currentOutput, "original")
     }
 
+    func testSession_currentMetadataTracksVisibleStepAfterMovingBack() {
+        let source = makeItem(text: "original")
+        let first = TestContentAction(id: "first", titleKey: "action.first")
+        let second = TestContentAction(id: "second", titleKey: "action.second")
+        var session = ActionSession(sourceItem: source)
+        session.append(action: first, result: result("one"), input: "original")
+        session.append(action: second, result: result("two"), input: "one")
+
+        session.moveBack()
+
+        XCTAssertEqual(session.currentStep?.actionID, first.id)
+        XCTAssertEqual(session.currentActionSummary, "action.first")
+        XCTAssertEqual(session.actionSummary, "action.first")
+    }
+
     private func result(_ output: String) -> ContentActionResult {
         ContentActionResult(output: output, syntax: .plainText, notices: [], copyVariants: [])
     }

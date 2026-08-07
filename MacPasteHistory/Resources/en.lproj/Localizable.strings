@@ -78,6 +78,11 @@
 "Data Management" = "Data Management";
 "Clear All Data" = "Clear All Data";
 
+/* SettingsView - Appearance Section */
+"Appearance" = "Appearance";
+"Light" = "Light";
+"Dark" = "Dark";
+
 /* SettingsView - Language Section */
 "Language" = "Language";
 "Follow System" = "Follow System";
@@ -195,9 +200,9 @@
 "content-action.base64.valid" = "Valid Base64.";
 "content-action.jwt.invalid" = "Invalid JWT.";
 "content-action.jwt.signature-not-verified" = "JWT signature is not verified.";
-"content-action.jwt.expired" = "The JWT is expired.";
-"content-action.jwt.not-expired" = "The JWT is not expired.";
-"content-action.jwt.no-expiration" = "The JWT has no expiration claim.";
+"content-action.jwt.expired" = "The JWT has expired.";
+"content-action.jwt.not-expired" = "The JWT has not expired.";
+"content-action.jwt.no-expiration" = "The JWT has no exp claim.";
 "content-action.timestamp.invalid" = "Enter a 10- or 13-digit Unix timestamp, ISO 8601 date, or yyyy-MM-dd HH:mm:ss.";
 "content-action.url.invalid" = "Invalid URL.";
 "content-action.url.hostless" = "The URL has no host.";
@@ -225,14 +230,14 @@
 "url.parse-query" = "Parse URL query";
 "sql.single-line" = "Make SQL single line";
 "shell.quote-argument" = "Quote shell argument";
-"header" = "Header";
-"payload" = "Payload";
-"summary" = "Summary";
-"local" = "Local time";
-"utc" = "UTC";
-"iso8601" = "ISO 8601";
-"seconds" = "Unix seconds";
-"milliseconds" = "Unix milliseconds";
+"header" = "Copy Header";
+"payload" = "Copy Payload";
+"summary" = "Copy Summary";
+"local" = "Copy Local Time";
+"utc" = "Copy UTC";
+"iso8601" = "Copy ISO 8601";
+"seconds" = "Copy Unix Seconds";
+"milliseconds" = "Copy Unix Milliseconds";
 "Unsupported for this content" = "Unsupported for this content";
 "content-type.plain-text" = "Plain Text";
 "content-type.image" = "Image";
@@ -256,8 +261,7 @@
 "Failed to save derived clipboard content." = "Failed to save derived clipboard content.";
 "Failed to update clipboard content type." = "Failed to update clipboard content type.";
 "Paste was not sent. Press Command-V to paste manually." = "Paste was not sent. Press Command-V to paste manually.";
-"sql.format" = "Format SQL";
-"shell.format" = "Format shell command";
+"Action Failed" = "Action Failed";
 "imageMissing" = "Image file is missing.";
 "imageDecodeFailed" = "Image could not be decoded.";
 "visionFailed" = "Text recognition failed.";

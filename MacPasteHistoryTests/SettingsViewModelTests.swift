@@ -61,6 +61,25 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testLoadAndUpdateAppearance_shouldPersistAndApplyImmediately() {
+        config.appAppearance = .dark
+        var appliedAppearances: [AppAppearance] = []
+        let appearanceService = AppearanceService(config: config) { appearance in
+            appliedAppearances.append(appearance)
+        }
+        let viewModel = makeViewModel(appearanceService: appearanceService)
+
+        viewModel.loadSettings()
+        XCTAssertEqual(viewModel.selectedAppearance, .dark)
+
+        viewModel.updateAppearance(.light)
+
+        XCTAssertEqual(config.appAppearance, .light)
+        XCTAssertEqual(viewModel.selectedAppearance, .light)
+        XCTAssertEqual(appliedAppearances, [.light])
+    }
+
+    @MainActor
     func testAddBlockedAppFromFields_shouldPersistBlockedAppEntry() {
         let viewModel = makeViewModel()
         viewModel.blockedAppBundleID = "com.apple.Safari"
@@ -97,6 +116,7 @@ final class SettingsViewModelTests: XCTestCase {
     @MainActor
     private func makeViewModel(
         shortcutService: ShortcutService? = nil,
+        appearanceService: AppearanceService? = nil,
         sourceApplicationProvider: SourceApplicationProviding = SourceApplicationProvider()
     ) -> SettingsViewModel {
         let service = LoginItemService(manager: manager, config: config)
@@ -105,6 +125,7 @@ final class SettingsViewModelTests: XCTestCase {
             config: config,
             loginItemService: service,
             appPreferencesService: appPreferencesService,
+            appearanceService: appearanceService,
             shortcutService: shortcutService,
             sourceApplicationProvider: sourceApplicationProvider
         )

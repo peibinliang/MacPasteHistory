@@ -341,6 +341,9 @@ final class ClipboardHistoryRepository {
 
     func saveDerivedText(_ request: DerivedClipboardRecordRequest) throws -> ClipboardHistoryItem {
         let normalizedText = hashService.normalize(request.text)
+        guard normalizedText.isEmpty == false else {
+            throw DatabaseError.invalidInput("Derived text must not be empty")
+        }
         let contentHash = hashService.hash(for: normalizedText)
         let appBundleID = Bundle.main.bundleIdentifier
 
@@ -685,7 +688,7 @@ final class ClipboardHistoryRepository {
             conditions.append("is_favorite = 1")
         }
         if query.timeRange.startDate != nil {
-            conditions.append("datetime(created_at) >= datetime(?)")
+            conditions.append("datetime(COALESCE(last_captured_at, created_at)) >= datetime(?)")
         }
         if query.sourceFilter.isAll == false {
             if query.sourceFilter.bundleID != nil {
@@ -699,7 +702,7 @@ final class ClipboardHistoryRepository {
         return """
         \(Self.selectHistorySQL)
         \(whereClause)
-        ORDER BY datetime(created_at) DESC, id DESC
+        ORDER BY datetime(COALESCE(last_captured_at, created_at)) DESC, id DESC
         LIMIT ? OFFSET ?;
         """
     }

@@ -68,6 +68,25 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.items.map(\.textContent), ["third", "second", "first"])
     }
 
+    func testLoadMore_withSearchCoordinatorBeforeAnySearchStillUsesRepositoryPagination() throws {
+        _ = try repository.saveText("first", sourceApp: nil, sourceBundleID: nil)
+        _ = try repository.saveText("second", sourceApp: nil, sourceBundleID: nil)
+        _ = try repository.saveText("third", sourceApp: nil, sourceBundleID: nil)
+        let writer = ClipboardWriter(pasteboard: pasteboard, restorationState: ClipboardRestorationState())
+        viewModel = ClipboardHistoryViewModel(
+            repository: repository,
+            writer: writer,
+            imageStorageService: imageStorageService,
+            pageSize: 2,
+            searchCoordinator: NoopSearchCoordinator()
+        )
+
+        viewModel.loadHistory()
+        viewModel.loadMoreIfNeeded(currentItem: viewModel.items.last)
+
+        XCTAssertEqual(viewModel.items.count, 3)
+    }
+
     func testToggleFavorite_shouldRefreshFavoriteState() throws {
         let item = try repository.saveText("favorite from view model", sourceApp: nil, sourceBundleID: nil)
         viewModel.loadHistory()
@@ -194,6 +213,33 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(try historyItem(id: source.id).pasteCount, 0)
     }
 
+    func testSaveDerivedActionOutput_afterMovingBackPersistsCurrentStepMetadata() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+        let first = TextContentAction(kind: .uppercase)
+        let second = TextContentAction(kind: .markdownCodeBlock)
+        var session = ActionSession(sourceItem: source)
+        session.append(action: first, result: try first.execute(input: "source"), input: "source")
+        session.append(action: second, result: try second.execute(input: "SOURCE"), input: "SOURCE")
+        session.moveBack()
+
+        let saved = try XCTUnwrap(viewModel.saveDerivedActionOutput(from: session))
+
+        XCTAssertEqual(saved.textContent, "SOURCE")
+        XCTAssertEqual(saved.derivedActionID, first.id.rawValue)
+        XCTAssertEqual(saved.derivedActionSummary, first.titleKey)
+    }
+
+    func testSaveDerivedActionOutput_withEmptyEditedOutputDoesNotCreateRecord() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+        let action = TextContentAction(kind: .uppercase)
+        var session = ActionSession(sourceItem: source)
+        session.append(action: action, result: try action.execute(input: "source"), input: "source")
+        session.updateEditedOutput(" \n\t")
+
+        XCTAssertNil(viewModel.saveDerivedActionOutput(from: session))
+        XCTAssertEqual(try repository.fetchHistory(query: HistoryQuery(contentType: .text)).map(\.id), [source.id])
+    }
+
     func testDelete_whenItemIsImage_shouldRemoveDatabaseRecordAndImageFiles() throws {
         let item = try saveImageRecord(pngData: makePNGData())
         let filePath = try XCTUnwrap(item.filePath)
@@ -246,6 +292,18 @@ private final class TestPasteCommandSender: PasteCommandSending {
 
 private enum TestImageError: Error {
     case encodingFailed
+}
+
+private struct NoopSearchCoordinator: SearchCoordinating {
+    func immediateResults(input: String, loadedItems: [ClipboardHistoryItem], filters: SearchUIFilters) async -> SearchResponse {
+        SearchResponse(parsedQuery: SearchQueryParser().parse(input), results: [], isCurrent: true, errorDescription: nil)
+    }
+
+    func search(input: String, loadedItems: [ClipboardHistoryItem], filters: SearchUIFilters) async -> SearchResponse {
+        SearchResponse(parsedQuery: SearchQueryParser().parse(input), results: [], isCurrent: true, errorDescription: nil)
+    }
+
+    func cancelCurrentSearch() async {}
 }
 
 private final class FakePasteboard: PasteboardProviding {

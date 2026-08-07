@@ -276,6 +276,11 @@ struct MainPanelView: View {
                     if viewModel.copyActionOutput(output, sourceItem: source) { showCopyToast() }
                 },
                 pasteAction: { output, source in
+                    guard accessibilityPermissionService.hasAccessibilityPermission else {
+                        _ = accessibilityPermissionService.reminderIfNeeded(for: .automaticPaste)
+                        showAccessibilityPermissionReminder = true
+                        return
+                    }
                     actionViewModel.close()
                     closePanel()
                     pasteTargetApplication?.activate(options: PasteActivationPolicy.options)
@@ -479,7 +484,8 @@ struct MainPanelView: View {
     }
 
     private func pasteIntoPreviousApplication(_ item: ClipboardHistoryItem) {
-        if accessibilityPermissionService.reminderIfNeeded(for: .automaticPaste) {
+        guard accessibilityPermissionService.hasAccessibilityPermission else {
+            _ = accessibilityPermissionService.reminderIfNeeded(for: .automaticPaste)
             showAccessibilityPermissionReminder = true
             return
         }

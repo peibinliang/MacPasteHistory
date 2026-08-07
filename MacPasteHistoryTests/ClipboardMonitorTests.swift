@@ -59,6 +59,15 @@ final class ClipboardMonitorTests: XCTestCase {
         XCTAssertEqual(items.first?.sourceBundleID, "com.peibin.tests")
     }
 
+    func testPollOnce_whenTextIsSQLOrShell_shouldPersistCompleteClassification() throws {
+        let monitor = makeMonitor()
+        _ = pasteboard.setString("SELECT id FROM users WHERE active = 1", forType: .string)
+
+        monitor.pollOnce()
+
+        XCTAssertEqual(try repository.fetchTextHistory(matching: nil).first?.detectedType, .sql)
+    }
+
     func testPollOnce_whenPasteboardDoesNotChange_shouldNotSaveDuplicateText() throws {
         let monitor = makeMonitor()
         _ = pasteboard.setString("single change", forType: .string)

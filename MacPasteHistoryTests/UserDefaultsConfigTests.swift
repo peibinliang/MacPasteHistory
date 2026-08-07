@@ -72,4 +72,29 @@ final class UserDefaultsConfigTests: XCTestCase {
 
         XCTAssertEqual(UserDefaultsConfig(defaults: defaults).shortcutConfiguration, shortcut)
     }
+
+    func testAppAppearance_whenUnsetOrInvalid_shouldFollowSystem() {
+        let config = UserDefaultsConfig(defaults: defaults)
+
+        XCTAssertEqual(config.appAppearance, .system)
+
+        config.setString("unsupported", forKey: .appAppearance)
+
+        XCTAssertEqual(config.appAppearance, .system)
+    }
+
+    func testAppAppearance_shouldPersistLightAndDarkPreferences() {
+        var config = UserDefaultsConfig(defaults: defaults)
+
+        config.appAppearance = .light
+        XCTAssertEqual(UserDefaultsConfig(defaults: defaults).appAppearance, .light)
+
+        config.appAppearance = .dark
+        XCTAssertEqual(UserDefaultsConfig(defaults: defaults).appAppearance, .dark)
+    }
+
+    func testAppAppearance_shouldExposeStableValuesAndLocalizationKeys() {
+        XCTAssertEqual(AppAppearance.allCases.map(\.id), ["system", "light", "dark"])
+        XCTAssertEqual(AppAppearance.allCases.map(\.titleKey), ["Follow System", "Light", "Dark"])
+    }
 }

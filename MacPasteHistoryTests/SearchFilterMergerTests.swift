@@ -27,6 +27,7 @@ final class SearchFilterMergerTests: XCTestCase {
         XCTAssertEqual(merged.sourceFilter, HistoryQuery.SourceFilter(appName: "Terminal", bundleID: nil))
         XCTAssertNil(merged.storageContentType)
         XCTAssertFalse(merged.favoritesOnly)
+        XCTAssertEqual(merged.favoriteFilter, false)
         XCTAssertEqual(merged.timeRange, .all)
     }
 
@@ -55,6 +56,7 @@ final class SearchFilterMergerTests: XCTestCase {
         XCTAssertEqual(merged.sourceFilter, source.filter)
         XCTAssertEqual(merged.storageContentType, .image)
         XCTAssertTrue(merged.favoritesOnly)
+        XCTAssertEqual(merged.favoriteFilter, true)
         XCTAssertEqual(merged.timeRange, .last7Days)
     }
 

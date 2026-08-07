@@ -9,85 +9,83 @@ struct SQLContentAction: ContentAction {
     func validate(input: String) -> ActionValidationResult { .valid }
 
     func execute(input: String) throws -> ContentActionResult {
-        let characters = Array(input)
-        var output = ""
-        var index = 0
-        var quote: Character?
-        var inLineComment = false
-        var inBlockComment = false
-        var pendingWhitespace = false
-
-        func nextCharacter() -> Character? {
-            let nextIndex = index + 1
-            return nextIndex < characters.count ? characters[nextIndex] : nil
+        enum State: Equatable {
+            case normal
+            case quoted(Character)
+            case lineComment
+            case blockComment
         }
 
-        func appendPendingWhitespace() {
-            guard pendingWhitespace, output.isEmpty == false, output.last != "\n" else {
-                pendingWhitespace = false
-                return
+        let characters = Array(input)
+        var output = ""
+        var state = State.normal
+        var pendingWhitespace = false
+        var index = 0
+
+        func appendingPendingWhitespace(to value: inout String) {
+            if pendingWhitespace, value.isEmpty == false, value.last != "\n" {
+                value.append(" ")
             }
-            output.append(" ")
-            pendingWhitespace = false
         }
 
         while index < characters.count {
             let character = characters[index]
-            let next = nextCharacter()
+            let next = index + 1 < characters.count ? characters[index + 1] : nil
 
-            if inLineComment {
+            switch state {
+            case .normal:
+                if character.isWhitespace {
+                    pendingWhitespace = true
+                    index += 1
+                } else if character == "-", next == "-" {
+                    appendingPendingWhitespace(to: &output)
+                    pendingWhitespace = false
+                    output.append("--")
+                    state = .lineComment
+                    index += 2
+                } else if character == "/", next == "*" {
+                    appendingPendingWhitespace(to: &output)
+                    pendingWhitespace = false
+                    output.append("/*")
+                    state = .blockComment
+                    index += 2
+                } else {
+                    appendingPendingWhitespace(to: &output)
+                    pendingWhitespace = false
+                    output.append(character)
+                    if character == "'" || character == "\"" || character == "`" {
+                        state = .quoted(character)
+                    }
+                    index += 1
+                }
+
+            case let .quoted(quote):
                 output.append(character)
-                if character == "\n" { inLineComment = false }
+                if character == quote, next == quote {
+                    output.append(quote)
+                    index += 2
+                } else {
+                    if character == quote { state = .normal }
+                    index += 1
+                }
+
+            case .lineComment:
+                output.append(character)
                 index += 1
-                continue
-            }
-            if inBlockComment {
+                if character == "\n" {
+                    state = .normal
+                    pendingWhitespace = false
+                }
+
+            case .blockComment:
                 output.append(character)
                 if character == "*", next == "/" {
                     output.append("/")
+                    state = .normal
                     index += 2
-                    inBlockComment = false
                 } else {
                     index += 1
                 }
-                continue
-            }
-            if let activeQuote = quote {
-                output.append(character)
-                if character == activeQuote {
-                    if next == activeQuote {
-                        output.append(activeQuote)
-                        index += 2
-                        continue
-                    }
-                    quote = nil
-                }
-                index += 1
-                continue
-            }
-
-            if character == "-", next == "-" {
-                appendPendingWhitespace()
-                output.append("--")
-                index += 2
-                inLineComment = true
-            } else if character == "/", next == "*" {
-                appendPendingWhitespace()
-                output.append("/*")
-                index += 2
-                inBlockComment = true
-            } else if character == "'" || character == "\"" || character == "`" {
-                appendPendingWhitespace()
-                quote = character
-                output.append(character)
-                index += 1
-            } else if character.isWhitespace {
-                pendingWhitespace = true
-                index += 1
-            } else {
-                appendPendingWhitespace()
-                output.append(character)
-                index += 1
             }
         }
 

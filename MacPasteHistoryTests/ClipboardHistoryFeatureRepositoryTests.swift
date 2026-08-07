@@ -152,6 +152,15 @@ final class ClipboardHistoryFeatureRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchHistory(query: HistoryQuery(contentType: .text)).count, 2)
     }
 
+    func testSaveDerivedText_rejectsEmptyNormalizedOutput() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+
+        XCTAssertThrowsError(
+            try repository.saveDerivedText(derivedRequest(text: "  \n\t", sourceHistoryID: source.id))
+        )
+        XCTAssertEqual(try repository.fetchHistory(query: HistoryQuery(contentType: .text)).map(\.id), [source.id])
+    }
+
     private func historyItem(id: Int64) throws -> ClipboardHistoryItem {
         try XCTUnwrap(repository.fetchHistory(query: HistoryQuery()).first { $0.id == id })
     }

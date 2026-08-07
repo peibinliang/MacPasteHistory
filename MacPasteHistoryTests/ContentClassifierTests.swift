@@ -12,6 +12,7 @@ final class ContentClassifierTests: XCTestCase {
         XCTAssertEqual(classifier.classifyFast("https://example.com/path", at: date).type, .url)
         XCTAssertEqual(classifier.classifyFast("1700000000", at: date).type, .timestamp)
         XCTAssertEqual(classifier.classifyFast("SGVsbG8gd29ybGQ=", at: date).type, .base64)
+        XCTAssertEqual(classifier.classifyFast("5Lit5paH", at: date).type, .base64)
     }
 
     func testFastClassifier_keepsAmbiguousValuesAsPlainText() {

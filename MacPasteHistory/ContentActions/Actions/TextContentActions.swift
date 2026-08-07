@@ -7,7 +7,7 @@ struct TextContentAction: ContentAction {
     var id: ContentActionID { ContentActionID(rawValue: "text." + identifier) }
     var titleKey: String { id.rawValue }
     var category: ContentActionCategory { .text }
-    var supportedTypes: Set<DetectedContentType> { Set(DetectedContentType.allCases.filter { $0 != .image }) }
+    var supportedTypes: Set<DetectedContentType> { Set(DetectedContentType.allCases).subtracting([.image]) }
 
     func validate(input: String) -> ActionValidationResult { .valid }
 

@@ -135,7 +135,7 @@ actor SearchCoordinator: SearchCoordinating {
         guard parsedQuery.type == nil || item.effectiveDetectedType == parsedQuery.type else {
             return false
         }
-        guard filters.favoritesOnly == false || item.isFavorite else {
+        if let favoriteFilter = filters.favoriteFilter, item.isFavorite != favoriteFilter {
             return false
         }
         guard sourceMatches(item, filter: filters.sourceFilter) else {

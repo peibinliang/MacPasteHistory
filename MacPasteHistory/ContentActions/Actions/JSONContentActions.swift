@@ -22,26 +22,24 @@ struct JSONContentAction: ContentAction {
     func execute(input: String) throws -> ContentActionResult {
         let output: String
         switch kind {
-        case .format: output = try formatted(input)
+        case .format: output = fourSpaceIndented(try normalized(input, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]))
         case .minify, .validate: output = try normalized(input)
-        case .escape: output = try escaped(input)
-        case .unescape: output = try unescaped(input)
+        case .escape:
+            let encoded = try JSONSerialization.data(withJSONObject: input, options: [.fragmentsAllowed, .withoutEscapingSlashes])
+            guard let quoted = String(data: encoded, encoding: .utf8) else {
+                throw ContentActionError.parseFailed(messageKey: "content-action.json.invalid")
+            }
+            output = String(quoted.dropFirst().dropLast())
+        case .unescape:
+            output = try unescaped(input)
         }
         return ContentActionResult(output: output, syntax: .json, notices: kind == .validate ? [ContentActionNotice(messageKey: "content-action.json.valid")] : [], copyVariants: [])
     }
-    private func normalized(_ input: String, options: JSONSerialization.WritingOptions = [.sortedKeys]) throws -> String {
+    private func normalized(_ input: String, options: JSONSerialization.WritingOptions = [.sortedKeys, .withoutEscapingSlashes]) throws -> String {
         guard let data = input.data(using: .utf8) else { throw ContentActionError.invalidInput(messageKey: "content-action.json.invalid") }
         let object = try JSONSerialization.jsonObject(with: data)
         guard let result = String(data: try JSONSerialization.data(withJSONObject: object, options: options), encoding: .utf8) else { throw ContentActionError.parseFailed(messageKey: "content-action.json.invalid") }
         return result
-    }
-
-    private func formatted(_ input: String) throws -> String {
-        let pretty = try normalized(input, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
-        return pretty.components(separatedBy: "\n").map { line in
-            let indentation = line.prefix { $0 == " " }.count
-            return String(repeating: " ", count: indentation * 2) + String(line.dropFirst(indentation))
-        }.joined(separator: "\n")
     }
 
     private func unescaped(_ input: String) throws -> String {
@@ -55,11 +53,10 @@ struct JSONContentAction: ContentAction {
         return value
     }
 
-    private func escaped(_ input: String) throws -> String {
-        let data = try JSONSerialization.data(withJSONObject: input, options: .fragmentsAllowed)
-        guard let quoted = String(data: data, encoding: .utf8), quoted.count >= 2 else {
-            throw ContentActionError.parseFailed(messageKey: "content-action.json.invalid")
-        }
-        return String(quoted.dropFirst().dropLast())
+    private func fourSpaceIndented(_ input: String) -> String {
+        input.components(separatedBy: "\n").map { line in
+            let indentation = line.prefix { $0 == " " }.count
+            return String(repeating: " ", count: indentation * 2) + String(line.dropFirst(indentation))
+        }.joined(separator: "\n")
     }
 }

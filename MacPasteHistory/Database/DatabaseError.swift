@@ -7,6 +7,7 @@ enum DatabaseError: LocalizedError {
     case bindFailed(String)
     case stepFailed(String)
     case invalidDate(String)
+    case invalidInput(String)
 
     var errorDescription: String? {
         switch self {
@@ -22,6 +23,8 @@ enum DatabaseError: LocalizedError {
             return "Failed to step SQL statement: \(message)"
         case .invalidDate(let value):
             return "Invalid database date value: \(value)"
+        case .invalidInput(let message):
+            return "Invalid database input: \(message)"
         }
     }
 }

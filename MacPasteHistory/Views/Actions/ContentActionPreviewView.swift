@@ -15,12 +15,6 @@ struct ContentActionPreviewView: View {
             VStack(alignment: .leading, spacing: 0) {
                 header(session: session)
                 Divider()
-                Picker("", selection: $showsOriginal) {
-                    Text(L10n.string("Result")).tag(false)
-                    Text(L10n.string("Original")).tag(true)
-                }
-                .pickerStyle(.segmented)
-                .padding(16)
                 if let failureMessageKey = actionViewModel.failureMessageKey {
                     ContentUnavailableView(
                         L10n.string("Action Failed"),
@@ -28,19 +22,30 @@ struct ContentActionPreviewView: View {
                         description: Text(L10n.string(failureMessageKey))
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if showsOriginal {
-                    ScrollView { Text(session.sourceText).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(16) }
                 } else {
-                    SyntaxHighlightedTextView(text: Binding(
-                        get: { actionViewModel.editedOutput },
-                        set: { actionViewModel.updateEditedOutput($0) }
-                    ), syntax: session.steps.last?.originalResult.syntax ?? .plainText)
-                    .accessibilityValue(L10n.string(ContentActionAccessibilityPresentation.resultEditedValue))
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-                }
-                if actionViewModel.hasUsableResult {
-                    stepSummary(session)
+                    Picker("", selection: $showsOriginal) {
+                        Text(L10n.string("Result")).tag(false)
+                        Text(L10n.string("Original")).tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(16)
+                    if showsOriginal {
+                        ScrollView { Text(session.sourceText).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(16) }
+                    } else {
+                        SyntaxHighlightedTextView(text: Binding(
+                            get: { actionViewModel.editedOutput },
+                            set: { actionViewModel.updateEditedOutput($0) }
+                        ), syntax: session.steps.last?.originalResult.syntax ?? .plainText)
+                        .accessibilityValue(L10n.string(ContentActionAccessibilityPresentation.resultEditedValue))
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
+                    }
+                    if session.steps.isEmpty == false {
+                        stepSummary(session)
+                    }
+                    if actionViewModel.copyVariants.isEmpty == false {
+                        copyVariantButtons(session: session)
+                    }
                     Divider()
                     HStack {
                         Button(L10n.string("Restore Result")) { actionViewModel.restoreCurrentOutput() }
@@ -98,5 +103,20 @@ struct ContentActionPreviewView: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
+    }
+
+    private func copyVariantButtons(session: ActionSession) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(actionViewModel.copyVariants) { variant in
+                    Button(L10n.string(variant.titleKey)) {
+                        copyAction(variant.value, session.sourceItem)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
+        }
     }
 }

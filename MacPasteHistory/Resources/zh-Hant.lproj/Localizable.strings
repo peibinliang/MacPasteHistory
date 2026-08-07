@@ -78,6 +78,11 @@
 "Data Management" = "資料管理";
 "Clear All Data" = "清空所有資料";
 
+/* SettingsView - Appearance Section */
+"Appearance" = "外觀";
+"Light" = "淺色";
+"Dark" = "深色";
+
 /* SettingsView - Language Section */
 "Language" = "語言";
 "Follow System" = "跟隨系統";
@@ -197,8 +202,8 @@
 "content-action.jwt.signature-not-verified" = "未驗證 JWT 簽章。";
 "content-action.jwt.expired" = "JWT 已過期。";
 "content-action.jwt.not-expired" = "JWT 尚未過期。";
-"content-action.jwt.no-expiration" = "JWT 不包含過期時間。";
-"content-action.timestamp.invalid" = "請輸入 10 位或 13 位 Unix 時間戳記、ISO 8601 日期，或 yyyy-MM-dd HH:mm:ss。";
+"content-action.jwt.no-expiration" = "JWT 不包含 exp 欄位。";
+"content-action.timestamp.invalid" = "請輸入 10 或 13 位 Unix 時間戳記、ISO 8601 日期，或 yyyy-MM-dd HH:mm:ss。";
 "content-action.url.invalid" = "URL 無效。";
 "content-action.url.hostless" = "URL 不包含主機名稱。";
 "text.trim" = "移除前後空白";
@@ -223,17 +228,17 @@
 "url.decode" = "解碼 URL";
 "url.extract-host" = "擷取 URL 主機名稱";
 "url.parse-query" = "解析 URL 查詢參數";
-"sql.single-line" = "合併 SQL 為單行";
-"shell.quote-argument" = "逸出 Shell 參數";
-"header" = "Header";
-"payload" = "Payload";
-"summary" = "摘要";
-"local" = "本地時間";
-"utc" = "UTC";
-"iso8601" = "ISO 8601";
-"seconds" = "Unix 秒";
-"milliseconds" = "Unix 毫秒";
-"Unsupported for this content" = "不支援所選內容";
+"sql.single-line" = "SQL 合併為單行";
+"shell.quote-argument" = "Shell 參數安全逸出";
+"header" = "複製 Header";
+"payload" = "複製 Payload";
+"summary" = "複製摘要";
+"local" = "複製本地時間";
+"utc" = "複製 UTC";
+"iso8601" = "複製 ISO 8601";
+"seconds" = "複製 Unix 秒";
+"milliseconds" = "複製 Unix 毫秒";
+"Unsupported for this content" = "目前內容不支援此操作";
 "content-type.plain-text" = "純文字";
 "content-type.image" = "圖片";
 "content-type.json" = "JSON";
@@ -256,8 +261,7 @@
 "Failed to save derived clipboard content." = "無法儲存衍生剪貼簿內容。";
 "Failed to update clipboard content type." = "無法更新剪貼簿內容類型。";
 "Paste was not sent. Press Command-V to paste manually." = "未能自動貼上，請按 Command-V 手動貼上。";
-"sql.format" = "格式化 SQL";
-"shell.format" = "格式化 Shell 指令";
+"Action Failed" = "操作失敗";
 "imageMissing" = "圖片檔案遺失。";
 "imageDecodeFailed" = "無法解碼圖片。";
 "visionFailed" = "文字辨識失敗。";

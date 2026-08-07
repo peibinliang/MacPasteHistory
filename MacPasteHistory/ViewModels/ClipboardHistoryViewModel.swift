@@ -28,6 +28,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
     private var canLoadMore = true
     private var rankedCandidates: [ClipboardHistoryItem] = []
     private var visibleCandidateCount = 0
+    private var isShowingRankedResults = false
     private var historyDidChangeCancellable: AnyCancellable?
 
     init(
@@ -51,6 +52,9 @@ final class ClipboardHistoryViewModel: ObservableObject {
 
     func loadHistory() {
         do {
+            isShowingRankedResults = false
+            rankedCandidates = []
+            visibleCandidateCount = 0
             currentOffset = 0
             let loadedItems = try repository.fetchHistory(query: currentQuery(offset: currentOffset))
             items = loadedItems
@@ -126,7 +130,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
     }
 
     func loadMoreIfNeeded(currentItem: ClipboardHistoryItem?) {
-        if searchCoordinator != nil {
+        if isShowingRankedResults {
             guard currentItem?.id == items.last?.id,
                   visibleCandidateCount < rankedCandidates.count else {
                 return
@@ -259,14 +263,14 @@ final class ClipboardHistoryViewModel: ObservableObject {
 
     @discardableResult
     func saveDerivedActionOutput(from session: ActionSession) -> ClipboardHistoryItem? {
-        guard let lastStep = session.steps.last else { return nil }
+        guard let currentStep = session.currentStep else { return nil }
         do {
             let source = session.sourceItem
             let item = try repository.saveDerivedText(DerivedClipboardRecordRequest(
                 text: session.currentOutput,
                 sourceHistoryID: source.id,
-                actionID: lastStep.actionID.rawValue,
-                actionSummary: session.actionSummary,
+                actionID: currentStep.actionID.rawValue,
+                actionSummary: session.currentActionSummary,
                 sourcePreview: DerivedSourcePreviewBuilder.build(for: source),
                 sourceHash: source.contentHash,
                 detection: ContentClassifier().classifyFast(session.currentOutput)
@@ -294,6 +298,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
     }
 
     private func showRankedResults(_ results: [ClipboardHistoryItem]) {
+        isShowingRankedResults = true
         rankedCandidates = results
         visibleCandidateCount = min(pageSize, rankedCandidates.count)
         items = Array(rankedCandidates.prefix(visibleCandidateCount))

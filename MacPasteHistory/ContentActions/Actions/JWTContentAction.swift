@@ -16,17 +16,25 @@ struct JWTContentAction: ContentAction {
         guard let decoded = decoded(input) else {
             throw ContentActionError.parseFailed(messageKey: "content-action.jwt.invalid")
         }
-        let header = try formattedJSON(decoded.header)
-        let payload = try formattedJSON(decoded.payload)
-        let claims = claimSummary(header: decoded.header, payload: decoded.payload)
-        let sections = ["Header:", header, "", "Payload:", payload, "", "Claims:", claims]
-        let output = sections.joined(separator: "\n")
+
+        let header = try formattedJSON(decoded.headerObject)
+        let payload = try formattedJSON(decoded.payloadObject)
+        let claims = claimSummary(header: decoded.headerObject, payload: decoded.payloadObject)
+        let output = [
+            "Header",
+            header,
+            "Payload",
+            payload,
+            "Claims",
+            claims
+        ].joined(separator: "\n")
+
         return ContentActionResult(
             output: output,
             syntax: .jwt,
             notices: [
                 ContentActionNotice(messageKey: "content-action.jwt.signature-not-verified"),
-                ContentActionNotice(messageKey: expirationNotice(payload: decoded.payload))
+                ContentActionNotice(messageKey: expirationNoticeKey(payload: decoded.payloadObject))
             ],
             copyVariants: [
                 ContentActionCopyVariant(id: "header", titleKey: "header", value: header),
@@ -36,7 +44,7 @@ struct JWTContentAction: ContentAction {
         )
     }
 
-    private func decoded(_ input: String) -> (header: [String: Any], payload: [String: Any])? {
+    private func decoded(_ input: String) -> (headerObject: [String: Any], payloadObject: [String: Any])? {
         let parts = input.split(separator: ".", omittingEmptySubsequences: false)
         guard parts.count == 3,
               let headerData = data(String(parts[0])),
@@ -56,14 +64,11 @@ struct JWTContentAction: ContentAction {
     }
 
     private func formattedJSON(_ object: [String: Any]) throws -> String {
-        let data = try JSONSerialization.data(
-            withJSONObject: object,
-            options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        )
-        guard let pretty = String(data: data, encoding: .utf8) else {
+        let data = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+        guard let text = String(data: data, encoding: .utf8) else {
             throw ContentActionError.parseFailed(messageKey: "content-action.jwt.invalid")
         }
-        return pretty.split(separator: "\n", omittingEmptySubsequences: false).map { line in
+        return text.components(separatedBy: "\n").map { line in
             let indentation = line.prefix { $0 == " " }.count
             return String(repeating: " ", count: indentation * 2) + String(line.dropFirst(indentation))
         }.joined(separator: "\n")
@@ -71,54 +76,38 @@ struct JWTContentAction: ContentAction {
 
     private func claimSummary(header: [String: Any], payload: [String: Any]) -> String {
         var lines: [String] = []
-        for key in ["alg", "typ"] {
-            if let value = displayValue(header[key]) { lines.append("\(key) = \(value)") }
+        for (name, source) in [("alg", header), ("typ", header), ("iss", payload), ("sub", payload), ("aud", payload)] {
+            if let value = source[name] {
+                lines.append("\(name) = \(displayValue(value))")
+            }
         }
-        for key in ["iss", "sub", "aud"] {
-            if let value = displayValue(payload[key]) { lines.append("\(key) = \(value)") }
+        for name in ["iat", "exp", "nbf"] {
+            guard let timestamp = numericDate(payload[name]),
+                  let result = try? TimestampContentAction().execute(input: String(Int64(timestamp))) else {
+                continue
+            }
+            for variant in result.copyVariants where ["local", "utc", "iso8601"].contains(variant.id) {
+                lines.append("\(name).\(variant.id) = \(variant.value)")
+            }
         }
-        for key in ["iat", "exp", "nbf"] {
-            guard let seconds = numericDate(payload[key]) else { continue }
-            let date = Date(timeIntervalSince1970: seconds)
-            lines.append("\(key).local = \(dateString(date, timeZone: .current, suffix: nil))")
-            lines.append("\(key).utc = \(dateString(date, timeZone: TimeZone(secondsFromGMT: 0)!, suffix: "UTC"))")
-            lines.append("\(key).iso8601 = \(ISO8601DateFormatter().string(from: date))")
-        }
-        return lines.isEmpty ? "—" : lines.joined(separator: "\n")
+        return lines.isEmpty ? "-" : lines.joined(separator: "\n")
     }
 
-    private func displayValue(_ value: Any?) -> String? {
-        guard let value else { return nil }
-        if let string = value as? String { return string }
-        if JSONSerialization.isValidJSONObject([value]),
-           let data = try? JSONSerialization.data(withJSONObject: value),
-           let string = String(data: data, encoding: .utf8) {
-            return string
-        }
+    private func displayValue(_ value: Any) -> String {
+        if let strings = value as? [String] { return strings.joined(separator: ", ") }
         return String(describing: value)
     }
 
-    private func numericDate(_ value: Any?) -> TimeInterval? {
-        if let number = value as? NSNumber { return number.doubleValue }
-        if let string = value as? String { return Double(string) }
-        return nil
+    private func numericDate(_ value: Any?) -> Double? {
+        (value as? NSNumber)?.doubleValue
     }
 
-    private func expirationNotice(payload: [String: Any]) -> String {
-        guard let seconds = numericDate(payload["exp"]) else {
+    private func expirationNoticeKey(payload: [String: Any]) -> String {
+        guard let expiration = numericDate(payload["exp"]) else {
             return "content-action.jwt.no-expiration"
         }
-        return Date(timeIntervalSince1970: seconds) <= Date()
+        return expiration < Date().timeIntervalSince1970
             ? "content-action.jwt.expired"
             : "content-action.jwt.not-expired"
-    }
-
-    private func dateString(_ date: Date, timeZone: TimeZone, suffix: String?) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = timeZone
-        formatter.dateFormat = suffix == nil ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd HH:mm:ss 'UTC'"
-        return formatter.string(from: date)
     }
 }

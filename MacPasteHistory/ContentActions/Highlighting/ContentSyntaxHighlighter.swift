@@ -13,33 +13,35 @@ struct ContentSyntaxHighlighter {
             patterns = [
                 ("key", #""(?:\\.|[^"\\])*"(?=\s*:)"#, []),
                 ("string", #""(?:\\.|[^"\\])*""#, []),
-                ("number", #"(?<![A-Za-z0-9_])-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?"#, []),
+                ("number", #"(?<![\w.])-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b"#, []),
                 ("boolean", #"\b(?:true|false)\b"#, []),
                 ("null", #"\bnull\b"#, [])
             ]
         case .sql:
             patterns = [
-                ("comment", #"--[^\n]*|/\*[\s\S]*?\*/"#, []),
+                ("comment", #"--[^\n]*|/\*.*?\*/"#, [.dotMatchesLineSeparators]),
                 ("string", #"'(?:''|[^'])*'|"(?:""|[^"])*"|`(?:``|[^`])*`"#, []),
-                ("number", #"\b\d+(?:\.\d+)?\b"#, []),
-                ("keyword", #"\b(?:SELECT|FROM|WHERE|UPDATE|SET|INSERT|INTO|DELETE|VALUES|JOIN|ON|GROUP|BY|ORDER|HAVING|LIMIT|AS|AND|OR|NOT|NULL)\b"#, [.caseInsensitive])
+                ("keyword", #"\b(?:SELECT|FROM|WHERE|UPDATE|SET|INSERT|INTO|DELETE|VALUES|JOIN|ON|GROUP|BY|ORDER|HAVING|LIMIT|OFFSET|AS|AND|OR|NOT|NULL|IS)\b"#, [.caseInsensitive]),
+                ("number", #"(?<![\w.])-?\b\d+(?:\.\d+)?\b"#, [])
             ]
         case .plainText:
             return []
         }
 
+        var tokens: [ContentSemanticToken] = []
         let fullRange = NSRange(text.startIndex..<text.endIndex, in: text)
-        return patterns.flatMap { definition -> [ContentSemanticToken] in
-            guard let regex = try? NSRegularExpression(
-                pattern: definition.pattern,
-                options: definition.options
-            ) else { return [] }
-            return regex.matches(in: text, range: fullRange).compactMap { match in
-                guard let range = Range(match.range, in: text) else { return nil }
-                return ContentSemanticToken(range: range, kind: definition.kind)
+        for entry in patterns {
+            guard let regex = try? NSRegularExpression(pattern: entry.pattern, options: entry.options) else {
+                continue
             }
-        }.sorted { lhs, rhs in
-            lhs.range.lowerBound < rhs.range.lowerBound
+            for match in regex.matches(in: text, range: fullRange) {
+                guard let range = Range(match.range, in: text),
+                      tokens.contains(where: { $0.range.overlaps(range) }) == false else {
+                    continue
+                }
+                tokens.append(ContentSemanticToken(range: range, kind: entry.kind))
+            }
         }
+        return tokens.sorted { $0.range.lowerBound < $1.range.lowerBound }
     }
 }

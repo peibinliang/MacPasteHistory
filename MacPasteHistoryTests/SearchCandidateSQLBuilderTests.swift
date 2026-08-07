@@ -42,6 +42,14 @@ final class SearchCandidateSQLBuilderTests: XCTestCase {
         XCTAssertEqual(query.bindings.last, .integer(500))
     }
 
+    func testBuild_favoriteFalseFiltersOutFavorites() {
+        let query = SearchCandidateSQLBuilder().build(
+            request: request(input: "fav:false")
+        )
+
+        XCTAssertTrue(query.sql.contains("is_favorite = 0"))
+    }
+
     private func request(
         input: String,
         now: Date = Date(timeIntervalSince1970: 1_750_000_000),

@@ -20,7 +20,7 @@ struct Base64ContentAction: BinaryContentAction {
         if kind == .validate {
             return ContentActionResult(output: input, syntax: .plainText, notices: [ContentActionNotice(messageKey: "content-action.base64.valid")], copyVariants: [])
         }
-        guard let output = String(data: result, encoding: .utf8), isMostlyPrintable(output) else {
+        guard let output = String(data: result, encoding: .utf8), isReasonablyPrintable(output) else {
             throw ContentActionError.nonUTF8Result(messageKey: "content-action.base64.non-utf8")
         }
         return ContentActionResult(output: output, syntax: .plainText, notices: [], copyVariants: [])
@@ -33,14 +33,13 @@ struct Base64ContentAction: BinaryContentAction {
     }
     private func data(_ input: String, urlSafe: Bool) -> Data? { let value = urlSafe ? input.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/") : input; return Data(base64Encoded: value + String(repeating: "=", count: (4 - value.count % 4) % 4)) }
 
-    private func isMostlyPrintable(_ value: String) -> Bool {
-        let scalars = value.unicodeScalars
+    private func isReasonablyPrintable(_ input: String) -> Bool {
+        let scalars = input.unicodeScalars
         guard scalars.isEmpty == false else { return true }
-        let nonPrintableCount = scalars.reduce(into: 0) { count, scalar in
-            if CharacterSet.controlCharacters.contains(scalar), "\n\r\t".unicodeScalars.contains(scalar) == false {
-                count += 1
-            }
-        }
-        return Double(nonPrintableCount) / Double(scalars.count) <= 0.2
+        let allowedControls: Set<Unicode.Scalar> = ["\n", "\r", "\t"]
+        let nonPrintableCount = scalars.filter {
+            CharacterSet.controlCharacters.contains($0) && allowedControls.contains($0) == false
+        }.count
+        return nonPrintableCount * 5 <= scalars.count
     }
 }

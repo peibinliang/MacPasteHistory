@@ -44,8 +44,17 @@ struct ActionSession: Equatable {
         return steps[currentIndex].editedOutput
     }
 
+    var currentStep: ActionSessionStep? {
+        currentIndex.map { steps[$0] }
+    }
+
+    var currentActionSummary: String {
+        guard let currentIndex else { return "" }
+        return steps[...currentIndex].map(\.actionTitleKey).joined(separator: " → ")
+    }
+
     var actionSummary: String {
-        steps.map(\.actionTitleKey).joined(separator: " → ")
+        currentActionSummary
     }
 
     func localizedActionSummary(defaults: UserDefaults = .standard) -> String {
