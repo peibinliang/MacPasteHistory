@@ -77,6 +77,7 @@
 
 ### Fixed
 
+- Fixed Base64 actions for Unicode text, binary validity checks, and direct image-file encoding.
 - Fixed URL query-value encoding so reserved characters and Unicode text are percent-encoded.
 - Removed the blue keyboard focus ring that appeared as two horizontal dividers around the history list.
 - Fixed direct paste by retaining the last external foreground application, bringing it back to the front, and allowing focus to settle before sending `Command + V`.

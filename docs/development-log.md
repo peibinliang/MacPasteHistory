@@ -1,5 +1,28 @@
 # Development Log
 
+## 2026-08-07
+
+### Fixed
+
+- Allowed Base64 encoding to accept arbitrary Unicode text through the same validation path used by the action panel.
+- Made Base64 validity checks accept binary payloads without incorrectly requiring decoded UTF-8 text.
+- Added image-to-Base64 conversion using the original image file bytes, with background file loading and an explicit missing-image failure.
+
+### Root Cause
+
+- The Base64 encoder reused decode validation, so ordinary text such as Chinese was rejected before encoding.
+- Base64 validation attempted to render decoded bytes as UTF-8 even though valid Base64 can represent arbitrary binary data.
+- Image action sessions supplied an empty text value and had no binary-input execution path.
+
+### Verification
+
+- Added executor-level Unicode encoding coverage, binary validation coverage, and action-panel image encoding/missing-file coverage.
+- Targeted `Base64ContentActionsTests` and `ContentActionPanelViewModelTests` passed with 7 tests and 0 failures.
+
+### Compatibility
+
+- No database migration, data repair, new permission, or network access is required.
+
 ## 2026-08-05
 
 ### Changed

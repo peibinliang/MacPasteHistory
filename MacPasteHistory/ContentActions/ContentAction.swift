@@ -20,3 +20,7 @@ protocol ContentAction: Sendable {
     func validate(input: String) -> ActionValidationResult
     func execute(input: String) throws -> ContentActionResult
 }
+
+protocol BinaryContentAction: ContentAction {
+    func execute(data: Data) throws -> ContentActionResult
+}

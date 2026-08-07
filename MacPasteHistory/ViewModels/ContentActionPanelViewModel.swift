@@ -22,6 +22,7 @@ final class ContentActionPanelViewModel: ObservableObject {
 
     private let registry: ContentActionRegistry
     private let executor: ContentActionExecutor
+    private var executionTask: Task<Void, Never>?
 
     init(registry: ContentActionRegistry = ContentActionRegistry(), executor: ContentActionExecutor? = nil) {
         self.registry = registry
@@ -56,15 +57,13 @@ final class ContentActionPanelViewModel: ObservableObject {
     func execute(actionID: ContentActionID) {
         guard var session, let action = registry.action(id: actionID) else { return }
         state = .executing(actionID)
+        if session.sourceItem.contentType == .image, session.steps.isEmpty {
+            executeImageAction(actionID: actionID, action: action, session: session)
+            return
+        }
         do {
             let result = try executor.execute(id: actionID, input: session.currentOutput)
-            session.append(action: action, result: result, input: session.currentOutput)
-            self.session = session
-            selectedAction = actionID
-            copyVariants = result.copyVariants
-            notices = result.notices
-            editedOutput = result.output
-            state = .previewing
+            publish(result: result, action: action, actionID: actionID, session: &session)
         } catch let error as ContentActionError {
             state = .failed(error)
         } catch {
@@ -95,6 +94,8 @@ final class ContentActionPanelViewModel: ObservableObject {
     }
 
     func close() {
+        executionTask?.cancel()
+        executionTask = nil
         state = .closed
         session = nil
         selectedAction = nil
@@ -102,5 +103,54 @@ final class ContentActionPanelViewModel: ObservableObject {
         notices = []
         editedOutput = ""
         showsRecommendedActions = false
+    }
+
+    private func executeImageAction(
+        actionID: ContentActionID,
+        action: any ContentAction,
+        session: ActionSession
+    ) {
+        guard action.supportedTypes.contains(.image) else {
+            state = .failed(.unsupportedInput(messageKey: "content-action.unsupported"))
+            return
+        }
+        guard let filePath = session.sourceItem.filePath else {
+            state = .failed(.invalidInput(messageKey: "imageMissing"))
+            return
+        }
+        executionTask?.cancel()
+        executionTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let result = try await executor.execute(
+                    id: actionID,
+                    fileURL: URL(fileURLWithPath: filePath)
+                )
+                guard Task.isCancelled == false else { return }
+                var updatedSession = session
+                publish(result: result, action: action, actionID: actionID, session: &updatedSession)
+            } catch let error as ContentActionError {
+                guard Task.isCancelled == false else { return }
+                state = .failed(error)
+            } catch {
+                guard Task.isCancelled == false else { return }
+                state = .failed(.parseFailed(messageKey: "content-action.failed"))
+            }
+        }
+    }
+
+    private func publish(
+        result: ContentActionResult,
+        action: any ContentAction,
+        actionID: ContentActionID,
+        session: inout ActionSession
+    ) {
+        session.append(action: action, result: result, input: session.currentOutput)
+        self.session = session
+        selectedAction = actionID
+        copyVariants = result.copyVariants
+        notices = result.notices
+        editedOutput = result.output
+        state = .previewing
     }
 }
