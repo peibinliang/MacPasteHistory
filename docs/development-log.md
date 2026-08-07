@@ -17,7 +17,10 @@
 ### Verification
 
 - Added executor-level Unicode encoding coverage, binary validation coverage, and action-panel image encoding/missing-file coverage.
-- Targeted `Base64ContentActionsTests` and `ContentActionPanelViewModelTests` passed with 7 tests and 0 failures.
+- Updated presentation assertions to follow the active localization and system byte-count formatting instead of assuming English output.
+- Stabilized the concurrent search-generation regression test by advancing each controlled debounce and provider request in deterministic order.
+- Targeted `Base64ContentActionsTests`, `ContentActionPanelViewModelTests`, `HistoryRowPresentationTests`, and `SearchCoordinatorTests` passed with 11 tests and 0 failures.
+- The complete `MacPasteHistory` test suite passed with 219 tests and 0 failures.
 
 ### Compatibility
 

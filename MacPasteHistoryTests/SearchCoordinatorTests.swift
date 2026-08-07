@@ -33,9 +33,12 @@ final class SearchCoordinatorTests: XCTestCase {
 
         let first = Task { await coordinator.search(input: "j", loadedItems: [], filters: filters) }
         await sleeper.waitForSleepCount(1)
+        await sleeper.resumeNext()
+        await provider.waitForRequestCount(1)
+
         let second = Task { await coordinator.search(input: "json", loadedItems: [], filters: filters) }
-        await sleeper.waitForSleepCount(2)
-        await sleeper.resumeAll()
+        await sleeper.waitForSleepCount(1)
+        await sleeper.resumeNext()
         await provider.waitForRequestCount(2)
 
         await provider.resume(query: "json", with: [item(id: 2, text: "json document")])
@@ -140,6 +143,11 @@ private actor ControlledSearchSleeper: SearchSleeping {
         let pending = continuations
         continuations.removeAll()
         pending.forEach { $0.resume() }
+    }
+
+    func resumeNext() {
+        guard continuations.isEmpty == false else { return }
+        continuations.removeFirst().resume()
     }
 
     func requestedDelays() -> [TimeInterval] {

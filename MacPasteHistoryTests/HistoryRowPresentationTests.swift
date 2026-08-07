@@ -19,14 +19,14 @@ final class HistoryRowPresentationTests: XCTestCase {
         let textPresentation = HistoryRowPresentation(item: text, isSelected: true)
         let imagePresentation = HistoryRowPresentation(item: image, isSelected: false)
 
-        XCTAssertEqual(textPresentation.previewText, "line one line two")
-        XCTAssertTrue(textPresentation.metadataTitle.contains("Text"))
+        XCTAssertEqual(textPresentation.previewText, "line one\nline two")
+        XCTAssertTrue(textPresentation.metadataTitle.contains(L10n.string("Text")))
         XCTAssertTrue(textPresentation.metadataTitle.contains("Notes"))
-        XCTAssertEqual(textPresentation.favoriteTitle, "Favorite")
-        XCTAssertEqual(textPresentation.selectedRowHint, "Click to paste into the previous app")
-        XCTAssertEqual(imagePresentation.previewText, "Image 40x30")
-        XCTAssertEqual(imagePresentation.sizeTitle, "2 KB")
-        XCTAssertEqual(imagePresentation.favoriteTitle, "Unfavorite")
+        XCTAssertEqual(textPresentation.favoriteTitle, L10n.string("Favorite"))
+        XCTAssertEqual(textPresentation.selectedRowHint, L10n.string("Click to paste into the previous app"))
+        XCTAssertEqual(imagePresentation.previewText, String(format: L10n.string("Image %lldx%lld"), 40, 30))
+        XCTAssertEqual(imagePresentation.sizeTitle, ByteCountFormatter.string(fromByteCount: 2_048, countStyle: .file))
+        XCTAssertEqual(imagePresentation.favoriteTitle, L10n.string("Unfavorite"))
         XCTAssertNil(imagePresentation.selectedRowHint)
     }
 
