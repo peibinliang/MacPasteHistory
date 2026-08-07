@@ -78,6 +78,8 @@
 ### Fixed
 
 - Fixed Base64 actions for Unicode text, binary validity checks, and direct image-file encoding.
+- Completed JWT claim/expiry inspection, date-to-timestamp conversion, SQL comment preservation, strict URL decoding, four-space JSON formatting, and non-printable Base64 rejection.
+- Fixed OCR-backed image actions, action failure presentation, per-variant copy controls, applicable-action filtering, syntax highlighting, and missing action localizations.
 - Fixed URL query-value encoding so reserved characters and Unicode text are percent-encoded.
 - Removed the blue keyboard focus ring that appeared as two horizontal dividers around the history list.
 - Fixed direct paste by retaining the last external foreground application, bringing it back to the front, and allowing focus to settle before sending `Command + V`.

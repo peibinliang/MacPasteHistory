@@ -7,12 +7,17 @@
 - Allowed Base64 encoding to accept arbitrary Unicode text through the same validation path used by the action panel.
 - Made Base64 validity checks accept binary payloads without incorrectly requiring decoded UTF-8 text.
 - Added image-to-Base64 conversion using the original image file bytes, with background file loading and an explicit missing-image failure.
+- Completed the audited developer actions: four-space JSON formatting, strict URL decoding, printable-text Base64 decoding, structured JWT claims and expiry status, local-date timestamp parsing, and comment-safe SQL whitespace folding.
+- Routed OCR-backed image records through text actions while keeping raw image Base64 encoding on the binary path.
+- Added read-only action failure presentation, per-result copy buttons, recommended-first applicable action filtering, expanded syntax highlighting, and complete English/Simplified Chinese/Traditional Chinese action labels.
 
 ### Root Cause
 
 - The Base64 encoder reused decode validation, so ordinary text such as Chinese was rejected before encoding.
 - Base64 validation attempted to render decoded bytes as UTF-8 even though valid Base64 can represent arbitrary binary data.
 - Image action sessions supplied an empty text value and had no binary-input execution path.
+- Several action categories had only shallow happy-path tests, so incomplete JWT/timestamp behavior, SQL comment handling, invalid URL decoding, missing localization keys, and unusable image recommendations were not detected.
+- The preview stored copy variants and failure state but did not render them.
 
 ### Verification
 
@@ -21,6 +26,7 @@
 - Stabilized the concurrent search-generation regression test by advancing each controlled debounce and provider request in deterministic order.
 - Targeted `Base64ContentActionsTests`, `ContentActionPanelViewModelTests`, `HistoryRowPresentationTests`, and `SearchCoordinatorTests` passed with 11 tests and 0 failures.
 - The complete `MacPasteHistory` test suite passed with 219 tests and 0 failures.
+- The expanded action regression suite passed with 27 tests and 0 failures across all 24 registered action IDs, error paths, OCR routing, localization, and syntax highlighting.
 
 ### Compatibility
 
