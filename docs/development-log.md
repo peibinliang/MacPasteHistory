@@ -2,6 +2,24 @@
 
 ## 2026-08-07
 
+### Added
+
+- Added a persisted `config.appAppearance` preference with Follow System, Light, and Dark choices that apply immediately across the app.
+- Added a centralized content-action suitability policy so the action palette only displays operations appropriate for the active content classification.
+- Upgraded clipboard capture to persist complete classification, including SQL and shell, and reclassified content when opening actions to support existing records and OCR text.
+- Aligned Base64 classification with Unicode text decoding so Base64-encoded Chinese content keeps its decode actions instead of falling back to plain text.
+
+### Verification
+
+- Added appearance default, invalid-value fallback, persistence, immediate-apply, complete capture classification, nine-type action filtering, and OCR classification regressions.
+- The targeted appearance, settings, clipboard monitor, and action-panel suite passed with 36 tests and 0 failures.
+- The final coverage-enabled suite passed with 240 tests and 0 failures; the new appearance model/service and action suitability policy reached 100%, 90.48%, and 95.65% line coverage respectively, while the updated action panel, clipboard monitor, and configuration paths each remained above 80%.
+- The final non-coverage suite, including direct AppKit Aqua/Dark Aqua/system mapping, passed with 241 tests and 0 failures.
+
+### Compatibility
+
+- No database migration, data repair, new system permission, network access, or restart is required.
+
 ### Fixed
 
 - Allowed Base64 encoding to accept arbitrary Unicode text through the same validation path used by the action panel.

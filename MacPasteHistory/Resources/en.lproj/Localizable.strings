@@ -78,6 +78,11 @@
 "Data Management" = "Data Management";
 "Clear All Data" = "Clear All Data";
 
+/* SettingsView - Appearance Section */
+"Appearance" = "Appearance";
+"Light" = "Light";
+"Dark" = "Dark";
+
 /* SettingsView - Language Section */
 "Language" = "Language";
 "Follow System" = "Follow System";

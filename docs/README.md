@@ -15,3 +15,7 @@ Core development must keep these documents synchronized with code changes. See `
 - `privacy-policy.md`: local-first privacy policy draft for release review.
 - `release/RELEASE_PREP_GUIDE.md`: release build, QA, and store-preparation checklist.
 - `release/local-release-environment.md`: current machine, Xcode, signing, and common-app availability snapshot.
+
+## Current Development Notes
+
+- `development/appearance-and-smart-actions.md`: appearance preference, smart classification, action visibility mapping, configuration, privacy, and test design.

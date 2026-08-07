@@ -74,7 +74,7 @@ final class UserDefaultsConfigTests: XCTestCase {
     }
 
     func testAppAppearance_whenUnsetOrInvalid_shouldFollowSystem() {
-        var config = UserDefaultsConfig(defaults: defaults)
+        let config = UserDefaultsConfig(defaults: defaults)
 
         XCTAssertEqual(config.appAppearance, .system)
 
@@ -91,5 +91,10 @@ final class UserDefaultsConfigTests: XCTestCase {
 
         config.appAppearance = .dark
         XCTAssertEqual(UserDefaultsConfig(defaults: defaults).appAppearance, .dark)
+    }
+
+    func testAppAppearance_shouldExposeStableValuesAndLocalizationKeys() {
+        XCTAssertEqual(AppAppearance.allCases.map(\.id), ["system", "light", "dark"])
+        XCTAssertEqual(AppAppearance.allCases.map(\.titleKey), ["Follow System", "Light", "Dark"])
     }
 }

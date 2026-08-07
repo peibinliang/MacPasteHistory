@@ -94,6 +94,7 @@ final class ContentActionPanelViewModelTests: XCTestCase {
             ("{\"name\":\"粘易\"}", .json, ["json.format", "json.minify", "json.validate", "json.escape", "json.unescape"]),
             ("https://example.com/path?a=1", .url, ["url.encode-query-value", "url.decode", "url.extract-host", "url.parse-query"]),
             ("SGVsbG8gd29ybGQ=", .base64, ["base64.encode", "base64.decode", "base64.decode-url-safe", "base64.validate"]),
+            ("5Lit5paH", .base64, ["base64.encode", "base64.decode", "base64.decode-url-safe", "base64.validate"]),
             ("1700000000", .timestamp, ["timestamp.convert"]),
             ("SELECT id FROM users WHERE active = 1", .sql, ["sql.single-line"]),
             ("git log --oneline | head -5", .shell, ["shell.quote-argument"])

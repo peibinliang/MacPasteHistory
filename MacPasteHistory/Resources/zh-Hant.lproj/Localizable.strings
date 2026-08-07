@@ -78,6 +78,11 @@
 "Data Management" = "資料管理";
 "Clear All Data" = "清空所有資料";
 
+/* SettingsView - Appearance Section */
+"Appearance" = "外觀";
+"Light" = "淺色";
+"Dark" = "深色";
+
 /* SettingsView - Language Section */
 "Language" = "語言";
 "Follow System" = "跟隨系統";

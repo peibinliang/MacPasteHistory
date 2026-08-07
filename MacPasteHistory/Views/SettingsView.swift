@@ -91,6 +91,7 @@ struct SettingsView: View {
                 case .general:
                     recordingSection
                     shortcutSection
+                    appearanceSection
                     languageSection
                 case .privacy:
                     privacySection
@@ -282,6 +283,20 @@ struct SettingsView: View {
             }
             .onChange(of: viewModel.selectedLanguage) { _, newValue in
                 viewModel.updateLanguage(newValue)
+            }
+        }
+    }
+
+    private var appearanceSection: some View {
+        Section(L10n.string("Appearance")) {
+            Picker(L10n.string("Appearance"), selection: $viewModel.selectedAppearance) {
+                ForEach(AppAppearance.allCases) { appearance in
+                    Text(L10n.string(appearance.titleKey)).tag(appearance)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: viewModel.selectedAppearance) { _, newValue in
+                viewModel.updateAppearance(newValue)
             }
         }
     }

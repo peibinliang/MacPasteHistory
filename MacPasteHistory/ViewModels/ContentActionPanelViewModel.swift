@@ -19,22 +19,29 @@ final class ContentActionPanelViewModel: ObservableObject {
     @Published private(set) var notices: [ContentActionNotice] = []
     @Published private(set) var editedOutput = ""
     @Published private(set) var showsRecommendedActions = false
+    @Published private(set) var activeContentType: DetectedContentType = .plainText
 
     private let registry: ContentActionRegistry
     private let executor: ContentActionExecutor
+    private let classifier: ContentClassifier
+    private let suitabilityPolicy: ContentActionSuitabilityPolicy
     private var executionTask: Task<Void, Never>?
 
-    init(registry: ContentActionRegistry = ContentActionRegistry(), executor: ContentActionExecutor? = nil) {
+    init(
+        registry: ContentActionRegistry = ContentActionRegistry(),
+        executor: ContentActionExecutor? = nil,
+        classifier: ContentClassifier = ContentClassifier(),
+        suitabilityPolicy: ContentActionSuitabilityPolicy = ContentActionSuitabilityPolicy()
+    ) {
         self.registry = registry
         self.executor = executor ?? ContentActionExecutor(registry: registry)
+        self.classifier = classifier
+        self.suitabilityPolicy = suitabilityPolicy
     }
 
     var allActions: [any ContentAction] {
         guard let session else { return [] }
-        let applicable = registry.sorted.filter { isApplicable($0, to: session) }
-        let recommendedIDs = Set(recommendedActions.map(\.id))
-        let ordered = recommendedActions + applicable.filter { recommendedIDs.contains($0.id) == false }
-        return ordered.filter {
+        return registry.sorted.filter { isApplicable($0, to: session) }.filter {
             commandSearchText.isEmpty || L10n.string($0.titleKey).localizedCaseInsensitiveContains(commandSearchText)
         }
     }
@@ -45,7 +52,7 @@ final class ContentActionPanelViewModel: ObservableObject {
     }
     var recommendedActions: [any ContentAction] {
         guard let session else { return [] }
-        return registry.recommended(for: session.sourceItem.effectiveDetectedType).filter { isApplicable($0, to: session) }
+        return registry.sorted.filter { isApplicable($0, to: session) }
     }
     var failureMessageKey: String? {
         guard case let .failed(error) = state else { return nil }
@@ -56,7 +63,9 @@ final class ContentActionPanelViewModel: ObservableObject {
     }
 
     func present(for item: ClipboardHistoryItem, sourceText: String? = nil, recommendedOnly: Bool = false) {
-        session = ActionSession(sourceItem: item, sourceText: sourceText)
+        let resolvedSourceText = sourceText ?? item.textContent
+        session = ActionSession(sourceItem: item, sourceText: resolvedSourceText)
+        activeContentType = detectedType(for: item, sourceText: resolvedSourceText)
         selectedAction = nil
         copyVariants = []
         notices = []
@@ -67,7 +76,7 @@ final class ContentActionPanelViewModel: ObservableObject {
 
     func execute(actionID: ContentActionID) {
         guard var session, let action = registry.action(id: actionID) else { return }
-        guard isApplicable(action, to: session) else {
+        guard isExecutable(action, in: session) else {
             state = .failed(.unsupportedInput(messageKey: "content-action.unsupported"))
             return
         }
@@ -125,6 +134,7 @@ final class ContentActionPanelViewModel: ObservableObject {
         notices = []
         editedOutput = ""
         showsRecommendedActions = false
+        activeContentType = .plainText
     }
 
     private func executeImageAction(
@@ -181,9 +191,24 @@ final class ContentActionPanelViewModel: ObservableObject {
     }
 
     private func isApplicable(_ action: any ContentAction, to session: ActionSession) -> Bool {
+        suitabilityPolicy.isSuitable(action, for: activeContentType)
+            && isExecutable(action, in: session)
+    }
+
+    private func isExecutable(_ action: any ContentAction, in session: ActionSession) -> Bool {
         if session.sourceItem.contentType == .image, session.sourceText.isEmpty {
             return action.supportedTypes.contains(.image)
         }
-        return action.supportedTypes.contains(session.sourceItem.effectiveDetectedType)
+        return action.supportedTypes.contains(activeContentType)
+    }
+
+    private func detectedType(for item: ClipboardHistoryItem, sourceText: String) -> DetectedContentType {
+        if item.contentType == .image, sourceText.isEmpty {
+            return .image
+        }
+        if let userOverrideType = item.userOverrideType {
+            return userOverrideType
+        }
+        return classifier.classifyComplete(sourceText).type
     }
 }

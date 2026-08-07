@@ -58,7 +58,9 @@ struct ContentClassifier {
     private func isBase64(_ value: String) -> Bool {
         guard value.count >= 8, value.range(of: "^[A-Za-z0-9+/]*={0,2}$", options: .regularExpression) != nil,
               value.count % 4 == 0, let data = Data(base64Encoded: value), let decoded = String(data: data, encoding: .utf8), decoded.isEmpty == false else { return false }
-        let printable = decoded.unicodeScalars.filter { $0.properties.isWhitespace || $0.value >= 32 && $0.value < 127 }.count
+        let printable = decoded.unicodeScalars.filter {
+            $0.properties.isWhitespace || CharacterSet.controlCharacters.contains($0) == false
+        }.count
         return Double(printable) / Double(decoded.unicodeScalars.count) >= 0.85
     }
 

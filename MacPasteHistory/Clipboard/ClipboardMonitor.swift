@@ -115,7 +115,7 @@ final class ClipboardMonitor: NSObject {
                 text,
                 sourceApp: sourceApplication.name,
                 sourceBundleID: sourceApplication.bundleID,
-                detection: contentClassifier.classifyFast(text)
+                detection: contentClassifier.classifyComplete(text)
             )
             logger.info("Clipboard text saved, length: \(text.count)")
             NotificationCenter.default.post(name: .clipboardHistoryDidChange, object: nil)

@@ -20,6 +20,8 @@ Structured search is available in the same field. Examples include `app:terminal
 
 Select a record and press `Command-K`, use its type icon, or choose actions from **More Actions**. Actions run locally and can be chained; for example, use **Decode Base64** followed by **Format JSON**. The result remains editable before you copy it, direct-paste it, or save it as a new derived record.
 
+The action list is selected from the copied content type instead of showing every registered action. JSON, URL, Base64, JWT, timestamp, SQL, shell, plain text, raw images, and OCR text each receive a focused action set. For example, a raw image does not show JSON formatting, while OCR text is classified from the recognized text.
+
 JWT inspection only decodes visible fields. The signature warning means the app does not verify the JWT signature or establish trust. Timestamp, URL, JSON, Base64, SQL, shell and text actions likewise only transform local clipboard text.
 
 For image records, open details and select **Recognize Text**. OCR is manual and local. Edit the recognized text, then select **Save** to make it searchable and usable with content actions.
@@ -37,6 +39,8 @@ Use row actions to favorite, restore, or delete individual records. **Clear Text
 ## Settings
 
 Settings are organized into **General**, **Privacy**, and **Storage and Data**. They include text/image recording toggles, launch-at-login preference backed by macOS Login Items, Dock icon preference, history retention days, text/image count limits, single-image size limit, and total storage cap. The single-image size limit applies to new image captures, while cleanup runs on startup and uses the count and storage limits to bound local data growth.
+
+General settings also include **Appearance** with **Follow System**, **Light**, and **Dark** options. Appearance changes apply immediately and persist across launches; following the system remains the default.
 
 ## Privacy Notes
 

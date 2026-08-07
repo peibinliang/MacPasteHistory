@@ -15,6 +15,7 @@ final class SettingsViewModel: ObservableObject {
     @Published var launchAtStartupErrorMessage: String?
     @Published var appPreferenceMessage: String?
     @Published var selectedLanguage: AppLanguage
+    @Published var selectedAppearance: AppAppearance
     @Published var showRestartAlert = false
     @Published var recordingPaused = false
     @Published var blockedApps: [BlockedAppEntry] = []
@@ -28,6 +29,7 @@ final class SettingsViewModel: ObservableObject {
     private let loginItemService: LoginItemService
     private let languageManager: LanguageManager
     private let appPreferencesService: AppPreferencesService
+    private let appearanceService: AppearanceService
     let shortcutService: ShortcutService
     private let sourceApplicationProvider: SourceApplicationProviding
 
@@ -36,6 +38,7 @@ final class SettingsViewModel: ObservableObject {
         loginItemService: LoginItemService? = nil,
         languageManager: LanguageManager = LanguageManager(),
         appPreferencesService: AppPreferencesService? = nil,
+        appearanceService: AppearanceService? = nil,
         shortcutService: ShortcutService? = nil,
         sourceApplicationProvider: SourceApplicationProviding = SourceApplicationProvider()
     ) {
@@ -43,9 +46,11 @@ final class SettingsViewModel: ObservableObject {
         self.loginItemService = loginItemService ?? LoginItemService(config: config)
         self.languageManager = languageManager
         self.appPreferencesService = appPreferencesService ?? AppPreferencesService(config: config)
+        self.appearanceService = appearanceService ?? AppearanceService(config: config)
         self.shortcutService = shortcutService ?? ShortcutService(config: config)
         self.sourceApplicationProvider = sourceApplicationProvider
         self.selectedLanguage = languageManager.currentLanguage
+        self.selectedAppearance = config.appAppearance
         self.shortcutConfiguration = config.shortcutConfiguration
     }
 
@@ -62,6 +67,7 @@ final class SettingsViewModel: ObservableObject {
         recordingPaused = config.recordingPaused
         blockedApps = config.blockedApps
         shortcutConfiguration = config.shortcutConfiguration
+        selectedAppearance = config.appAppearance
     }
 
     func updateShouldRecordText(_ value: Bool) {
@@ -119,6 +125,11 @@ final class SettingsViewModel: ObservableObject {
         languageManager.setLanguage(language)
         selectedLanguage = language
         showRestartAlert = true
+    }
+
+    func updateAppearance(_ appearance: AppAppearance) {
+        appearanceService.setAppearance(appearance)
+        selectedAppearance = appearance
     }
 
     func updateRecordingPaused(_ value: Bool) {

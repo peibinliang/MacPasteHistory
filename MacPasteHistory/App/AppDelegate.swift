@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var workspaceActivationCancellable: AnyCancellable?
     private var lastExternalApplication: NSRunningApplication?
     private let appPreferencesService = AppPreferencesService()
+    private let appearanceService = AppearanceService()
     private let accessibilityPermissionService: AccessibilityPermissionService
 
     override init() {
@@ -144,6 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureApplication() {
         appPreferencesService.applyDockIconPreference()
+        appearanceService.applyCurrentAppearance()
     }
 
     private func createStatusItem() {
@@ -266,7 +268,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func makeSettingsViewModel(
         config: UserDefaultsConfig = UserDefaultsConfig()
     ) -> SettingsViewModel {
-        SettingsViewModel(config: config, shortcutService: shortcutService)
+        SettingsViewModel(
+            config: config,
+            appearanceService: AppearanceService(config: config),
+            shortcutService: shortcutService
+        )
     }
 
     @objc private func openSettings() {
