@@ -1,6 +1,8 @@
 import Foundation
 
 struct URLContentAction: ContentAction {
+    private static let queryValueAllowedCharacters = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+
     enum Kind: String { case encodeQueryValue = "encode-query-value", decode, extractHost = "extract-host", parseQuery = "parse-query" }
     let kind: Kind
     var id: ContentActionID { ContentActionID(rawValue: "url." + kind.rawValue) }
@@ -9,7 +11,8 @@ struct URLContentAction: ContentAction {
     func execute(input: String) throws -> ContentActionResult {
         let output: String
         switch kind {
-        case .encodeQueryValue: output = input.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&=+"))) ?? input
+        case .encodeQueryValue:
+            output = input.addingPercentEncoding(withAllowedCharacters: Self.queryValueAllowedCharacters) ?? input
         case .decode: output = input.removingPercentEncoding ?? input
         case .extractHost:
             guard let host = URL(string: input)?.host else { throw ContentActionError.invalidInput(messageKey: "content-action.url.hostless") }; output = host

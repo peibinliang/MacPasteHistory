@@ -77,6 +77,7 @@
 
 ### Fixed
 
+- Fixed URL query-value encoding so reserved characters and Unicode text are percent-encoded.
 - Removed the blue keyboard focus ring that appeared as two horizontal dividers around the history list.
 - Fixed direct paste by retaining the last external foreground application, bringing it back to the front, and allowing focus to settle before sending `Command + V`.
 - Fixed custom shortcut registration by sharing the app's single `ShortcutService` with every Settings entry point instead of registering a competing Carbon hotkey.
