@@ -20,12 +20,24 @@ final class ContentActionPanelViewModelTests: XCTestCase {
     func testClose_clearsActiveSession() {
         let viewModel = ContentActionPanelViewModel()
         viewModel.present(for: makeItem(text: "hello"))
+        viewModel.commandSearchText = "json"
 
         viewModel.close()
 
         XCTAssertEqual(viewModel.state, .closed)
         XCTAssertNil(viewModel.session)
         XCTAssertEqual(viewModel.editedOutput, "")
+        XCTAssertEqual(viewModel.commandSearchText, "")
+    }
+
+    func testPresent_clearsSearchFromPreviousPresentation() {
+        let viewModel = ContentActionPanelViewModel()
+        viewModel.present(for: makeItem(text: "hello"))
+        viewModel.commandSearchText = "base64"
+
+        viewModel.present(for: makeItem(text: "world"))
+
+        XCTAssertEqual(viewModel.commandSearchText, "")
     }
 
     func testImageBase64Encoding_readsOriginalFileDataAndPublishesPreview() async throws {

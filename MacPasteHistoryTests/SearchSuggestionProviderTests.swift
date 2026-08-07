@@ -21,7 +21,11 @@ final class SearchSuggestionProviderTests: XCTestCase {
     }
 
     func testSuggestions_filterSourcesOfferDateValuesAndApplyOnlyTheActiveRange() throws {
-        XCTAssertEqual(provider.suggestions(for: "app:v").map(\.replacement), ["app:Visual Studio Code"])
+        XCTAssertEqual(provider.suggestions(for: "app:v").map(\.replacement), ["app:\"Visual Studio Code\""])
+        let sourceSuggestion = try XCTUnwrap(provider.suggestions(for: "app:v").first)
+        let parsed = SearchQueryParser().parse(sourceSuggestion.applying(to: "app:v").text)
+        XCTAssertEqual(parsed.app, "Visual Studio Code")
+        XCTAssertTrue(parsed.terms.isEmpty)
         XCTAssertEqual(
             provider.suggestions(for: "before:").map(\.replacement),
             ["before:1d", "before:7d", "before:30d", "before:YYYY-MM-DD"]
@@ -42,6 +46,6 @@ final class SearchSuggestionProviderTests: XCTestCase {
         let suggestions = limitedProvider.suggestions(for: "app:")
 
         XCTAssertEqual(suggestions.count, 10)
-        XCTAssertEqual(suggestions.first?.replacement, "app:App 1")
+        XCTAssertEqual(suggestions.first?.replacement, "app:\"App 1\"")
     }
 }

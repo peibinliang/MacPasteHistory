@@ -18,4 +18,13 @@ final class JSONContentActionsTests: XCTestCase {
         XCTAssertThrowsError(try ContentActionExecutor().execute(id: ContentActionID(rawValue: "json.validate"), input: "{bad}"))
         XCTAssertThrowsError(try ContentActionExecutor().execute(id: ContentActionID(rawValue: "json.unescape"), input: "\\x"))
     }
+
+    func testUnescape_acceptsEscapedStringFragmentThroughExecutor() throws {
+        let result = try ContentActionExecutor().execute(
+            id: ContentActionID(rawValue: "json.unescape"),
+            input: "hello\\nworld"
+        )
+
+        XCTAssertEqual(result.output, "hello\nworld")
+    }
 }

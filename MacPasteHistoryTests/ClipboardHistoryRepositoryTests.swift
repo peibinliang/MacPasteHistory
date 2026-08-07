@@ -144,6 +144,19 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
         XCTAssertEqual(secondPage.map(\.textContent), ["first"])
     }
 
+    func testFetchHistory_ordersRecapturedItemByLastCaptureInsteadOfCreation() throws {
+        let recaptured = try repository.saveText("recaptured", sourceApp: nil, sourceBundleID: nil)
+        let newer = try repository.saveText("newer", sourceApp: nil, sourceBundleID: nil)
+        try database.execute("""
+        UPDATE clipboard_history SET created_at = '2020-01-01 00:00:00', last_captured_at = '2026-01-03 00:00:00' WHERE id = \(recaptured.id);
+        UPDATE clipboard_history SET created_at = '2026-01-02 00:00:00', last_captured_at = '2026-01-02 00:00:00' WHERE id = \(newer.id);
+        """)
+
+        let items = try repository.fetchHistory(query: HistoryQuery())
+
+        XCTAssertEqual(items.map(\.textContent), ["recaptured", "newer"])
+    }
+
     func testFetchHistory_whenTimeRangeProvided_shouldReturnItemsInsideRange() throws {
         let oldItem = try repository.saveText("old note", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
         _ = try repository.saveText("new note", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
