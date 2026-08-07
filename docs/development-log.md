@@ -27,6 +27,7 @@
 - Targeted `Base64ContentActionsTests`, `ContentActionPanelViewModelTests`, `HistoryRowPresentationTests`, and `SearchCoordinatorTests` passed with 11 tests and 0 failures.
 - The complete `MacPasteHistory` test suite passed with 219 tests and 0 failures.
 - The expanded action regression suite passed with 27 tests and 0 failures across all 24 registered action IDs, error paths, OCR routing, localization, and syntax highlighting.
+- The final coverage-enabled suite passed with 232 tests and 0 failures; audited action logic, action palette, result preview, action ViewModel, and real local OCR paths each reached at least 83% line coverage, with OCR at 96.59%.
 
 ### Compatibility
 
