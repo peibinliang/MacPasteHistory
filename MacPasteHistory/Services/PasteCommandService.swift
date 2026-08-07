@@ -26,7 +26,7 @@ enum PasteTargetPolicy {
 }
 
 protocol PasteCommandSending {
-    func sendCommandVPaste()
+    func sendCommandVPaste() -> Bool
 }
 
 final class PasteCommandService {
@@ -36,38 +36,27 @@ final class PasteCommandService {
         self.sender = sender
     }
 
-    func sendPasteCommand() {
+    func sendPasteCommand() -> Bool {
         sender.sendCommandVPaste()
     }
 }
 
 private final class SystemPasteCommandSender: PasteCommandSending {
-    func sendCommandVPaste() {
-        guard accessibilityPermissionIsGrantedOrRequested() else {
-            return
+    func sendCommandVPaste() -> Bool {
+        guard AXIsProcessTrusted() else {
+            return false
         }
 
         let keyCode = CGKeyCode(kVK_ANSI_V)
         guard let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: true),
               let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: false) else {
-            return
+            return false
         }
 
         keyDown.flags = .maskCommand
         keyUp.flags = .maskCommand
         keyDown.post(tap: .cghidEventTap)
         keyUp.post(tap: .cghidEventTap)
-    }
-
-    private func accessibilityPermissionIsGrantedOrRequested() -> Bool {
-        guard AXIsProcessTrusted() == false else {
-            return true
-        }
-
-        let options = [
-            "AXTrustedCheckOptionPrompt": true
-        ] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
-        return false
+        return true
     }
 }

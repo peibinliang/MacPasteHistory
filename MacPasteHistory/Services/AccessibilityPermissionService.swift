@@ -23,6 +23,7 @@ final class AccessibilityPermissionService {
     private let permissionChecker: AccessibilityPermissionChecking
     private let settingsOpener: AccessibilitySettingsOpening
     private var didRemindOnLaunch = false
+    private var didRemindForAutomaticPaste = false
 
     init(
         permissionChecker: AccessibilityPermissionChecking = SystemAccessibilityPermissionChecker(),
@@ -33,7 +34,7 @@ final class AccessibilityPermissionService {
     }
 
     func reminderIfNeeded(for trigger: AccessibilityPermissionReminderTrigger) -> Bool {
-        guard permissionChecker.isProcessTrusted() == false else {
+        guard hasAccessibilityPermission == false else {
             return false
         }
 
@@ -45,8 +46,16 @@ final class AccessibilityPermissionService {
             didRemindOnLaunch = true
             return true
         case .automaticPaste:
+            guard didRemindForAutomaticPaste == false else {
+                return false
+            }
+            didRemindForAutomaticPaste = true
             return true
         }
+    }
+
+    var hasAccessibilityPermission: Bool {
+        permissionChecker.isProcessTrusted()
     }
 
     func openSystemSettings() {

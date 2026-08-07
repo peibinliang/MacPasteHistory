@@ -4,7 +4,6 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCHEME="MacPasteHistory"
 BUNDLE_ID="com.peibin.MacPasteHistory"
-APP_PROCESS_NAME="粘易"
 DB_RELATIVE_PATH="Library/Application Support/MacPasteHistory/clipboard.db"
 CONTAINER_DATA_DIR="$HOME/Library/Containers/$BUNDLE_ID/Data"
 CONTAINER_PREFERENCES_DIR="$CONTAINER_DATA_DIR/Library/Preferences"
@@ -13,6 +12,7 @@ CONTAINER_PREFERENCES_DOMAIN="$CONTAINER_PREFERENCES_DIR/$BUNDLE_ID"
 cleanup_defaults_saved=0
 install_dir=""
 test_app_support_dir=""
+launched_app_pid=""
 
 cd "$REPO_ROOT"
 
@@ -98,13 +98,21 @@ restore_cleanup_defaults() {
 }
 
 quit_app() {
+    if [[ -n "$launched_app_pid" ]] && kill -0 "$launched_app_pid" >/dev/null 2>&1; then
+        kill -TERM "$launched_app_pid" >/dev/null 2>&1 || true
+        return
+    fi
     osascript -e "tell application id \"$BUNDLE_ID\" to quit" >/dev/null 2>&1 || true
 }
 
 wait_for_process() {
-    local attempt
+    local attempt executable_path
+    executable_path="$app_path/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_path/Contents/Info.plist")"
     for attempt in {1..30}; do
-        if pgrep -x "$APP_PROCESS_NAME" >/dev/null 2>&1; then
+        # Match the executable inside this temporary .app bundle, rather than
+        # the display name. A separately installed copy may be running.
+        launched_app_pid="$(pgrep -f "$executable_path" | head -n 1 || true)"
+        if [[ -n "$launched_app_pid" ]]; then
             return 0
         fi
         sleep 1
@@ -116,7 +124,8 @@ wait_for_process() {
 wait_for_exit() {
     local attempt
     for attempt in {1..15}; do
-        if ! pgrep -x "$APP_PROCESS_NAME" >/dev/null 2>&1; then
+        if [[ -z "$launched_app_pid" ]] || ! kill -0 "$launched_app_pid" >/dev/null 2>&1; then
+            launched_app_pid=""
             return 0
         fi
         sleep 1
@@ -319,6 +328,7 @@ require_command ditto
 require_command defaults
 require_command killall
 require_command launchctl
+require_command pgrep
 
 echo "Validating Xcode file references..."
 scripts/validate-xcode-file-references.sh

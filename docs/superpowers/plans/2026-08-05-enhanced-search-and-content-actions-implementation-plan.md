@@ -300,7 +300,7 @@ final class DatabaseConnection {
 
 ### LOOP steps
 
-- [ ] **Step 1: Add database connection failure tests**
+- [x] **Step 1: Add database connection failure tests**
 
 Create tests that verify the writer connection enables foreign keys and a read-only connection can query an initialized database:
 
@@ -338,7 +338,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 Expected: compile failure because `DatabaseOpenMode` and `foreignKeysAreEnabled()` do not exist.
 
-- [ ] **Step 2: Implement connection modes and connection pragmas**
+- [x] **Step 2: Implement connection modes and connection pragmas**
 
 Use `sqlite3_open_v2` with `SQLITE_OPEN_FULLMUTEX`:
 
@@ -382,7 +382,7 @@ func inTransaction<T>(_ operation: () throws -> T) throws -> T {
 }
 ```
 
-- [ ] **Step 3: Add migration V3 schema tests**
+- [x] **Step 3: Add migration V3 schema tests**
 
 The tests must build an actual version-2 database, run the current migrator, and assert:
 
@@ -398,7 +398,7 @@ running migrate() twice does not add another version row or fail
 
 Use `PRAGMA table_info`, `PRAGMA foreign_key_list` and `sqlite_master`; do not inspect private migration constants.
 
-- [ ] **Step 4: Implement migration version 3**
+- [x] **Step 4: Implement migration version 3**
 
 Add exactly one versioned migration named `enhanced_search_content_actions`.
 
@@ -468,7 +468,7 @@ CREATE TABLE clipboard_capture_event_summaries (
 
 Add the indexes specified by the PRD, including `last_captured_at`, effective type fields, `last_pasted_at`, and event time indexes.
 
-- [ ] **Step 5: Run Task 1 verification**
+- [x] **Step 5: Run Task 1 verification**
 
 ```bash
 xcodegen generate
@@ -481,7 +481,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 Expected: all Task 1 tests pass.
 
-- [ ] **Step 6: Commit Task 1**
+- [x] **Step 6: Commit Task 1**
 
 ```bash
 git add MacPasteHistory/Database MacPasteHistoryTests/DatabaseConnectionTests.swift \
@@ -560,7 +560,7 @@ var isDerived: Bool {
 
 ### LOOP steps
 
-- [ ] **Step 1: Add model behavior tests**
+- [x] **Step 1: Add model behavior tests**
 
 Test exact priority and fallback:
 
@@ -578,7 +578,7 @@ func testDisplayDate_shouldPreferLastCapturedAt() {
 }
 ```
 
-- [ ] **Step 2: Add repository mapping tests**
+- [x] **Step 2: Add repository mapping tests**
 
 Save a text record, update every new column using SQL, reload it through the repository and assert all values map correctly. Include nullable dates, `Double` confidence, OCR fields and derived fields.
 
@@ -594,11 +594,11 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 Expected: compile or assertion failure because the model and SELECT mapping do not include V3 fields.
 
-- [ ] **Step 3: Implement models and stable initializers**
+- [x] **Step 3: Implement models and stable initializers**
 
 Provide an explicit `ClipboardHistoryItem` initializer. New arguments must have defaults so existing tests and call sites remain source-compatible. Clamp `detectionConfidence` to `0...1` when constructing `ContentDetectionResult`; invalid database values are decoded as nil rather than crashing.
 
-- [ ] **Step 4: Expand repository SELECT mapping**
+- [x] **Step 4: Expand repository SELECT mapping**
 
 Update `selectHistorySQL` once and keep the index mapping centralized. Add helper decoders:
 
@@ -611,11 +611,11 @@ private func ocrStatus(from value: String?) -> OCRStatus
 
 Do not duplicate SELECT column lists in individual methods.
 
-- [ ] **Step 5: Change timeline metadata to `displayDate`**
+- [x] **Step 5: Change timeline metadata to `displayDate`**
 
 In `HistoryTimelineOrganizer` and recent source generation, replace `item.createdAt` with `item.displayDate`. In list/detail display formatting use `displayDate` for “recent copy” context; retain `createdAt` in detailed metadata as the first-seen date when both are displayed later.
 
-- [ ] **Step 6: Run Task 2 verification**
+- [x] **Step 6: Run Task 2 verification**
 
 ```bash
 xcodegen generate
@@ -627,7 +627,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   -only-testing:MacPasteHistoryTests/HistoryDisplayFormatterTests test
 ```
 
-- [ ] **Step 7: Commit Task 2**
+- [x] **Step 7: Commit Task 2**
 
 ```bash
 git add MacPasteHistory/Models MacPasteHistory/Database/ClipboardHistoryRepository.swift \
@@ -685,7 +685,7 @@ func aggregateCaptureEvents(before cutoff: Date) throws
 
 ### LOOP steps
 
-- [ ] **Step 1: Define source identity tests**
+- [x] **Step 1: Define source identity tests**
 
 Required keys:
 
@@ -697,7 +697,7 @@ no source             → unknown
 
 This key is database identity only and must never be displayed to users.
 
-- [ ] **Step 2: Add atomic capture tests**
+- [x] **Step 2: Add atomic capture tests**
 
 Tests must prove:
 
@@ -713,7 +713,7 @@ failure inserting an event rolls back the corresponding main-record update
 
 For the rollback test, add a temporary trigger that aborts inserts into `clipboard_capture_events`, call `saveText`, and assert no partial main-record change remains.
 
-- [ ] **Step 3: Implement atomic save/capture behavior**
+- [x] **Step 3: Implement atomic save/capture behavior**
 
 Wrap insert/update plus event insert in `database.inTransaction`. Change duplicate updates from:
 
@@ -733,7 +733,7 @@ updated_at = CURRENT_TIMESTAMP
 
 New records must initialize `searchable_text`, `first_captured_at`, `last_captured_at`, `capture_count = 1`, then insert the first event.
 
-- [ ] **Step 4: Add aggregation tests**
+- [x] **Step 4: Add aggregation tests**
 
 Create events at 31 days and 5 days before a fixed `now`. Assert:
 
@@ -747,7 +747,7 @@ triggered failure rolls back summary updates and event deletion
 same calendar day causes aggregateIfNeeded to skip the repository call
 ```
 
-- [ ] **Step 5: Implement aggregation SQL**
+- [x] **Step 5: Implement aggregation SQL**
 
 Within one transaction:
 
@@ -758,11 +758,11 @@ Within one transaction:
 
 `aggregateIfNeeded` calculates `cutoff = now - 30 days`, records the successful day in preferences, and does not mark success when repository aggregation throws.
 
-- [ ] **Step 6: Integrate startup cleanup**
+- [x] **Step 6: Integrate startup cleanup**
 
 Inject `CaptureEventAggregationService` into `DataCleanupService`. Run aggregation as an independent cleanup step so failure does not prevent expiry/count/storage cleanup. `AppDelegate` must construct it using the existing repository and `UserDefaults.standard` preferences.
 
-- [ ] **Step 7: Run Task 3 verification**
+- [x] **Step 7: Run Task 3 verification**
 
 ```bash
 xcodegen generate
@@ -774,7 +774,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   -only-testing:MacPasteHistoryTests/DataCleanupServiceTests test
 ```
 
-- [ ] **Step 8: Commit Task 3**
+- [x] **Step 8: Commit Task 3**
 
 ```bash
 git add MacPasteHistory/Database/ClipboardHistoryRepository.swift \
@@ -823,11 +823,11 @@ func saveDerivedText(_ request: DerivedClipboardRecordRequest) throws -> Clipboa
 
 ### LOOP steps
 
-- [ ] **Step 1: Add usage-stat tests**
+- [x] **Step 1: Add usage-stat tests**
 
 Assert copy and paste counts/timestamps update independently. Updating usage must not change capture count, source app, `createdAt` or `lastCapturedAt`.
 
-- [ ] **Step 2: Add type and OCR persistence tests**
+- [x] **Step 2: Add type and OCR persistence tests**
 
 Assert:
 
@@ -841,7 +841,7 @@ markOCRFailure preserves previous ocr_text and stores a stable error code
 
 For an image, `saveOCRResult` must not change `content_type` from image.
 
-- [ ] **Step 3: Define derived-source preview behavior**
+- [x] **Step 3: Define derived-source preview behavior**
 
 Implement deterministic privacy-aware previews:
 
@@ -856,7 +856,7 @@ empty text                        → "Empty text"
 
 The stable stored values are English identifiers, not localized UI strings; UI localizes display labels later.
 
-- [ ] **Step 4: Add derived-record tests**
+- [x] **Step 4: Add derived-record tests**
 
 Assert:
 
@@ -869,7 +869,7 @@ existing canonical record provenance is not overwritten when a derived output ma
 deleting source sets derived_from_history_id to NULL while preserving summary/hash/preview
 ```
 
-- [ ] **Step 5: Implement repository methods with bound parameters**
+- [x] **Step 5: Implement repository methods with bound parameters**
 
 All values, including error code, action ID and summary, must use SQLite bindings. Do not interpolate user-controlled strings into SQL.
 
@@ -880,7 +880,7 @@ All values, including error code, action ID and summary, must use SQLite binding
 3. Return the existing record.
 4. Do not overwrite any existing derived metadata.
 
-- [ ] **Step 6: Run Task 4 verification**
+- [x] **Step 6: Run Task 4 verification**
 
 ```bash
 xcodegen generate
@@ -891,7 +891,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   -only-testing:MacPasteHistoryTests/DerivedSourcePreviewBuilderTests test
 ```
 
-- [ ] **Step 7: Commit Task 4**
+- [x] **Step 7: Commit Task 4**
 
 ```bash
 git add MacPasteHistory/Database/ClipboardHistoryRepository.swift \
@@ -950,7 +950,7 @@ struct SearchQueryParser {
 
 ### LOOP steps
 
-- [ ] **Step 1: Add tokenizer/parser tests**
+- [x] **Step 1: Add tokenizer/parser tests**
 
 Required cases:
 
@@ -973,13 +973,13 @@ repeated app/type/fav/before/after uses the final valid value
 unterminated quote becomes a normal term plus a nonfatal issue
 ```
 
-- [ ] **Step 2: Implement a single-pass tokenizer**
+- [x] **Step 2: Implement a single-pass tokenizer**
 
 The parser must preserve the raw input and support escaped quote/backslash inside quoted values. It must not use a regular expression that loses character ranges required by removable token UI.
 
 Each `SearchToken` stores its original `Range<String.Index>` so removing a token can edit only that range.
 
-- [ ] **Step 3: Add suggestion tests**
+- [x] **Step 3: Add suggestion tests**
 
 Given known sources `[Terminal, Visual Studio Code]`, assert:
 
@@ -992,11 +992,11 @@ Given known sources `[Terminal, Visual Studio Code]`, assert:
 accepted suggestion returns replacement text and cursor offset
 ```
 
-- [ ] **Step 4: Implement SearchSuggestionProvider**
+- [x] **Step 4: Implement SearchSuggestionProvider**
 
 Suggestions are pure values; the provider must not own UI focus. Sort source suggestions by case-insensitive title. Limit visible suggestions to 10.
 
-- [ ] **Step 5: Define filter precedence with tests**
+- [x] **Step 5: Define filter precedence with tests**
 
 `SearchFilterMerger` combines syntax with existing ribbon/filter state:
 
@@ -1010,7 +1010,7 @@ for dimensions absent from syntax, existing controls remain active
 
 This avoids contradictory hidden filters while preserving the existing UI.
 
-- [ ] **Step 6: Run Task 5 verification**
+- [x] **Step 6: Run Task 5 verification**
 
 ```bash
 xcodegen generate
@@ -1022,7 +1022,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   -only-testing:MacPasteHistoryTests/SearchFilterMergerTests test
 ```
 
-- [ ] **Step 7: Commit Task 5**
+- [x] **Step 7: Commit Task 5**
 
 ```bash
 git add MacPasteHistory/Search MacPasteHistoryTests/SearchQueryParserTests.swift \
@@ -1087,7 +1087,7 @@ actor SearchCoordinator {
 
 ### LOOP steps
 
-- [ ] **Step 1: Add SQL builder tests**
+- [x] **Step 1: Add SQL builder tests**
 
 Verify generated SQL and bound values for every structured filter. The builder must:
 
@@ -1098,7 +1098,7 @@ Verify generated SQL and bound values for every structured filter. The builder m
 - never interpolate search text into SQL;
 - end with `LIMIT ?` capped at 500.
 
-- [ ] **Step 2: Implement candidate fetching on an isolated read connection**
+- [x] **Step 2: Implement candidate fetching on an isolated read connection**
 
 `SearchCandidateProvider` opens a `.readOnly` `DatabaseConnection` inside its actor for each full query, closes it in `defer`, and constructs a repository over that connection. It must never share the app writer connection across detached tasks.
 
@@ -1108,7 +1108,7 @@ Add to repository:
 func fetchSearchCandidates(request: SearchCandidateRequest) throws -> [ClipboardHistoryItem]
 ```
 
-- [ ] **Step 3: Add matcher and ranker tests**
+- [x] **Step 3: Add matcher and ranker tests**
 
 Required precedence:
 
@@ -1127,7 +1127,7 @@ normalized Levenshtein similarity below 0.60 yields no fuzzy match
 
 Test that an unmatched record cannot enter results solely through favorite or usage scores.
 
-- [ ] **Step 4: Implement centralized ranking weights**
+- [x] **Step 4: Implement centralized ranking weights**
 
 Use these defaults:
 
@@ -1160,17 +1160,17 @@ Use 7-day capture half-life and 14-day paste half-life. Count score uses bounded
 minimum(maximum, log2(Double(count) + 1) / log2(65) * maximum)
 ```
 
-- [ ] **Step 5: Add coordinator race/cancellation tests**
+- [x] **Step 5: Add coordinator race/cancellation tests**
 
 Use a fake provider with controlled continuations. Start search `j`, then `json`; resume `json` first and `j` last. Assert only `json` is marked current. Test explicit cancellation and 150ms debounce using an injected sleeper/clock abstraction rather than real wall-clock sleeps.
 
-- [ ] **Step 6: Implement coordinator**
+- [x] **Step 6: Implement coordinator**
 
 The actor owns a monotonically increasing generation. Every new search or cancellation increments it. After debounce and candidate query, compare the captured generation before returning a current response. A stale response must be returned with `isCurrent = false` and ignored by the ViewModel.
 
 `immediateResults` parses and ranks only loaded items without awaiting SQLite.
 
-- [ ] **Step 7: Add performance tests**
+- [x] **Step 7: Add performance tests**
 
 Generate 500 in-memory items and assert ranker work using `measure`. Add a database performance test with 500 synthetic rows. Do not fail on a single noisy sample; use XCTest metrics and document the target:
 
@@ -1181,7 +1181,7 @@ read query plus rank target < 100ms on the development Mac
 
 Performance tests may be excluded from the fastest per-edit command, but must run in the Task 6 gate.
 
-- [ ] **Step 8: Run Task 6 verification**
+- [x] **Step 8: Run Task 6 verification**
 
 ```bash
 xcodegen generate
@@ -1195,7 +1195,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   -only-testing:MacPasteHistoryTests/SearchPerformanceTests test
 ```
 
-- [ ] **Step 9: Commit Task 6**
+- [x] **Step 9: Commit Task 6**
 
 ```bash
 git add MacPasteHistory/Search MacPasteHistory/Database/ClipboardHistoryRepository.swift \
@@ -1236,7 +1236,7 @@ struct HistoryImagePreview: View
 
 ### LOOP steps
 
-- [ ] **Step 1: Capture current presentation behavior in tests**
+- [x] **Step 1: Capture current presentation behavior in tests**
 
 Extract pure presentation helpers from the private row view and test:
 
@@ -1248,11 +1248,11 @@ favorite accessibility title
 selected-row hint
 ```
 
-- [ ] **Step 2: Move private views to focused files**
+- [x] **Step 2: Move private views to focused files**
 
 Move code without changing strings, gestures, keyboard behavior, colors or layout. `MainPanelView` retains panel-level state and orchestration only.
 
-- [ ] **Step 3: Verify no behavior drift**
+- [x] **Step 3: Verify no behavior drift**
 
 ```bash
 xcodegen generate
@@ -1271,7 +1271,7 @@ rg -n "HistoryPanel|MainPanel|direct paste|keyboard" MacPasteHistoryTests
 
 Record the exact discovered class in the LOOP report; do not create a duplicate test class for existing behavior.
 
-- [ ] **Step 4: Commit Task 7**
+- [x] **Step 4: Commit Task 7**
 
 ```bash
 git add MacPasteHistory/Views/MainPanelView.swift MacPasteHistory/Views/History MacPasteHistoryTests

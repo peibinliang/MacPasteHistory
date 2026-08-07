@@ -78,6 +78,11 @@
 "Data Management" = "数据管理";
 "Clear All Data" = "清空所有数据";
 
+/* SettingsView - Appearance Section */
+"Appearance" = "外观";
+"Light" = "浅色";
+"Dark" = "深色";
+
 /* SettingsView - Language Section */
 "Language" = "语言";
 "Follow System" = "跟随系统";
@@ -162,3 +167,75 @@
 "Recording, startup, shortcuts, and language" = "记录、启动、快捷键与语言";
 "Control where clipboard history is recorded" = "控制在哪些应用中记录剪贴板历史";
 "Retention, limits, and local data" = "保留周期、容量限制与本地数据";
+
+/* 增强搜索、动作与 OCR */
+"Automatic" = "自动";
+"Recommended Actions" = "推荐操作";
+"All Actions" = "全部操作";
+"Search actions" = "搜索操作";
+"Copy Result" = "复制结果";
+"Paste Result" = "粘贴结果";
+"Save as New Record" = "另存为新记录";
+"Restore Result" = "还原结果";
+"Source record deleted" = "源记录已删除";
+"Derived content" = "派生内容";
+"Recognizing text" = "正在识别文字";
+"Recognizing text…" = "正在识别文字…";
+"Retry" = "重试";
+"content-action.failed" = "操作无法完成。";
+"content-action.unsupported" = "所选内容不支持此操作。";
+"content-action.json.invalid" = "JSON 无效。";
+"content-action.json.valid" = "JSON 有效。";
+"content-action.base64.invalid" = "Base64 无效。";
+"content-action.base64.non-utf8" = "解码结果不是 UTF-8 文本。";
+"content-action.base64.valid" = "Base64 有效。";
+"content-action.jwt.invalid" = "JWT 无效。";
+"content-action.jwt.signature-not-verified" = "未验证 JWT 签名。";
+"content-action.jwt.expired" = "JWT 已过期。";
+"content-action.jwt.not-expired" = "JWT 尚未过期。";
+"content-action.jwt.no-expiration" = "JWT 不包含 exp 字段。";
+"content-action.timestamp.invalid" = "请输入 10 或 13 位 Unix 时间戳、ISO 8601 日期，或 yyyy-MM-dd HH:mm:ss。";
+"content-action.url.invalid" = "URL 无效。";
+"content-action.url.hostless" = "URL 不包含主机名。";
+"text.trim" = "去除首尾空白";
+"text.remove-empty-lines" = "移除空行";
+"text.deduplicate-lines" = "去重行";
+"text.single-line" = "转换为单行";
+"text.uppercase" = "转换为大写";
+"text.lowercase" = "转换为小写";
+"text.markdown-code-block" = "包裹为代码块";
+"json.format" = "格式化 JSON";
+"json.minify" = "压缩 JSON";
+"json.validate" = "验证 JSON";
+"json.escape" = "转义 JSON";
+"json.unescape" = "反转义 JSON";
+"base64.encode" = "编码 Base64";
+"base64.decode" = "解码 Base64";
+"base64.decode-url-safe" = "解码 URL 安全 Base64";
+"base64.validate" = "验证 Base64";
+"jwt.inspect" = "检查 JWT";
+"timestamp.convert" = "转换时间戳";
+"url.encode-query-value" = "编码 URL 查询参数值";
+"url.decode" = "解码 URL";
+"url.extract-host" = "提取 URL 域名";
+"url.parse-query" = "解析 URL 查询参数";
+"sql.single-line" = "SQL 合并为单行";
+"shell.quote-argument" = "Shell 参数安全转义";
+"header" = "复制 Header";
+"payload" = "复制 Payload";
+"summary" = "复制摘要";
+"local" = "复制本地时间";
+"utc" = "复制 UTC";
+"iso8601" = "复制 ISO 8601";
+"seconds" = "复制 Unix 秒";
+"milliseconds" = "复制 Unix 毫秒";
+"Unsupported for this content" = "当前内容不支持此操作";
+"Action Failed" = "操作失败";
+"imageMissing" = "图片文件缺失。";
+"imageDecodeFailed" = "无法解码图片。";
+"visionFailed" = "文字识别失败。";
+"noTextFound" = "未识别到文字。";
+"Execute selected content action" = "执行所选内容操作";
+"Edited result" = "已编辑结果";
+"Recognized text" = "已识别文字";
+"Text recognition failed" = "文字识别失败";

@@ -4,6 +4,11 @@
 
 ### Added
 
+- Added persistent Follow System, Light, and Dark appearances with immediate whole-app updates.
+- Added classification-driven content action sets for plain text, images, JSON, URL, Base64, JWT, timestamps, SQL, shell, and OCR text.
+- Added structured clipboard search, developer-content classification, local content transformations, editable action sessions, derived-history metadata, and local manual image OCR.
+- Added progressive action-panel layouts, keyboard navigation, syntax-aware editing, usage attribution, and OCR-aware image search.
+
 - Added an Accessibility permission reminder on first launch and whenever direct paste is blocked, with a shortcut to the correct System Settings pane.
 - Added the Context Timeline interface: recent-source ribbon, chronological record groups, inline keyboard selection, compact filters, and persistent paste shortcuts.
 - Added timeline organization coverage for recent, today, and earlier groups plus deduplicated recent application sources.
@@ -74,6 +79,11 @@
 
 ### Fixed
 
+- Fixed Base64 actions for Unicode text, binary validity checks, and direct image-file encoding.
+- Fixed intelligent action filtering for Base64 values that decode to Chinese or other printable Unicode text.
+- Completed JWT claim/expiry inspection, date-to-timestamp conversion, SQL comment preservation, strict URL decoding, four-space JSON formatting, and non-printable Base64 rejection.
+- Fixed OCR-backed image actions, action failure presentation, per-variant copy controls, applicable-action filtering, syntax highlighting, and missing action localizations.
+- Fixed URL query-value encoding so reserved characters and Unicode text are percent-encoded.
 - Removed the blue keyboard focus ring that appeared as two horizontal dividers around the history list.
 - Fixed direct paste by retaining the last external foreground application, bringing it back to the front, and allowing focus to settle before sending `Command + V`.
 - Fixed custom shortcut registration by sharing the app's single `ShortcutService` with every Settings entry point instead of registering a competing Carbon hotkey.

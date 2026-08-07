@@ -2,11 +2,14 @@ import Foundation
 import SQLite3
 
 final class DatabaseConnection {
+    let databaseURL: URL
     private(set) var handle: OpaquePointer?
 
-    init(databaseURL: URL) throws {
+    init(databaseURL: URL, mode: DatabaseOpenMode = .readWriteCreate) throws {
+        self.databaseURL = databaseURL
+
         var database: OpaquePointer?
-        guard sqlite3_open(databaseURL.path, &database) == SQLITE_OK else {
+        guard sqlite3_open_v2(databaseURL.path, &database, mode.flags, nil) == SQLITE_OK else {
             let message = database.map { String(cString: sqlite3_errmsg($0)) } ?? "Unknown SQLite error"
             if let database {
                 sqlite3_close(database)
@@ -14,6 +17,17 @@ final class DatabaseConnection {
             throw DatabaseError.openFailed(message)
         }
         handle = database
+
+        do {
+            guard sqlite3_busy_timeout(database, 1_000) == SQLITE_OK else {
+                throw DatabaseError.executeFailed(lastErrorMessage)
+            }
+            try execute("PRAGMA foreign_keys = ON;")
+        } catch {
+            sqlite3_close(database)
+            handle = nil
+            throw error
+        }
     }
 
     deinit {
@@ -53,6 +67,28 @@ final class DatabaseConnection {
             throw DatabaseError.prepareFailed(lastErrorMessage)
         }
         return statement
+    }
+
+    func inTransaction<T>(_ operation: () throws -> T) throws -> T {
+        try execute("BEGIN IMMEDIATE TRANSACTION;")
+        do {
+            let value = try operation()
+            try execute("COMMIT;")
+            return value
+        } catch {
+            try? execute("ROLLBACK;")
+            throw error
+        }
+    }
+
+    func foreignKeysAreEnabled() throws -> Bool {
+        let statement = try prepare("PRAGMA foreign_keys;")
+        defer { sqlite3_finalize(statement) }
+
+        guard sqlite3_step(statement) == SQLITE_ROW else {
+            throw DatabaseError.stepFailed(lastErrorMessage)
+        }
+        return sqlite3_column_int(statement, 0) == 1
     }
 
     var lastInsertedRowID: Int64 {

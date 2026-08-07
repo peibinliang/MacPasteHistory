@@ -6,22 +6,31 @@ struct DataCleanupService {
     private let repository: ClipboardHistoryRepository
     private let imageStorageService: ImageStorageService?
     private let settings: UserDefaultsConfig
+    private let captureEventAggregationService: CaptureEventAggregationService?
     private let logger: Logger
 
     init(
         repository: ClipboardHistoryRepository,
         imageStorageService: ImageStorageService? = nil,
         settings: UserDefaultsConfig = UserDefaultsConfig(),
+        captureEventAggregationService: CaptureEventAggregationService? = nil,
         logger: Logger = Logger(category: "DataCleanup")
     ) {
         self.repository = repository
         self.imageStorageService = imageStorageService
         self.settings = settings
+        self.captureEventAggregationService = captureEventAggregationService
         self.logger = logger
     }
 
     /// Called on app startup. Removes expired records and prunes oldest records beyond configured limits.
     func performStartupCleanup() {
+        do {
+            try captureEventAggregationService?.aggregateIfNeeded()
+        } catch {
+            logger.error("Failed to aggregate old capture events: \(error.localizedDescription)")
+        }
+
         do {
             try cleanupExpiredRecords()
         } catch {

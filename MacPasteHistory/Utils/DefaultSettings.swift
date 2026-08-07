@@ -7,6 +7,7 @@ enum DefaultSettings {
     static let maxImageSizeInBytes = 20 * 1024 * 1024
     static let totalStorageCapInBytes = 250 * 1024 * 1024
     static let historyRetentionDays = 30
+    static let captureEventAggregationRetentionDays = 30
     static let shouldRecordText = true
     static let shouldRecordImage = true
 }

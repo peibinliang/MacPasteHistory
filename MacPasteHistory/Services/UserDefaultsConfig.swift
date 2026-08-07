@@ -22,6 +22,7 @@ struct UserDefaultsConfig {
         case launchAtStartup = "config.launchAtStartup"
         case showDockIcon = "config.showDockIcon"
         case preferredLanguage = "config.preferredLanguage"
+        case appAppearance = "config.appAppearance"
         case recordingPaused = "config.recordingPaused"
         case blockedApps = "config.blockedApps"
         case shortcutKeyCode = "config.shortcutKeyCode"
@@ -118,6 +119,17 @@ struct UserDefaultsConfig {
                 defaults.removeObject(forKey: Key.preferredLanguage.rawValue)
             }
         }
+    }
+
+    var appAppearance: AppAppearance {
+        get {
+            guard let value = string(forKey: .appAppearance),
+                  let appearance = AppAppearance(rawValue: value) else {
+                return .system
+            }
+            return appearance
+        }
+        set { setString(newValue.rawValue, forKey: .appAppearance) }
     }
 
     var recordingPaused: Bool {

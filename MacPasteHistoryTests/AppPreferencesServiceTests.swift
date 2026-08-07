@@ -4,6 +4,26 @@ import XCTest
 
 @MainActor
 final class AppPreferencesServiceTests: XCTestCase {
+    func testAppearanceService_shouldApplyLightDarkAndSystemToApplication() {
+        let suiteName = "AppearanceServiceTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        let originalAppearance = NSApp.appearance
+        defer {
+            NSApp.appearance = originalAppearance
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+        let service = AppearanceService(config: UserDefaultsConfig(defaults: defaults))
+
+        service.setAppearance(.light)
+        XCTAssertEqual(NSApp.appearance?.name, .aqua)
+
+        service.setAppearance(.dark)
+        XCTAssertEqual(NSApp.appearance?.name, .darkAqua)
+
+        service.setAppearance(.system)
+        XCTAssertNil(NSApp.appearance)
+    }
+
     func testSetDockIconVisible_whenEnabled_shouldPersistAndApplyRegularPolicy() {
         let defaults = UserDefaults(suiteName: "AppPreferencesServiceTests.\(UUID().uuidString)")!
         var appliedPolicy: NSApplication.ActivationPolicy?

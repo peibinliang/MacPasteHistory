@@ -4,7 +4,6 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCHEME="MacPasteHistory"
 BUNDLE_ID="com.peibin.MacPasteHistory"
-APP_PROCESS_NAME="粘易"
 CONTAINER_DATA_DIR="$HOME/Library/Containers/$BUNDLE_ID/Data"
 
 should_build=1
@@ -13,6 +12,7 @@ app_path=""
 install_root=""
 installed_app_path=""
 preview_data_dir=""
+launched_app_pid=""
 
 usage() {
     cat <<'EOF'
@@ -59,13 +59,21 @@ release_app_path() {
 }
 
 quit_app() {
+    if [[ -n "$launched_app_pid" ]] && kill -0 "$launched_app_pid" >/dev/null 2>&1; then
+        kill -TERM "$launched_app_pid" >/dev/null 2>&1 || true
+        return
+    fi
     osascript -e "tell application id \"$BUNDLE_ID\" to quit" >/dev/null 2>&1 || true
 }
 
 wait_for_process() {
-    local attempt
+    local attempt executable_path
+    executable_path="$installed_app_path/Contents/MacOS/$(plist_value "$installed_app_path/Contents/Info.plist" CFBundleExecutable)"
     for attempt in {1..30}; do
-        if pgrep -x "$APP_PROCESS_NAME" >/dev/null 2>&1; then
+        # Match the executable inside this temporary .app bundle, rather than
+        # the display name. A separately installed copy may be running.
+        launched_app_pid="$(pgrep -f "$executable_path" | head -n 1 || true)"
+        if [[ -n "$launched_app_pid" ]]; then
             return 0
         fi
         sleep 1
@@ -77,7 +85,8 @@ wait_for_process() {
 wait_for_exit() {
     local attempt
     for attempt in {1..20}; do
-        if ! pgrep -x "$APP_PROCESS_NAME" >/dev/null 2>&1; then
+        if [[ -z "$launched_app_pid" ]] || ! kill -0 "$launched_app_pid" >/dev/null 2>&1; then
+            launched_app_pid=""
             return 0
         fi
         sleep 1

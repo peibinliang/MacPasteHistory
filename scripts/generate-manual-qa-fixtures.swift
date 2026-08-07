@@ -85,6 +85,20 @@ private let textFixtures: [TextFixture] = [
     TextFixture(
         fileName: "04-large-text-sample.txt",
         contents: largeText(repetitions: 18_000)
+    ),
+    TextFixture(
+        fileName: "07-structured-actions-fixture.txt",
+        contents: """
+        valid-json: {"fixture":"json"}
+        invalid-json: {fixture: json}
+        base64: eyJmaXh0dXJlIjoianNvbiJ9
+        base64-url: eyJmaXh0dXJlIjoianNvbiJ9
+        jwt-expired: eyJhbGciOiJub25lIn0.eyJleHAiOjF9.
+        timestamp-10: 1700000000
+        timestamp-13: 1700000000000
+        sql: SELECT 'quoted whitespace' FROM fixtures;
+        shell: echo 'single quote safe fixture'
+        """
     )
 ]
 

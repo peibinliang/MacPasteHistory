@@ -22,12 +22,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var clipboardWriter: ClipboardWriter?
     private var imageStorageService: ImageStorageService?
     private var clipboardMonitor: ClipboardMonitor?
+    private var searchCoordinator: SearchCoordinator?
     private var clearDataCancellable: AnyCancellable?
     private let shortcutService: ShortcutService
     private var shortcutCancellable: AnyCancellable?
     private var workspaceActivationCancellable: AnyCancellable?
     private var lastExternalApplication: NSRunningApplication?
     private let appPreferencesService = AppPreferencesService()
+    private let appearanceService = AppearanceService()
     private let accessibilityPermissionService: AccessibilityPermissionService
 
     override init() {
@@ -143,6 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureApplication() {
         appPreferencesService.applyDockIconPreference()
+        appearanceService.applyCurrentAppearance()
     }
 
     private func createStatusItem() {
@@ -195,12 +198,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 imageStorageService: imageStorageService,
                 restorationState: restorationState
             )
+            searchCoordinator = SearchCoordinator(
+                provider: SearchCandidateProvider(databaseURL: try applicationSupportService.databaseURL)
+            )
             logger.info("Local storage initialized")
 
             // Perform data cleanup on startup (expired records, count limits, storage caps)
             let cleanupService = DataCleanupService(
                 repository: repository,
-                imageStorageService: imageStorageService
+                imageStorageService: imageStorageService,
+                captureEventAggregationService: CaptureEventAggregationService(
+                    repository: repository,
+                    preferences: CaptureEventAggregationPreferences(defaults: .standard)
+                )
             )
             cleanupService.performStartupCleanup()
         } catch {
@@ -217,7 +227,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let viewModel = ClipboardHistoryViewModel(
             repository: clipboardHistoryRepository,
             writer: clipboardWriter,
-            imageStorageService: imageStorageService
+            imageStorageService: imageStorageService,
+            searchCoordinator: searchCoordinator
         )
         let controller = mainWindowController ?? createHistoryPanelController(
             viewModel: viewModel,
@@ -257,7 +268,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func makeSettingsViewModel(
         config: UserDefaultsConfig = UserDefaultsConfig()
     ) -> SettingsViewModel {
-        SettingsViewModel(config: config, shortcutService: shortcutService)
+        SettingsViewModel(
+            config: config,
+            appearanceService: AppearanceService(config: config),
+            shortcutService: shortcutService
+        )
     }
 
     @objc private func openSettings() {
@@ -316,6 +331,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let panel = controller.window as? HistoryPanelWindow else {
             return
         }
+        panel.resizeForActiveScreen()
         panel.positionOnActiveScreen()
         controller.showWindow(nil)
         panel.makeKeyAndOrderFront(nil)

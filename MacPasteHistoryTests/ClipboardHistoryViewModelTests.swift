@@ -68,6 +68,25 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.items.map(\.textContent), ["third", "second", "first"])
     }
 
+    func testLoadMore_withSearchCoordinatorBeforeAnySearchStillUsesRepositoryPagination() throws {
+        _ = try repository.saveText("first", sourceApp: nil, sourceBundleID: nil)
+        _ = try repository.saveText("second", sourceApp: nil, sourceBundleID: nil)
+        _ = try repository.saveText("third", sourceApp: nil, sourceBundleID: nil)
+        let writer = ClipboardWriter(pasteboard: pasteboard, restorationState: ClipboardRestorationState())
+        viewModel = ClipboardHistoryViewModel(
+            repository: repository,
+            writer: writer,
+            imageStorageService: imageStorageService,
+            pageSize: 2,
+            searchCoordinator: NoopSearchCoordinator()
+        )
+
+        viewModel.loadHistory()
+        viewModel.loadMoreIfNeeded(currentItem: viewModel.items.last)
+
+        XCTAssertEqual(viewModel.items.count, 3)
+    }
+
     func testToggleFavorite_shouldRefreshFavoriteState() throws {
         let item = try repository.saveText("favorite from view model", sourceApp: nil, sourceBundleID: nil)
         viewModel.loadHistory()
@@ -147,6 +166,80 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, NSLocalizedString("Failed to restore text to clipboard.", comment: ""))
     }
 
+    func testCopyActionOutput_whenWriteSucceeds_shouldRecordReuseCopy() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+
+        XCTAssertTrue(viewModel.copyActionOutput("result", sourceItem: source))
+
+        XCTAssertEqual(try historyItem(id: source.id).reuseCopyCount, 1)
+        XCTAssertEqual(try historyItem(id: source.id).pasteCount, 0)
+        XCTAssertEqual(pasteboard.string(forType: .string), "result")
+    }
+
+    func testPasteActionOutput_whenDispatchSucceeds_shouldRecordPasteOnly() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+
+        XCTAssertTrue(viewModel.pasteActionOutput("result", sourceItem: source, pasteCommandService: PasteCommandService(sender: TestPasteCommandSender(didDispatch: true))))
+
+        XCTAssertEqual(try historyItem(id: source.id).reuseCopyCount, 0)
+        XCTAssertEqual(try historyItem(id: source.id).pasteCount, 1)
+    }
+
+    func testPasteActionOutput_whenDispatchFails_shouldRecordManualCopyOnly() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+
+        XCTAssertFalse(viewModel.pasteActionOutput("result", sourceItem: source, pasteCommandService: PasteCommandService(sender: TestPasteCommandSender(didDispatch: false))))
+
+        XCTAssertEqual(try historyItem(id: source.id).reuseCopyCount, 1)
+        XCTAssertEqual(try historyItem(id: source.id).pasteCount, 0)
+        XCTAssertEqual(viewModel.errorMessage, NSLocalizedString("Paste was not sent. Press Command-V to paste manually.", comment: ""))
+    }
+
+    func testSaveDerivedActionOutput_shouldPersistMetadataWithoutUsageIncrement() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+        let action = TextContentAction(kind: .uppercase)
+        let result = try action.execute(input: source.textContent)
+        var session = ActionSession(sourceItem: source)
+        session.append(action: action, result: result, input: source.textContent)
+
+        let saved = try XCTUnwrap(viewModel.saveDerivedActionOutput(from: session))
+
+        XCTAssertEqual(saved.textContent, "SOURCE")
+        XCTAssertEqual(saved.derivedFromHistoryID, source.id)
+        XCTAssertEqual(saved.derivedActionID, action.id.rawValue)
+        XCTAssertEqual(saved.derivedActionSummary, action.titleKey)
+        XCTAssertEqual(viewModel.selectedItemID, saved.id)
+        XCTAssertEqual(try historyItem(id: source.id).reuseCopyCount, 0)
+        XCTAssertEqual(try historyItem(id: source.id).pasteCount, 0)
+    }
+
+    func testSaveDerivedActionOutput_afterMovingBackPersistsCurrentStepMetadata() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+        let first = TextContentAction(kind: .uppercase)
+        let second = TextContentAction(kind: .markdownCodeBlock)
+        var session = ActionSession(sourceItem: source)
+        session.append(action: first, result: try first.execute(input: "source"), input: "source")
+        session.append(action: second, result: try second.execute(input: "SOURCE"), input: "SOURCE")
+        session.moveBack()
+
+        let saved = try XCTUnwrap(viewModel.saveDerivedActionOutput(from: session))
+
+        XCTAssertEqual(saved.textContent, "SOURCE")
+        XCTAssertEqual(saved.derivedActionID, first.id.rawValue)
+        XCTAssertEqual(saved.derivedActionSummary, first.titleKey)
+    }
+
+    func testSaveDerivedActionOutput_withEmptyEditedOutputDoesNotCreateRecord() throws {
+        let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
+        let action = TextContentAction(kind: .uppercase)
+        var session = ActionSession(sourceItem: source)
+        session.append(action: action, result: try action.execute(input: "source"), input: "source")
+        session.updateEditedOutput(" \n\t")
+
+        XCTAssertNil(viewModel.saveDerivedActionOutput(from: session))
+        XCTAssertEqual(try repository.fetchHistory(query: HistoryQuery(contentType: .text)).map(\.id), [source.id])
+    }
+
     func testDelete_whenItemIsImage_shouldRemoveDatabaseRecordAndImageFiles() throws {
         let item = try saveImageRecord(pngData: makePNGData())
         let filePath = try XCTUnwrap(item.filePath)
@@ -165,6 +258,10 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         return try repository.saveImage(storedImage, sourceApp: nil, sourceBundleID: nil)
     }
 
+    private func historyItem(id: Int64) throws -> ClipboardHistoryItem {
+        try XCTUnwrap(repository.fetchHistory(query: HistoryQuery()).first { $0.id == id })
+    }
+
     private func makePNGData() throws -> Data {
         let image = NSImage(size: NSSize(width: 8, height: 8))
         image.lockFocus()
@@ -181,8 +278,32 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
     }
 }
 
+private final class TestPasteCommandSender: PasteCommandSending {
+    let didDispatch: Bool
+
+    init(didDispatch: Bool) {
+        self.didDispatch = didDispatch
+    }
+
+    func sendCommandVPaste() -> Bool {
+        didDispatch
+    }
+}
+
 private enum TestImageError: Error {
     case encodingFailed
+}
+
+private struct NoopSearchCoordinator: SearchCoordinating {
+    func immediateResults(input: String, loadedItems: [ClipboardHistoryItem], filters: SearchUIFilters) async -> SearchResponse {
+        SearchResponse(parsedQuery: SearchQueryParser().parse(input), results: [], isCurrent: true, errorDescription: nil)
+    }
+
+    func search(input: String, loadedItems: [ClipboardHistoryItem], filters: SearchUIFilters) async -> SearchResponse {
+        SearchResponse(parsedQuery: SearchQueryParser().parse(input), results: [], isCurrent: true, errorDescription: nil)
+    }
+
+    func cancelCurrentSearch() async {}
 }
 
 private final class FakePasteboard: PasteboardProviding {

@@ -163,6 +163,66 @@ final class DataCleanupServiceTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: newestImage.thumbnailURL.path))
     }
 
+    func testPerformStartupCleanup_shouldAggregateOldCaptureEventsIndependently() throws {
+        let item = try repository.saveText("aggregate during cleanup", sourceApp: nil, sourceBundleID: nil)
+        try database.execute("""
+        INSERT INTO clipboard_capture_events (history_id, source_app, source_bundle_id, captured_at)
+        VALUES (\(item.id), 'Safari', 'com.apple.Safari', datetime('now', '-31 days'));
+        """)
+        let aggregationPreferences = CaptureEventAggregationPreferences(defaults: defaults)
+        let cleanup = DataCleanupService(
+            repository: repository,
+            imageStorageService: ImageStorageService(imagesDirectory: imagesURL, thumbnailsDirectory: thumbnailsURL),
+            settings: UserDefaultsConfig(defaults: defaults),
+            captureEventAggregationService: CaptureEventAggregationService(
+                repository: repository,
+                preferences: aggregationPreferences
+            )
+        )
+
+        cleanup.performStartupCleanup()
+
+        XCTAssertEqual(try repository.fetchCaptureSummaries(historyID: item.id).first?.captureCount, 1)
+        XCTAssertEqual(
+            try repository.fetchCaptureEvents(historyID: item.id, since: Date(timeIntervalSince1970: 0))
+                .filter { $0.sourceBundleID == "com.apple.Safari" }.count,
+            0
+        )
+    }
+
+    func testPerformStartupCleanup_whenAggregationFails_shouldContinueExpiredRecordCleanup() throws {
+        let aggregationItem = try repository.saveText("aggregation failure source", sourceApp: nil, sourceBundleID: nil)
+        let expiredItem = try repository.saveText("cleanup after aggregation failure", sourceApp: nil, sourceBundleID: nil)
+        try database.execute("""
+        UPDATE clipboard_history
+        SET created_at = datetime('now', '-31 days')
+        WHERE id = \(expiredItem.id);
+        INSERT INTO clipboard_capture_events (history_id, source_app, source_bundle_id, captured_at)
+        VALUES (\(aggregationItem.id), 'Safari', 'com.apple.Safari', datetime('now', '-31 days'));
+        CREATE TRIGGER fail_capture_event_delete_during_cleanup
+        BEFORE DELETE ON clipboard_capture_events
+        WHEN OLD.history_id = \(aggregationItem.id)
+        BEGIN
+            SELECT RAISE(ABORT, 'aggregation failure');
+        END;
+        """)
+        let cleanup = DataCleanupService(
+            repository: repository,
+            settings: UserDefaultsConfig(defaults: defaults),
+            captureEventAggregationService: CaptureEventAggregationService(
+                repository: repository,
+                preferences: CaptureEventAggregationPreferences(defaults: defaults)
+            )
+        )
+
+        cleanup.performStartupCleanup()
+
+        XCTAssertFalse(
+            try repository.fetchHistory(query: HistoryQuery(contentType: .text))
+                .contains { $0.id == expiredItem.id }
+        )
+    }
+
     private func makeCleanup(settings: UserDefaultsConfig) -> DataCleanupService {
         DataCleanupService(
             repository: repository,

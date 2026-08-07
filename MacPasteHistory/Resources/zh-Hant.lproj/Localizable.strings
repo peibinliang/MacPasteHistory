@@ -78,6 +78,11 @@
 "Data Management" = "資料管理";
 "Clear All Data" = "清空所有資料";
 
+/* SettingsView - Appearance Section */
+"Appearance" = "外觀";
+"Light" = "淺色";
+"Dark" = "深色";
+
 /* SettingsView - Language Section */
 "Language" = "語言";
 "Follow System" = "跟隨系統";
@@ -162,3 +167,75 @@
 "Recording, startup, shortcuts, and language" = "記錄、啟動、快捷鍵與語言";
 "Control where clipboard history is recorded" = "控制在哪些應用程式中記錄剪貼簿歷史";
 "Retention, limits, and local data" = "保留週期、容量限制與本機資料";
+
+/* 增強搜尋、動作與 OCR */
+"Automatic" = "自動";
+"Recommended Actions" = "建議操作";
+"All Actions" = "全部操作";
+"Search actions" = "搜尋操作";
+"Copy Result" = "複製結果";
+"Paste Result" = "貼上結果";
+"Save as New Record" = "另存為新記錄";
+"Restore Result" = "還原結果";
+"Source record deleted" = "來源記錄已刪除";
+"Derived content" = "衍生內容";
+"Recognizing text" = "正在辨識文字";
+"Recognizing text…" = "正在辨識文字…";
+"Retry" = "重試";
+"content-action.failed" = "操作無法完成。";
+"content-action.unsupported" = "所選內容不支援此操作。";
+"content-action.json.invalid" = "JSON 無效。";
+"content-action.json.valid" = "JSON 有效。";
+"content-action.base64.invalid" = "Base64 無效。";
+"content-action.base64.non-utf8" = "解碼結果不是 UTF-8 文字。";
+"content-action.base64.valid" = "Base64 有效。";
+"content-action.jwt.invalid" = "JWT 無效。";
+"content-action.jwt.signature-not-verified" = "未驗證 JWT 簽章。";
+"content-action.jwt.expired" = "JWT 已過期。";
+"content-action.jwt.not-expired" = "JWT 尚未過期。";
+"content-action.jwt.no-expiration" = "JWT 不包含 exp 欄位。";
+"content-action.timestamp.invalid" = "請輸入 10 或 13 位 Unix 時間戳記、ISO 8601 日期，或 yyyy-MM-dd HH:mm:ss。";
+"content-action.url.invalid" = "URL 無效。";
+"content-action.url.hostless" = "URL 不包含主機名稱。";
+"text.trim" = "移除前後空白";
+"text.remove-empty-lines" = "移除空白行";
+"text.deduplicate-lines" = "移除重複行";
+"text.single-line" = "轉換為單行";
+"text.uppercase" = "轉換為大寫";
+"text.lowercase" = "轉換為小寫";
+"text.markdown-code-block" = "包裝為程式碼區塊";
+"json.format" = "格式化 JSON";
+"json.minify" = "壓縮 JSON";
+"json.validate" = "驗證 JSON";
+"json.escape" = "逸出 JSON";
+"json.unescape" = "反逸出 JSON";
+"base64.encode" = "編碼 Base64";
+"base64.decode" = "解碼 Base64";
+"base64.decode-url-safe" = "解碼 URL 安全 Base64";
+"base64.validate" = "驗證 Base64";
+"jwt.inspect" = "檢查 JWT";
+"timestamp.convert" = "轉換時間戳記";
+"url.encode-query-value" = "編碼 URL 查詢參數值";
+"url.decode" = "解碼 URL";
+"url.extract-host" = "擷取 URL 主機名稱";
+"url.parse-query" = "解析 URL 查詢參數";
+"sql.single-line" = "SQL 合併為單行";
+"shell.quote-argument" = "Shell 參數安全逸出";
+"header" = "複製 Header";
+"payload" = "複製 Payload";
+"summary" = "複製摘要";
+"local" = "複製本地時間";
+"utc" = "複製 UTC";
+"iso8601" = "複製 ISO 8601";
+"seconds" = "複製 Unix 秒";
+"milliseconds" = "複製 Unix 毫秒";
+"Unsupported for this content" = "目前內容不支援此操作";
+"Action Failed" = "操作失敗";
+"imageMissing" = "圖片檔案遺失。";
+"imageDecodeFailed" = "無法解碼圖片。";
+"visionFailed" = "文字辨識失敗。";
+"noTextFound" = "未辨識到文字。";
+"Execute selected content action" = "執行所選內容操作";
+"Edited result" = "已編輯結果";
+"Recognized text" = "已辨識文字";
+"Text recognition failed" = "文字辨識失敗";

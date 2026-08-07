@@ -48,6 +48,41 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
         XCTAssertEqual(items.count, 1)
     }
 
+    func testSaveText_shouldCreateCaptureEventForNewAndDuplicateCaptures() throws {
+        let firstItem = try repository.saveText(
+            "captured text",
+            sourceApp: "Old Source",
+            sourceBundleID: "com.example.old"
+        )
+        try database.execute("""
+        UPDATE clipboard_history
+        SET created_at = '2020-01-01 00:00:00',
+            first_captured_at = '2020-01-01 00:00:00',
+            last_captured_at = '2020-01-01 00:00:00'
+        WHERE id = \(firstItem.id);
+        """)
+
+        let duplicateItem = try repository.saveText(
+            "captured text",
+            sourceApp: "Latest Source",
+            sourceBundleID: "com.example.latest"
+        )
+        let events = try repository.fetchCaptureEvents(
+            historyID: firstItem.id,
+            since: Date(timeIntervalSince1970: 0)
+        )
+
+        XCTAssertEqual(duplicateItem.id, firstItem.id)
+        XCTAssertEqual(duplicateItem.captureCount, 2)
+        XCTAssertEqual(duplicateItem.sourceApp, "Latest Source")
+        XCTAssertEqual(duplicateItem.sourceBundleID, "com.example.latest")
+        XCTAssertEqual(duplicateItem.createdAt, Self.date("2020-01-01 00:00:00"))
+        XCTAssertEqual(duplicateItem.firstCapturedAt, Self.date("2020-01-01 00:00:00"))
+        XCTAssertGreaterThan(duplicateItem.lastCapturedAt ?? .distantPast, duplicateItem.firstCapturedAt ?? .distantFuture)
+        XCTAssertEqual(events.count, 2)
+        XCTAssertEqual(events.map(\.sourceApp), ["Latest Source", "Old Source"])
+    }
+
     func testFetchTextHistory_whenKeywordProvided_shouldReturnMatchingRecords() throws {
         _ = try repository.saveText("alpha note", sourceApp: nil, sourceBundleID: nil)
         _ = try repository.saveText("beta memo", sourceApp: nil, sourceBundleID: nil)
@@ -109,10 +144,23 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
         XCTAssertEqual(secondPage.map(\.textContent), ["first"])
     }
 
+    func testFetchHistory_ordersRecapturedItemByLastCaptureInsteadOfCreation() throws {
+        let recaptured = try repository.saveText("recaptured", sourceApp: nil, sourceBundleID: nil)
+        let newer = try repository.saveText("newer", sourceApp: nil, sourceBundleID: nil)
+        try database.execute("""
+        UPDATE clipboard_history SET created_at = '2020-01-01 00:00:00', last_captured_at = '2026-01-03 00:00:00' WHERE id = \(recaptured.id);
+        UPDATE clipboard_history SET created_at = '2026-01-02 00:00:00', last_captured_at = '2026-01-02 00:00:00' WHERE id = \(newer.id);
+        """)
+
+        let items = try repository.fetchHistory(query: HistoryQuery())
+
+        XCTAssertEqual(items.map(\.textContent), ["recaptured", "newer"])
+    }
+
     func testFetchHistory_whenTimeRangeProvided_shouldReturnItemsInsideRange() throws {
         let oldItem = try repository.saveText("old note", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
         _ = try repository.saveText("new note", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
-        try database.execute("UPDATE clipboard_history SET created_at = '2001-01-01 00:00:00' WHERE id = \(oldItem.id);")
+        try database.execute("UPDATE clipboard_history SET created_at = '2001-01-01 00:00:00', last_captured_at = '2001-01-01 00:00:00' WHERE id = \(oldItem.id);")
 
         let items = try repository.fetchHistory(query: HistoryQuery(timeRange: .last7Days))
 
@@ -208,5 +256,145 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
         XCTAssertEqual(firstItem.id, secondItem.id)
         XCTAssertEqual(imageItems.count, 1)
         XCTAssertEqual(imageItems.first?.filePath, "/tmp/second.png")
+    }
+
+    func testSaveImage_shouldCreateCaptureEventForNewAndDuplicateCaptures() throws {
+        let firstImage = StoredClipboardImage(
+            fileURL: URL(fileURLWithPath: "/tmp/capture-first.png"),
+            thumbnailURL: URL(fileURLWithPath: "/tmp/capture-first-thumb.png"),
+            contentHash: "capture-image-hash",
+            fileSize: 100,
+            width: 10,
+            height: 10,
+            format: .png
+        )
+        let secondImage = StoredClipboardImage(
+            fileURL: URL(fileURLWithPath: "/tmp/capture-second.png"),
+            thumbnailURL: URL(fileURLWithPath: "/tmp/capture-second-thumb.png"),
+            contentHash: "capture-image-hash",
+            fileSize: 100,
+            width: 10,
+            height: 10,
+            format: .png
+        )
+
+        let firstItem = try repository.saveImage(firstImage, sourceApp: "Preview", sourceBundleID: "com.apple.Preview")
+        let duplicateItem = try repository.saveImage(secondImage, sourceApp: "Finder", sourceBundleID: "com.apple.finder")
+        let events = try repository.fetchCaptureEvents(
+            historyID: firstItem.id,
+            since: Date(timeIntervalSince1970: 0)
+        )
+
+        XCTAssertEqual(duplicateItem.id, firstItem.id)
+        XCTAssertEqual(duplicateItem.captureCount, 2)
+        XCTAssertEqual(events.count, 2)
+        XCTAssertEqual(events.map(\.sourceApp), ["Finder", "Preview"])
+    }
+
+    func testSaveText_whenCaptureEventInsertFails_shouldRollBackDuplicateUpdate() throws {
+        let item = try repository.saveText("rollback capture", sourceApp: "Original", sourceBundleID: "com.example.original")
+        try database.execute("""
+        CREATE TRIGGER fail_capture_event_insert
+        BEFORE INSERT ON clipboard_capture_events
+        BEGIN
+            SELECT RAISE(ABORT, 'capture event failure');
+        END;
+        """)
+
+        XCTAssertThrowsError(
+            try repository.saveText("rollback capture", sourceApp: "Changed", sourceBundleID: "com.example.changed")
+        )
+
+        let reloaded = try XCTUnwrap(repository.fetchHistory(query: HistoryQuery()).first { $0.id == item.id })
+        XCTAssertEqual(reloaded.captureCount, 1)
+        XCTAssertEqual(reloaded.sourceApp, "Original")
+        XCTAssertEqual(reloaded.sourceBundleID, "com.example.original")
+    }
+
+    func testFetchHistory_whenV3MetadataExists_shouldMapEveryNewField() throws {
+        let source = try repository.saveText("source record", sourceApp: nil, sourceBundleID: nil)
+        let item = try repository.saveText("derived record", sourceApp: nil, sourceBundleID: nil)
+        try database.execute("""
+        UPDATE clipboard_history SET
+            searchable_text = 'searchable derived record',
+            detected_type = 'json',
+            user_override_type = 'url',
+            detection_confidence = 0.75,
+            detection_version = 3,
+            detected_at = '2026-08-05 01:02:03',
+            first_captured_at = '2026-08-01 01:02:03',
+            last_captured_at = '2026-08-05 04:05:06',
+            capture_count = 7,
+            reuse_copy_count = 4,
+            paste_count = 2,
+            last_reuse_copied_at = NULL,
+            last_pasted_at = '2026-08-05 05:06:07',
+            ocr_status = 'recognized',
+            ocr_text = 'recognized text',
+            ocr_updated_at = NULL,
+            ocr_error_code = 'none',
+            derived_from_history_id = \(source.id),
+            derived_action_id = 'summarize',
+            derived_action_summary = 'Summarized source',
+            derived_at = '2026-08-05 06:07:08',
+            derived_source_preview = 'source preview',
+            derived_source_hash = 'source-hash'
+        WHERE id = \(item.id);
+        """)
+
+        let reloaded = try XCTUnwrap(repository.fetchHistory(query: HistoryQuery()).first { $0.id == item.id })
+
+        XCTAssertEqual(reloaded.searchableText, "searchable derived record")
+        XCTAssertEqual(reloaded.detectedType, .json)
+        XCTAssertEqual(reloaded.userOverrideType, .url)
+        XCTAssertEqual(reloaded.detectionConfidence, 0.75)
+        XCTAssertEqual(reloaded.detectionVersion, 3)
+        XCTAssertEqual(reloaded.captureCount, 7)
+        XCTAssertEqual(reloaded.reuseCopyCount, 4)
+        XCTAssertEqual(reloaded.pasteCount, 2)
+        XCTAssertEqual(reloaded.ocrStatus, .recognized)
+        XCTAssertEqual(reloaded.ocrText, "recognized text")
+        XCTAssertEqual(reloaded.ocrErrorCode, "none")
+        XCTAssertEqual(reloaded.derivedFromHistoryID, source.id)
+        XCTAssertEqual(reloaded.derivedActionID, "summarize")
+        XCTAssertEqual(reloaded.derivedActionSummary, "Summarized source")
+        XCTAssertEqual(reloaded.derivedSourcePreview, "source preview")
+        XCTAssertEqual(reloaded.derivedSourceHash, "source-hash")
+        XCTAssertNil(reloaded.lastReuseCopiedAt)
+        XCTAssertNil(reloaded.ocrUpdatedAt)
+        XCTAssertEqual(reloaded.detectedAt, Self.date("2026-08-05 01:02:03"))
+        XCTAssertEqual(reloaded.firstCapturedAt, Self.date("2026-08-01 01:02:03"))
+        XCTAssertEqual(reloaded.lastCapturedAt, Self.date("2026-08-05 04:05:06"))
+        XCTAssertEqual(reloaded.lastPastedAt, Self.date("2026-08-05 05:06:07"))
+        XCTAssertEqual(reloaded.derivedAt, Self.date("2026-08-05 06:07:08"))
+    }
+
+    func testFetchHistory_whenV3ValuesAreInvalid_shouldDecodeSafely() throws {
+        let item = try repository.saveText("invalid metadata", sourceApp: nil, sourceBundleID: nil)
+        try database.execute("""
+        UPDATE clipboard_history SET
+            detected_type = 'not-a-real-type',
+            user_override_type = 'also-invalid',
+            detection_confidence = 'not-a-number',
+            detected_at = 'not-a-date',
+            ocr_status = 'unknown-status'
+        WHERE id = \(item.id);
+        """)
+
+        let reloaded = try XCTUnwrap(repository.fetchHistory(query: HistoryQuery()).first { $0.id == item.id })
+
+        XCTAssertNil(reloaded.detectedType)
+        XCTAssertNil(reloaded.userOverrideType)
+        XCTAssertNil(reloaded.detectionConfidence)
+        XCTAssertNil(reloaded.detectedAt)
+        XCTAssertEqual(reloaded.ocrStatus, .notStarted)
+    }
+
+    private static func date(_ value: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return formatter.date(from: value)
     }
 }
