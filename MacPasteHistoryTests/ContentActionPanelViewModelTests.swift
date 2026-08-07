@@ -76,6 +76,51 @@ final class ContentActionPanelViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.allActions.map(\.id.rawValue), ["base64.encode"])
     }
 
+    func testPlainTextOnlyOffersGenericTextAndEncodingActions() {
+        let viewModel = ContentActionPanelViewModel()
+        viewModel.present(for: makeItem(text: "Hello 粘易"))
+
+        XCTAssertEqual(Set(viewModel.availableActions.map(\.id.rawValue)), Set([
+            "text.trim", "text.remove-empty-lines", "text.deduplicate-lines", "text.single-line",
+            "text.uppercase", "text.lowercase", "text.markdown-code-block", "json.escape",
+            "url.encode-query-value", "base64.encode", "shell.quote-argument"
+        ]))
+        XCTAssertFalse(viewModel.availableActions.contains { $0.id.rawValue == "json.format" })
+        XCTAssertFalse(viewModel.availableActions.contains { $0.id.rawValue == "base64.decode" })
+    }
+
+    func testStructuredTextIsClassifiedOnPresentationAndOnlyOffersMatchingActions() {
+        let cases: [(String, DetectedContentType, Set<String>)] = [
+            ("{\"name\":\"粘易\"}", .json, ["json.format", "json.minify", "json.validate", "json.escape", "json.unescape"]),
+            ("https://example.com/path?a=1", .url, ["url.encode-query-value", "url.decode", "url.extract-host", "url.parse-query"]),
+            ("SGVsbG8gd29ybGQ=", .base64, ["base64.encode", "base64.decode", "base64.decode-url-safe", "base64.validate"]),
+            ("1700000000", .timestamp, ["timestamp.convert"]),
+            ("SELECT id FROM users WHERE active = 1", .sql, ["sql.single-line"]),
+            ("git log --oneline | head -5", .shell, ["shell.quote-argument"])
+        ]
+
+        for (text, expectedType, expectedActions) in cases {
+            let viewModel = ContentActionPanelViewModel()
+            viewModel.present(for: makeItem(text: text))
+
+            XCTAssertEqual(viewModel.activeContentType, expectedType, "Failed to classify \(text)")
+            XCTAssertEqual(Set(viewModel.availableActions.map(\.id.rawValue)), expectedActions)
+        }
+    }
+
+    func testImageWithOCRUsesRecognizedTextClassificationWithoutImageOnlyActions() {
+        let viewModel = ContentActionPanelViewModel()
+        let item = makeImageItem(filePath: "/tmp/image.png", ocrText: "{\"name\":\"粘易\"}")
+
+        viewModel.present(for: item, sourceText: item.ocrText)
+
+        XCTAssertEqual(viewModel.activeContentType, .json)
+        XCTAssertEqual(Set(viewModel.availableActions.map(\.id.rawValue)), Set([
+            "json.format", "json.minify", "json.validate", "json.escape", "json.unescape"
+        ]))
+        XCTAssertFalse(viewModel.availableActions.contains { $0.id.rawValue == "base64.encode" })
+    }
+
     func testAllActionsPutRecommendedActionsFirstAndFilterByLocalizedTitle() {
         let viewModel = ContentActionPanelViewModel()
         viewModel.present(for: makeItem(text: "{\"a\":1}", detectedType: .json))
