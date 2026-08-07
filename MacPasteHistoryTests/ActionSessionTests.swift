@@ -21,6 +21,22 @@ final class ActionSessionTests: XCTestCase {
         XCTAssertEqual(session.actionSummary, "action.first → action.replacement")
     }
 
+    func testLocalizedActionSummaryUsesSelectedLanguageWithoutChangingStableSummary() {
+        let suiteName = UUID().uuidString
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { UserDefaults().removePersistentDomain(forName: suiteName) }
+        defaults.set(AppLanguage.zhHans.rawValue, forKey: LanguageManager.preferredLanguageKey)
+        let source = makeItem(text: "original")
+        var session = ActionSession(sourceItem: source)
+        let decode = Base64ContentAction(kind: .decode)
+        let format = JSONContentAction(kind: .format)
+        session.append(action: decode, result: result("{}"), input: "e30=")
+        session.append(action: format, result: result("{}"), input: "{}")
+
+        XCTAssertEqual(session.actionSummary, "base64.decode → json.format")
+        XCTAssertEqual(session.localizedActionSummary(defaults: defaults), "解码 Base64 → 格式化 JSON")
+    }
+
     func testSession_restoreMoveBackAndClear_affectOnlyCurrentState() {
         let source = makeItem(text: "original")
         let first = TestContentAction(id: "first", titleKey: "action.first")
@@ -65,6 +81,7 @@ final class ActionSessionTests: XCTestCase {
     private func makeItem(text: String) -> ClipboardHistoryItem {
         ClipboardHistoryItem(id: 1, contentType: .text, textContent: text, filePath: nil, thumbnailPath: nil, sourceApp: nil, sourceBundleID: nil, contentHash: "source-hash", textLength: text.count, fileSize: nil, imageWidth: nil, imageHeight: nil, imageFormat: nil, isFavorite: false, isSensitive: false, createdAt: .distantPast, updatedAt: .distantPast)
     }
+
 }
 
 private struct TestContentAction: ContentAction {

@@ -100,13 +100,13 @@ struct HistoryRowView: View {
                         Image(systemName: typeIcon).font(.caption.weight(.semibold)).foregroundStyle(Color.accentColor)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(item.effectiveDetectedType.rawValue)
-                    .help(item.effectiveDetectedType.rawValue)
+                    .accessibilityLabel(item.effectiveDetectedType.localizedTitle())
+                    .help(item.effectiveDetectedType.localizedTitle())
                 }
                 if item.isDerived {
                     Image(systemName: "arrow.triangle.branch")
                         .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                        .help(item.derivedActionSummary ?? L10n.string("Derived content"))
+                        .help(item.derivedActionSummary.map { ActionSession.localizedActionSummary(from: $0) } ?? L10n.string("Derived content"))
                         .accessibilityLabel(L10n.string(ContentActionAccessibilityPresentation.derivedLabel))
                 }
             }

@@ -15,7 +15,11 @@ struct ShortcutConfiguration: Codable, Equatable {
     }
 
     var displayLabel: String {
-        "\(modifierDisplay)\(keyDisplay)"
+        displayLabel(defaults: .standard)
+    }
+
+    func displayLabel(defaults: UserDefaults) -> String {
+        "\(modifierDisplay(defaults: defaults))\(keyDisplay(defaults: defaults))"
     }
 
     private var hasSupportedModifier: Bool {
@@ -23,23 +27,23 @@ struct ShortcutConfiguration: Codable, Equatable {
         return modifiers & requiredModifiers != 0
     }
 
-    private var modifierDisplay: String {
+    private func modifierDisplay(defaults: UserDefaults) -> String {
         var parts: [String] = []
-        if modifiers & UInt32(controlKey) != 0 { parts.append("Control") }
-        if modifiers & UInt32(optionKey) != 0 { parts.append("Option") }
-        if modifiers & UInt32(shiftKey) != 0 { parts.append("Shift") }
-        if modifiers & UInt32(cmdKey) != 0 { parts.append("Command") }
+        if modifiers & UInt32(controlKey) != 0 { parts.append(L10n.string("Control", defaults: defaults)) }
+        if modifiers & UInt32(optionKey) != 0 { parts.append(L10n.string("Option", defaults: defaults)) }
+        if modifiers & UInt32(shiftKey) != 0 { parts.append(L10n.string("Shift", defaults: defaults)) }
+        if modifiers & UInt32(cmdKey) != 0 { parts.append(L10n.string("Command", defaults: defaults)) }
         return parts.isEmpty ? "" : parts.joined(separator: " + ") + " + "
     }
 
-    private var keyDisplay: String {
+    private func keyDisplay(defaults: UserDefaults) -> String {
         switch Int(keyCode) {
         case kVK_ANSI_A...kVK_ANSI_Z:
             return keyNameMap[Int(keyCode)] ?? "Key \(keyCode)"
         case kVK_Space:
-            return "Space"
+            return L10n.string("Space", defaults: defaults)
         case kVK_Return:
-            return "Return"
+            return L10n.string("Return", defaults: defaults)
         default:
             return keyNameMap[Int(keyCode)] ?? "Key \(keyCode)"
         }

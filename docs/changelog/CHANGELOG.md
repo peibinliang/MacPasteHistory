@@ -79,6 +79,10 @@
 
 ### Fixed
 
+- Completed the developer content actions with strict JSON, JWT, SQL, timestamp, URL, Base64, and text handling, including useful copy variants and explicit validation failures.
+- Fixed OCR image records using image bytes for text actions, raw images offering inapplicable text actions, and failed actions exposing empty success controls.
+- Fixed untranslated action names, extracted-content labels, detected types, action summaries, shortcut keys, preview controls, notices, and errors in Chinese environments.
+- Fixed the System language option ignoring the current Simplified or Traditional Chinese preference.
 - Fixed Base64 actions for Unicode text, binary validity checks, and direct image-file encoding.
 - Fixed intelligent action filtering for Base64 values that decode to Chinese or other printable Unicode text.
 - Completed JWT claim/expiry inspection, date-to-timestamp conversion, SQL comment preservation, strict URL decoding, four-space JSON formatting, and non-printable Base64 rejection.

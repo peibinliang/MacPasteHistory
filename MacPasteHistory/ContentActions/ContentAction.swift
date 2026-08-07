@@ -19,6 +19,7 @@ enum ContentActionError: Error, Equatable, Sendable {
         }
     }
 }
+
 enum ActionValidationResult: Equatable, Sendable { case valid, invalid(ContentActionError) }
 
 protocol ContentAction: Sendable {

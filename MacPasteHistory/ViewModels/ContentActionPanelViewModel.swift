@@ -46,9 +46,10 @@ final class ContentActionPanelViewModel: ObservableObject {
         }
     }
     var availableActions: [any ContentAction] {
-        showsRecommendedActions ? recommendedActions.filter { action in
+        let candidates = showsRecommendedActions ? recommendedActions : allActions
+        return candidates.filter { action in
             commandSearchText.isEmpty || L10n.string(action.titleKey).localizedCaseInsensitiveContains(commandSearchText)
-        } : allActions
+        }
     }
     var recommendedActions: [any ContentAction] {
         guard let session else { return [] }
@@ -78,7 +79,7 @@ final class ContentActionPanelViewModel: ObservableObject {
     func execute(actionID: ContentActionID) {
         guard var session, let action = registry.action(id: actionID) else { return }
         guard isExecutable(action, in: session) else {
-            state = .failed(.unsupportedInput(messageKey: "content-action.unsupported"))
+            publishFailure(.unsupportedInput(messageKey: "content-action.unsupported"), actionID: actionID)
             return
         }
         state = .executing(actionID)
@@ -93,13 +94,9 @@ final class ContentActionPanelViewModel: ObservableObject {
             let result = try executor.execute(id: actionID, input: session.currentOutput)
             publish(result: result, action: action, actionID: actionID, session: &session)
         } catch let error as ContentActionError {
-            copyVariants = []
-            notices = []
-            state = .failed(error)
+            publishFailure(error, actionID: actionID)
         } catch {
-            copyVariants = []
-            notices = []
-            state = .failed(.parseFailed(messageKey: "content-action.failed"))
+            publishFailure(.parseFailed(messageKey: "content-action.failed"), actionID: actionID)
         }
     }
 
@@ -145,11 +142,11 @@ final class ContentActionPanelViewModel: ObservableObject {
         session: ActionSession
     ) {
         guard action.supportedTypes.contains(.image) else {
-            state = .failed(.unsupportedInput(messageKey: "content-action.unsupported"))
+            publishFailure(.unsupportedInput(messageKey: "content-action.unsupported"), actionID: actionID)
             return
         }
         guard let filePath = session.sourceItem.filePath else {
-            state = .failed(.invalidInput(messageKey: "imageMissing"))
+            publishFailure(.invalidInput(messageKey: "imageMissing"), actionID: actionID)
             return
         }
         executionTask?.cancel()
@@ -165,14 +162,10 @@ final class ContentActionPanelViewModel: ObservableObject {
                 publish(result: result, action: action, actionID: actionID, session: &updatedSession)
             } catch let error as ContentActionError {
                 guard Task.isCancelled == false else { return }
-                copyVariants = []
-                notices = []
-                state = .failed(error)
+                publishFailure(error, actionID: actionID)
             } catch {
                 guard Task.isCancelled == false else { return }
-                copyVariants = []
-                notices = []
-                state = .failed(.parseFailed(messageKey: "content-action.failed"))
+                publishFailure(.parseFailed(messageKey: "content-action.failed"), actionID: actionID)
             }
         }
     }
@@ -212,5 +205,13 @@ final class ContentActionPanelViewModel: ObservableObject {
             return userOverrideType
         }
         return classifier.classifyComplete(sourceText).type
+    }
+
+    private func publishFailure(_ error: ContentActionError, actionID: ContentActionID) {
+        selectedAction = actionID
+        copyVariants = []
+        notices = []
+        editedOutput = ""
+        state = .failed(error)
     }
 }

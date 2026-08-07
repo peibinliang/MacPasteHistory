@@ -71,7 +71,7 @@ struct ContentActionPreviewView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(session.steps.last.map { L10n.string($0.actionTitleKey) } ?? L10n.string("Actions"))
                     .font(.headline)
-                Text(session.sourceItem.effectiveDetectedType.rawValue).font(.caption).foregroundStyle(.secondary)
+                Text(session.sourceItem.effectiveDetectedType.localizedTitle()).font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
             Button(action: closeAction) { Image(systemName: "xmark") }
@@ -84,11 +84,21 @@ struct ContentActionPreviewView: View {
     private func stepSummary(_ session: ActionSession) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(L10n.string("Steps")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Text(session.actionSummary).font(.caption).lineLimit(2)
+            Text(session.localizedActionSummary()).font(.caption).lineLimit(2)
             ForEach(actionViewModel.notices, id: \.messageKey) { notice in
                 Label(L10n.string(notice.messageKey), systemImage: "info.circle")
                     .font(.caption).foregroundStyle(.secondary)
                     .accessibilityLabel(L10n.string(notice.messageKey))
+            }
+            if actionViewModel.copyVariants.isEmpty == false {
+                HStack {
+                    ForEach(actionViewModel.copyVariants) { variant in
+                        Button(L10n.string(variant.titleKey)) {
+                            copyAction(variant.value, session.sourceItem)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
             }
         }
         .padding(.horizontal, 16)

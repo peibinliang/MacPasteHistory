@@ -32,6 +32,12 @@ final class L10nTests: XCTestCase {
         XCTAssertTrue(["Clipboard History", "剪贴板历史", "剪貼板歷史"].contains(value))
     }
 
+    func testString_whenSystemPreferredUsesTraditionalChinesePreference() {
+        defaults.set(["zh-Hant-TW"], forKey: "AppleLanguages")
+
+        XCTAssertEqual(L10n.string("Recognize Text", defaults: defaults), "擷取文字")
+    }
+
     func testString_whenKeyIsMissing_shouldReturnKey() {
         defaults.set(AppLanguage.zhHans.rawValue, forKey: LanguageManager.preferredLanguageKey)
 
