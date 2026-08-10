@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.0 - 2026-08-10
+
 ### Added
 
 - Added persistent Follow System, Light, and Dark appearances with immediate whole-app updates.

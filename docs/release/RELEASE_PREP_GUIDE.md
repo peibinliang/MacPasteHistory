@@ -1,6 +1,6 @@
 # 粘易发布准备操作指引
 
-> **版本**: v0.1.0 | **目标**: Apple Silicon / Intel macOS 14.0+ | **最后更新**: 2026-07-02
+> **版本**: v1.0.0 | **目标**: Apple Silicon / Intel macOS 14.0+ | **最后更新**: 2026-08-10
 
 本手册覆盖从代码冻结到 App Store 提交之前的全部发布准备步骤，按阶段顺序执行。每个阶段末尾有验收检查清单（✅ 全部打勾才能进入下一阶段）。
 
@@ -285,7 +285,7 @@ scripts/verify-release-app-signature.sh --build --allow-adhoc
 | `COMPILE_SOURCES_WITH_NORMAL_ENTITLEMENTS` | `YES` | 使用普通 entitlements |
 
 3. **版本号确认**:
-   - `CFBundleShortVersionString`: `0.1.0`
+   - `CFBundleShortVersionString`: `1.0.0`
    - `CFBundleVersion`: `1`
 
 4. 校验 Info.plist、发布指南和人工 QA 模板中的版本/构建号声明一致：
@@ -307,7 +307,7 @@ scripts/verify-release-version-build.sh
 - [x] Release 配置构建成功
 - [x] `SWIFT_OPTIMIZATION_LEVEL = -O`
 - [x] `ENABLE_DEBUG_DYLIB_SUPPORT = NO`
-- [x] 版本号为 `0.1.0 (1)`
+- [x] 版本号为 `1.0.0 (1)`
 - [x] `LSUIElement = true`
 
 ---
@@ -895,7 +895,7 @@ scripts/validate-manual-qa-record.sh --allow-adhoc docs/release/manual-qa-record
 
 - **应用名称**: MacPasteHistory
 - **Bundle ID**: `com.peibin.MacPasteHistory`
-- **版本**: 0.1.0 (1)
+- **版本**: 1.0.0 (1)
 - **最低 macOS 版本**: 14.0 Sonoma
 - **分发渠道**: ☐ App Store  /  ⚩ 自有网站 + DMG
 - **截图规范**: 当前仓库提供 4 张 5760 × 3600 PNG 截图素材；最终上传前按目标渠道裁切或导出目标尺寸
