@@ -5,7 +5,7 @@
 This repository currently contains the product requirements and OpenSpec planning artifacts for a macOS clipboard history app.
 
 - `AI_CODING_RULES.md`: mandatory AI agent development rules. Read this before modifying code, docs, specs, or configuration.
-- `Mac 剪贴板历史工具功能清单与开发任务清单.md`: source requirements and phased task list.
+- `README.md` and `README_EN.md`: current product overview, capabilities, and usage.
 - `openspec/changes/`: proposed changes, one directory per implementation phase.
 - `openspec/changes/change-order.md`: recommended change execution and archive order.
 - `openspec/specs/`: archived or accepted specifications after changes are applied.
