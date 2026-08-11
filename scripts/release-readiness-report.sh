@@ -11,6 +11,10 @@ skip_xcodegen=0
 skip_install_preflight=0
 skip_release_smoke=0
 strict_final=0
+formal_update_archive=""
+appcast_path=""
+readiness_extract_dir=""
+formal_app_path=""
 
 usage() {
     cat <<'EOF'
@@ -29,6 +33,9 @@ Options:
   --skip-install-preflight
                         Skip launching a copied Release app during readiness checks.
   --skip-release-smoke  Skip the synthetic Release smoke test during readiness checks.
+  --formal-update-archive PATH
+                        Verify an explicit 粘易-1.0.1-2.zip formal update.
+  --appcast PATH        Verify an explicit appcast against the formal update archive.
   --strict-final        Treat warnings as blockers for final distribution approval.
   -h, --help            Show this help.
 EOF
@@ -52,6 +59,12 @@ add_blocker() {
 
 add_warning() {
     warnings+=("$1")
+}
+
+cleanup() {
+    if [[ -n "$readiness_extract_dir" && -d "$readiness_extract_dir" ]]; then
+        rm -rf "$readiness_extract_dir"
+    fi
 }
 
 while [[ $# -gt 0 ]]; do
@@ -100,6 +113,22 @@ while [[ $# -gt 0 ]]; do
         --skip-release-smoke)
             skip_release_smoke=1
             ;;
+        --formal-update-archive)
+            if [[ $# -lt 2 ]]; then
+                echo "--formal-update-archive requires a path" >&2
+                exit 2
+            fi
+            formal_update_archive="$2"
+            shift
+            ;;
+        --appcast)
+            if [[ $# -lt 2 ]]; then
+                echo "--appcast requires a path" >&2
+                exit 2
+            fi
+            appcast_path="$2"
+            shift
+            ;;
         --strict-final)
             strict_final=1
             ;;
@@ -118,6 +147,7 @@ done
 
 require_command date
 require_command git
+require_command grep
 require_command mktemp
 require_command python3
 require_command security
@@ -125,6 +155,8 @@ require_command sw_vers
 require_command uname
 require_command xcode-select
 require_command xcodebuild
+
+trap cleanup EXIT
 
 cd "$REPO_ROOT"
 
@@ -185,6 +217,92 @@ run_capture() {
 
     detailed_sections+=("## $check_name"$'\n\n```text\n'"$output"$'\n```')
     return "$status"
+}
+
+verify_developer_id_app() {
+    local app_path="$1"
+    local codesign_output authority signature team_identifier
+
+    codesign_output="$(codesign -dvvv "$app_path" 2>&1 || true)"
+    authority="$(printf '%s\n' "$codesign_output" | awk -F= '/^Authority=/ {print $2; exit}')"
+    signature="$(printf '%s\n' "$codesign_output" | awk -F= '/^Signature=/ {print $2; exit}')"
+    team_identifier="$(printf '%s\n' "$codesign_output" | awk -F= '/^TeamIdentifier=/ {print $2; exit}')"
+
+    if [[ "$signature" == "adhoc" || "$authority" != "Developer ID Application:"* \
+        || -z "$team_identifier" || "$team_identifier" == "not set" ]]; then
+        echo "Developer ID Application signature is missing or invalid."
+        echo "Status: FAIL"
+        return 1
+    fi
+    if ! codesign --verify --deep --strict "$app_path" >/dev/null 2>&1; then
+        echo "Strict code-signature verification failed."
+        echo "Status: FAIL"
+        return 1
+    fi
+
+    echo "Developer ID Application signature and Team ID verified."
+    echo "Status: PASS"
+}
+
+verify_notarized_app() {
+    local app_path="$1"
+    local output command_status
+
+    set +e
+    output="$(spctl --assess --type execute --verbose=4 "$app_path" 2>&1)"
+    command_status=$?
+    set -e
+    if [[ "$command_status" -ne 0 ]] \
+        || ! printf '%s\n' "$output" | grep -Fq 'source=Notarized Developer ID'; then
+        echo "spctl did not accept the app as Notarized Developer ID."
+        echo "Status: FAIL"
+        return 1
+    fi
+
+    echo "spctl accepted the app as Notarized Developer ID."
+    echo "Status: PASS"
+}
+
+verify_upgrade_evidence() {
+    local record_path="$1"
+    local section_text scenario
+    local required_scenarios=(
+        "V1.0.0 baseline captured"
+        "Manual update check"
+        "Automatic update prompt"
+        "Download, install, and restart"
+        "History and favorites preserved"
+        "Settings and shortcut preserved"
+    )
+
+    if [[ ! -f "$record_path" ]]; then
+        echo "Upgrade evidence record is missing."
+        echo "Status: WARN"
+        return 1
+    fi
+    section_text="$(awk '
+        /^## V1\.0\.0 → V1\.0\.1 Upgrade Evidence$/ {in_section=1; next}
+        in_section && /^## / {exit}
+        in_section {print}
+    ' "$record_path")"
+    if [[ -z "$section_text" ]]; then
+        echo "Upgrade evidence section is missing."
+        echo "Status: WARN"
+        return 1
+    fi
+
+    for scenario in "${required_scenarios[@]}"; do
+        if ! printf '%s\n' "$section_text" \
+            | grep -F "| $scenario |" \
+            | grep -Fq '| ✅ Pass |'; then
+            echo "Upgrade evidence is incomplete for: $scenario"
+            echo "Status: WARN"
+            return 1
+        fi
+    done
+
+    echo "All required V1.0.0 → V1.0.1 upgrade scenarios contain direct pass evidence."
+    echo "Status: PASS"
 }
 
 collect_openspec_progress() {
@@ -277,6 +395,85 @@ if ! run_capture "Release identity" "$REPO_ROOT/scripts/verify-release-identity.
     add_blocker "Release bundle identity or menu-bar app declarations are inconsistent."
 fi
 
+if ! run_capture "Sparkle configuration" "$REPO_ROOT/scripts/verify-sparkle-configuration.sh"; then
+    add_blocker "Sparkle version, feed, public key, service flags, or sandbox boundaries are invalid."
+fi
+
+if [[ -z "$formal_update_archive" ]]; then
+    add_check_row "Formal update ZIP" "SKIP" "No --formal-update-archive provided."
+    add_check_row "Embedded Sparkle framework and XPC services" "SKIP" "Formal update archive was not provided."
+    add_check_row "Developer ID signature" "SKIP" "Formal update archive was not provided."
+    add_check_row "Apple notarization" "SKIP" "Formal update archive was not provided."
+    add_warning "Formal update ZIP, embedded Sparkle services, Developer ID signature, and notarization were not validated."
+else
+    require_command codesign
+    require_command ditto
+    require_command spctl
+
+    if ! run_capture \
+        "Formal update ZIP" \
+        "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
+        --formal-update \
+        "$formal_update_archive"; then
+        add_blocker "Formal update ZIP failed checksum, identity, signature, notarization, or bundle validation."
+    fi
+
+    if [[ -f "$formal_update_archive" ]]; then
+        readiness_extract_dir="$(mktemp -d /private/tmp/macpastehistory-readiness-update.XXXXXX)"
+        case "$readiness_extract_dir" in
+            /private/tmp/macpastehistory-readiness-update.*) ;;
+            *)
+                echo "Unsafe readiness extraction directory: $readiness_extract_dir" >&2
+                exit 1
+                ;;
+        esac
+        if /usr/bin/ditto -x -k "$formal_update_archive" "$readiness_extract_dir" >/dev/null 2>&1; then
+            formal_app_path="$readiness_extract_dir/粘易.app"
+        fi
+    fi
+
+    if [[ -d "$formal_app_path" ]]; then
+        if ! run_capture \
+            "Embedded Sparkle framework and XPC services" \
+            "$REPO_ROOT/scripts/verify-sparkle-release-bundle.sh" \
+            "$formal_app_path"; then
+            add_blocker "Formal update app is missing the required Sparkle framework or XPC services."
+        fi
+        if ! run_capture "Developer ID signature" verify_developer_id_app "$formal_app_path"; then
+            add_blocker "Formal update app is not signed with Developer ID Application."
+        fi
+        if ! run_capture "Apple notarization" verify_notarized_app "$formal_app_path"; then
+            add_blocker "Formal update app is not accepted by spctl as notarized."
+        fi
+    else
+        add_check_row "Embedded Sparkle framework and XPC services" "FAIL" "Formal update app could not be extracted."
+        add_check_row "Developer ID signature" "FAIL" "Formal update app could not be extracted."
+        add_check_row "Apple notarization" "FAIL" "Formal update app could not be extracted."
+        add_blocker "Formal update archive does not contain the expected 粘易.app bundle."
+    fi
+fi
+
+if [[ -z "$appcast_path" ]]; then
+    add_check_row "Sparkle appcast" "SKIP" "No --appcast provided."
+    add_warning "Sparkle appcast was not validated against a formal update ZIP."
+elif [[ -z "$formal_update_archive" ]]; then
+    add_check_row "Sparkle appcast" "FAIL" "--appcast also requires --formal-update-archive."
+    add_blocker "Appcast validation requires the exact formal update ZIP."
+else
+    expected_public_key="$(
+        /usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' \
+            "$REPO_ROOT/MacPasteHistory/Resources/Info.plist" 2>/dev/null || true
+    )"
+    if ! run_capture \
+        "Sparkle appcast" \
+        "$REPO_ROOT/scripts/verify-sparkle-appcast.sh" \
+        --appcast "$appcast_path" \
+        --archive "$formal_update_archive" \
+        --expected-public-key "$expected_public_key"; then
+        add_blocker "Sparkle appcast failed URL, length, signature, checksum, version, bundle ID, or public-key validation."
+    fi
+fi
+
 if ! run_capture "App icon assets" "$REPO_ROOT/scripts/verify-app-icon-assets.sh"; then
     add_blocker "App icon asset catalog is incomplete or has invalid PNG dimensions."
 fi
@@ -350,6 +547,9 @@ else
 fi
 
 release_app_signature_args=("$REPO_ROOT/scripts/verify-release-app-signature.sh")
+if [[ -d "$formal_app_path" ]]; then
+    release_app_signature_args+=("--app" "$formal_app_path")
+fi
 if [[ "$allow_adhoc" -eq 1 ]]; then
     release_app_signature_args+=("--allow-adhoc")
 fi
@@ -387,6 +587,10 @@ fi
 manual_args+=("$manual_record")
 if ! run_capture "Manual QA record" "${manual_args[@]}"; then
     add_blocker "Manual QA record is incomplete or still contains release blockers."
+fi
+
+if ! run_capture "V1.0.0 → V1.0.1 upgrade evidence" verify_upgrade_evidence "$manual_record"; then
+    add_warning "V1.0.0 → V1.0.1 upgrade evidence is incomplete; final release approval is blocked in --strict-final mode."
 fi
 
 git_status="$(git status --short)"
@@ -436,6 +640,8 @@ Generated: $generated_at
 | Release smoke skipped | \`$([[ "$skip_release_smoke" -eq 1 ]] && printf "yes" || printf "no")\` |
 | Install preflight skipped | \`$([[ "$skip_install_preflight" -eq 1 ]] && printf "yes" || printf "no")\` |
 | Strict final mode | \`$([[ "$strict_final" -eq 1 ]] && printf "yes" || printf "no")\` |
+| Formal update archive | \`$(escape_table_cell "${formal_update_archive:-not provided}")\` |
+| Appcast | \`$(escape_table_cell "${appcast_path:-not provided}")\` |
 
 ## Automated Checks
 
@@ -503,6 +709,8 @@ EOF
 ## Manual Evidence Still Required
 
 - Signed Release build with the intended distribution certificate and Team ID.
+- Developer ID notarization and a verified Sparkle appcast/formal ZIP pair.
+- Direct V1.0.0 → V1.0.1 manual and automatic update evidence, including restart and data preservation.
 - Menu bar, history window, restore, delete, clear-all, pause, blacklist, and launch-at-login manual QA.
 - Apple Silicon, Intel, and supported macOS version coverage or explicit release decision records.
 - Final reviewer decision in the manual QA record.
@@ -592,6 +800,8 @@ payload = {
     "releaseSmokeSkipped": bool($skip_release_smoke),
     "installPreflightSkipped": bool($skip_install_preflight),
     "strictFinalMode": bool($strict_final),
+    "formalUpdateArchive": "${formal_update_archive}",
+    "appcast": "${appcast_path}",
     "openSpecProgress": {
         "change": "prepare-release-testing-and-store-assets",
         "total": int("$openspec_progress_total"),
@@ -604,6 +814,8 @@ payload = {
     "warnings": read_lines(warnings_path),
     "manualEvidenceStillRequired": [
         "Signed Release build with the intended distribution certificate and Team ID.",
+        "Developer ID notarization and a verified Sparkle appcast/formal ZIP pair.",
+        "Direct V1.0.0 to V1.0.1 manual and automatic update evidence, including restart and data preservation.",
         "Menu bar, history window, restore, delete, clear-all, pause, blacklist, and launch-at-login manual QA.",
         "Apple Silicon, Intel, and supported macOS version coverage or explicit release decision records.",
         "Final reviewer decision in the manual QA record.",

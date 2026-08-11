@@ -6,6 +6,10 @@ SCHEME="MacPasteHistory"
 OUTPUT_DIR="$REPO_ROOT/build/release-qa"
 
 should_build=1
+formal_update=0
+explicit_app_path=""
+release_notes_path=""
+output_dir_explicit=0
 
 usage() {
     cat <<'EOF'
@@ -14,9 +18,13 @@ Usage: scripts/package-release-qa-build.sh [options]
 Build and package a Release app zip for manual QA on other Macs.
 
 Options:
-  --no-build       Reuse the existing Release build.
-  --output-dir DIR Write the app copy, zip, checksum, and manifest to DIR.
-  -h, --help       Show this help.
+  --no-build          Reuse the existing Release build.
+  --output-dir DIR    Write package artifacts to DIR.
+  --formal-update     Package a Developer ID signed and notarized Sparkle update.
+  --app PATH          Explicit .app input for --formal-update; no discovery occurs.
+  --release-notes FILE
+                      Explicit non-empty Markdown release notes for formal mode.
+  -h, --help          Show this help.
 EOF
 }
 
@@ -58,6 +66,105 @@ executable_architectures() {
     fi
 }
 
+package_formal_update() {
+    local info_plist version build_number bundle_id
+    local codesign_summary signature authority team_identifier
+    local spctl_output spctl_status archive_name archive_path checksum_path
+    local release_notes_name release_notes_output
+
+    [[ -n "$explicit_app_path" ]] || {
+        echo "--formal-update requires --app with an explicit application path" >&2
+        exit 2
+    }
+    [[ "$output_dir_explicit" -eq 1 && -n "$OUTPUT_DIR" ]] || {
+        echo "--formal-update requires --output-dir" >&2
+        exit 2
+    }
+    [[ -d "$explicit_app_path" ]] || {
+        echo "Formal update app not found: $explicit_app_path" >&2
+        exit 1
+    }
+
+    info_plist="$explicit_app_path/Contents/Info.plist"
+    [[ -f "$info_plist" ]] || {
+        echo "Info.plist missing from formal update app" >&2
+        exit 1
+    }
+
+    version="$(plist_value "$info_plist" CFBundleShortVersionString)"
+    build_number="$(plist_value "$info_plist" CFBundleVersion)"
+    bundle_id="$(plist_value "$info_plist" CFBundleIdentifier)"
+    [[ "$version" == "1.0.1" && "$build_number" == "2" ]] || {
+        echo "Formal update app must report version 1.0.1 (2)" >&2
+        exit 1
+    }
+    [[ "$bundle_id" == "com.peibin.MacPasteHistory" ]] || {
+        echo "Formal update app has an unexpected bundle identifier" >&2
+        exit 1
+    }
+
+    codesign_summary="$(codesign -dvvv "$explicit_app_path" 2>&1 || true)"
+    signature="$(printf "%s\n" "$codesign_summary" | awk -F= '/^Signature=/ {print $2; exit}')"
+    authority="$(printf "%s\n" "$codesign_summary" | awk -F= '/^Authority=/ {print $2; exit}')"
+    team_identifier="$(printf "%s\n" "$codesign_summary" | awk -F= '/^TeamIdentifier=/ {print $2; exit}')"
+    if [[ "$signature" == "adhoc" || "$authority" != "Developer ID Application:"* \
+        || -z "$team_identifier" || "$team_identifier" == "not set" ]]; then
+        echo "Developer ID Application signature is required; ad-hoc and other identities are refused" >&2
+        exit 1
+    fi
+    if ! codesign --verify --deep --strict "$explicit_app_path" >/dev/null 2>&1; then
+        echo "Formal update app failed strict code-signature verification" >&2
+        exit 1
+    fi
+
+    set +e
+    spctl_output="$(spctl --assess --type execute --verbose=4 "$explicit_app_path" 2>&1)"
+    spctl_status=$?
+    set -e
+    if [[ "$spctl_status" -ne 0 ]] \
+        || ! printf '%s\n' "$spctl_output" | grep -Fq 'source=Notarized Developer ID'; then
+        echo "Formal update app is not accepted as a notarized Developer ID application by spctl" >&2
+        exit 1
+    fi
+
+    "$REPO_ROOT/scripts/verify-sparkle-release-bundle.sh" "$explicit_app_path" >/dev/null
+
+    [[ -n "$release_notes_path" ]] || {
+        echo "--formal-update requires --release-notes with an explicit Markdown file" >&2
+        exit 2
+    }
+    [[ -s "$release_notes_path" ]] || {
+        echo "Formal update release notes are missing or empty" >&2
+        exit 1
+    }
+
+    archive_name="粘易-1.0.1-2.zip"
+    archive_path="$OUTPUT_DIR/$archive_name"
+    checksum_path="$archive_path.sha256"
+    release_notes_name="粘易-1.0.1-2-release-notes.md"
+    release_notes_output="$OUTPUT_DIR/$release_notes_name"
+    mkdir -p "$OUTPUT_DIR"
+
+    for output_file in "$archive_path" "$checksum_path" "$release_notes_output"; do
+        if [[ -e "$output_file" ]]; then
+            echo "Refusing to overwrite existing formal release artifact: $output_file" >&2
+            exit 1
+        fi
+    done
+
+    /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$explicit_app_path" "$archive_path"
+    (
+        cd "$OUTPUT_DIR"
+        /usr/bin/shasum -a 256 "$archive_name" >"$archive_name.sha256"
+    )
+    cp "$release_notes_path" "$release_notes_output"
+
+    echo "Formal Sparkle update artifacts created:"
+    echo "  Archive:       $archive_path"
+    echo "  SHA-256:       $checksum_path"
+    echo "  Release notes: $release_notes_output"
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --no-build)
@@ -69,6 +176,27 @@ while [[ $# -gt 0 ]]; do
                 exit 2
             fi
             OUTPUT_DIR="$2"
+            output_dir_explicit=1
+            shift
+            ;;
+        --formal-update)
+            formal_update=1
+            should_build=0
+            ;;
+        --app)
+            if [[ $# -lt 2 ]]; then
+                echo "--app requires an application path" >&2
+                exit 2
+            fi
+            explicit_app_path="$2"
+            shift
+            ;;
+        --release-notes)
+            if [[ $# -lt 2 ]]; then
+                echo "--release-notes requires a file path" >&2
+                exit 2
+            fi
+            release_notes_path="$2"
             shift
             ;;
         -h|--help)
@@ -88,14 +216,28 @@ require_command awk
 require_command codesign
 require_command date
 require_command ditto
-require_command git
 require_command mkdir
-require_command rm
 require_command shasum
-require_command xcodebuild
-require_command xcodegen
 
 cd "$REPO_ROOT"
+
+if [[ "$formal_update" -eq 1 ]]; then
+    require_command cp
+    require_command grep
+    require_command spctl
+    package_formal_update
+    exit 0
+fi
+
+if [[ -n "$explicit_app_path" || -n "$release_notes_path" ]]; then
+    echo "--app and --release-notes are only valid with --formal-update" >&2
+    exit 2
+fi
+
+require_command git
+require_command rm
+require_command xcodebuild
+require_command xcodegen
 
 if [[ "$should_build" -eq 1 ]]; then
     echo "Validating Xcode file references..."

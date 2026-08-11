@@ -69,6 +69,23 @@ Verify the received QA zip before testing:
 scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
 ```
 
+The formal Sparkle update is a separate artifact. It must be named
+`粘易-1.0.1-2.zip`, have an adjacent `.sha256`, and pass the strict verifier:
+
+```bash
+scripts/verify-release-qa-package.sh \
+  --formal-update \
+  /path/to/粘易-1.0.1-2.zip
+
+scripts/verify-sparkle-appcast.sh \
+  --appcast /path/to/appcast.xml \
+  --archive /path/to/粘易-1.0.1-2.zip \
+  --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)"
+```
+
+Do not paste a private Sparkle key into any command, record, or log. The public
+key argument above is safe evidence and must match the committed Info.plist.
+
 Run the install preflight before manual workflow testing:
 
 ```bash
@@ -129,6 +146,9 @@ scripts/verify-release-screenshot-assets.sh
 | Package SHA-256 | TBD |
 | Package manifest | TBD |
 | Package verification | TBD |
+| Formal update ZIP | TBD |
+| Formal update SHA-256 | TBD |
+| Verified appcast | TBD |
 | Fixture directory | TBD |
 | Notes | TBD |
 
@@ -188,6 +208,23 @@ scripts/verify-release-screenshot-assets.sh
 | Result attribution | Copy/direct-paste/save produce the expected reuse/paste counters and derived record. | ⬜ Not run | TBD |
 | Manual OCR | Synthetic English/简体/繁體 image is only recognized after click, remains editable, then searchable after Save. | ⬜ Not run | TBD |
 | Derived origin | Deleting an origin retains the derived summary and indicates missing source. | ⬜ Not run | TBD |
+
+## V1.0.0 → V1.0.1 Upgrade Evidence
+
+Use a real V1.0.0 installation and the Developer ID signed, notarized, EdDSA-signed
+formal update. A synthetic fixture, direct app replacement, or ad-hoc build is not
+valid evidence for this section. Record the source installation path, pre/post
+counts, timestamps, screenshots or logs that contain no clipboard payloads, and
+the tester for every passed row.
+
+| Scenario | Expected Result | Result | Evidence / Notes |
+|---|---|---|---|
+| V1.0.0 baseline captured | Installed app reports V1.0.0 and pre-upgrade history, favorites, settings, and shortcut values are recorded. | ⬜ Not run | TBD |
+| Manual update check | Check for Updates reaches the fixed HTTPS appcast and offers V1.0.1 (2). | ⬜ Not run | TBD |
+| Automatic update prompt | Sparkle's scheduled check offers the same signed V1.0.1 update without a second updater instance. | ⬜ Not run | TBD |
+| Download, install, and restart | Sparkle downloads, verifies, replaces, and restarts the app as V1.0.1 (2). | ⬜ Not run | TBD |
+| History and favorites preserved | Post-upgrade history count and favorite state match the recorded V1.0.0 baseline. | ⬜ Not run | TBD |
+| Settings and shortcut preserved | Sensitive-filter preference, other settings, and configured shortcut match the recorded V1.0.0 baseline. | ⬜ Not run | TBD |
 
 ## Decision
 

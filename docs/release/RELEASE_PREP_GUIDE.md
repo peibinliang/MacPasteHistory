@@ -12,7 +12,7 @@
 
 ## 目录
 
-- [阶段 1: 发布配置](#阶段-1-发布配置) — 沙盒、签名、Release 构建
+- [阶段 1: 发布配置](#阶段-1-发布配置) — 沙盒、签名、Release 构建、Sparkle 正式更新包
 - [阶段 2: 兼容性测试](#阶段-2-兼容性测试) — Intel / Apple Silicon / macOS 版本
 - [阶段 3: 功能 QA](#阶段-3-功能-qa) — 常用应用复制 / 大内容 / 数据清理
 - [阶段 4: 发布材料](#阶段-4-发布材料) — 用户文档 / 隐私政策 / App Store 截图
@@ -437,6 +437,83 @@ scripts/release-install-preflight.sh
 
 ---
 
+### 1.5 生成并验证 Sparkle 正式更新产物
+
+**目标**: 从一个显式指定的 Developer ID 签名且已公证的 `粘易.app`
+生成唯一命名的 V1.0.1 更新 ZIP、相邻 SHA-256、发布说明和已验证 appcast。
+
+内部 QA 包与正式更新包是两条不同路径。`scripts/package-release-qa-build.sh`
+默认模式可保留 ad-hoc 内部测试；`--formal-update` 会拒绝 ad-hoc、Apple
+Development、Apple Distribution 等非 `Developer ID Application` 身份，并要求
+`spctl` 报告 `Notarized Developer ID`。不得把隔离 fixture 的正例当成正式发布证据。
+
+1. 准备非空 Markdown 发布说明，然后使用显式输入和输出路径打包：
+
+```bash
+scripts/package-release-qa-build.sh \
+  --formal-update \
+  --app /absolute/path/to/粘易.app \
+  --output-dir /absolute/path/to/v1.0.1-release \
+  --release-notes /absolute/path/to/v1.0.1-release-notes.md
+```
+
+该命令不搜索其他 `.app`，不会修改输入应用，也拒绝覆盖已经存在的正式产物。
+输出必须包括：
+
+- `粘易-1.0.1-2.zip`
+- `粘易-1.0.1-2.zip.sha256`
+- `粘易-1.0.1-2-release-notes.md`
+
+2. 在传递给 Sparkle 前独立验证正式 ZIP：
+
+```bash
+scripts/verify-release-qa-package.sh \
+  --formal-update \
+  /absolute/path/to/v1.0.1-release/粘易-1.0.1-2.zip
+```
+
+3. 找到 Sparkle 2.9.2 的 `bin` 目录（其中必须有可执行的
+`generate_appcast`），生成并验证 appcast：
+
+```bash
+scripts/generate-sparkle-appcast.sh \
+  --release-directory /absolute/path/to/v1.0.1-release \
+  --sparkle-bin-directory /absolute/path/to/Sparkle/bin
+```
+
+生成脚本只接受上述两个目录参数，不接受、读取或打印私钥参数。EdDSA 私钥必须
+仅保存在发布者钥匙串或受保护的发布环境中。脚本运行 Sparkle 官方工具后，会严格
+验证 XML、`1.0.1 (2)`、固定 URL、ZIP 字节长度、非空签名、相邻 SHA-256、
+Bundle ID 和仓库内 `SUPublicEDKey`，全部通过后才更新 `docs/appcast.xml`。
+
+也可手动重复验证：
+
+```bash
+scripts/verify-sparkle-appcast.sh \
+  --appcast docs/appcast.xml \
+  --archive /absolute/path/to/v1.0.1-release/粘易-1.0.1-2.zip \
+  --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)"
+```
+
+4. 发布顺序必须是先在获得用户明确授权后创建 GitHub Release `v1.0.1` 并上传
+ZIP、SHA-256 和发布说明，确认固定 enclosure URL 已可下载，再在另一次明确授权下
+发布 `docs/appcast.xml` 到 GitHub Pages。仅执行本地脚本不授权 push、Release、Pages
+或任何远程修改。
+
+5. 从真实安装的 V1.0.0 分别完成手动检查和自动提示，下载、安装、重启后确认
+V1.0.1 (2)，并把历史、收藏、设置和快捷键保留证据填写到
+`docs/release/manual-qa-record.md` 的升级章节。
+
+#### ✅ 验收清单
+
+- [ ] 正式 ZIP 由 Developer ID Application 签名并通过 `spctl` 公证检查
+- [ ] `粘易-1.0.1-2.zip.sha256` 与 ZIP 一致
+- [ ] appcast 通过固定 URL、长度、签名、版本、Bundle ID 和公钥校验
+- [ ] V1.0.0 → V1.0.1 手动与自动升级证据完整
+- [ ] 私钥、令牌和凭据未进入参数、日志、文档或 Git
+
+---
+
 ## 阶段 2: 兼容性测试
 
 推荐先生成完整人工 QA 会话目录：
@@ -858,12 +935,14 @@ scripts/release-readiness-report.sh --output build/release-readiness-report.md
 scripts/release-readiness-report.sh \
   --manual-record build/manual-release-qa-session/<timestamp>-<commit>/manual-qa-record.md \
   --qa-session build/manual-release-qa-session/<timestamp>-<commit> \
+  --formal-update-archive /absolute/path/to/v1.0.1-release/粘易-1.0.1-2.zip \
+  --appcast docs/appcast.xml \
   --output build/release-readiness-report.md \
   --json-output build/release-readiness-report.json \
   --strict-final
 ```
 
-该报告会汇总 Xcode 文件引用、日志隐私扫描、Info.plist 用途说明、支持 macOS 版本声明一致性、版本/构建号一致性、Release entitlements 配置、Bundle ID 和菜单栏应用身份、App Icon 素材、截图 PNG 尺寸、人工 QA 样本生成校验、人工 QA 会话目录完整性、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、Release app 实际签名、用户文档、隐私政策、人工 QA 记录、OpenSpec release change 剩余任务和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`，且推荐使用 `--strict-final` 将所有 warning 也视为阻断项，避免跳过检查、ad-hoc 签名、未校验 QA 会话目录、OpenSpec 任务未收敛或未提交工作区进入分发审批。JSON 摘要会包含 `status`、`checks`、`blockers`、`warnings`、人工 QA 记录路径、人工 QA 会话路径、`openSpecProgress`、`openSpecRemainingTasks` 和仍需人工证据的列表。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份和 ad-hoc app 签名降级为 `WARN`，不能作为最终分发验收依据。
+该报告会汇总 Xcode 文件引用、日志隐私扫描、Info.plist 用途说明、支持 macOS 版本声明一致性、版本/构建号一致性、Release entitlements 配置、Bundle ID 和菜单栏应用身份、Sparkle 配置、嵌入 framework/XPC、正式 ZIP、appcast、Developer ID、公证、V1.0.0 → V1.0.1 升级证据、App Icon 素材、截图 PNG 尺寸、人工 QA 样本生成校验、人工 QA 会话目录完整性、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、Release app 实际签名、用户文档、隐私政策、人工 QA 记录、OpenSpec release change 剩余任务和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`，并使用 `--strict-final`；该模式在缺少 appcast、正式 ZIP、Developer ID、公证或升级证据时必定阻断，也会把所有其他 warning 视为阻断项。JSON 摘要会包含 `status`、`checks`、`blockers`、`warnings`、人工 QA 记录路径、人工 QA 会话路径、正式更新路径、appcast 路径、`openSpecProgress`、`openSpecRemainingTasks` 和仍需人工证据的列表。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份和 ad-hoc app 签名降级为 `WARN`，不能作为最终分发验收依据。
 
 如果只需要临时检查静态材料，可使用 `--skip-release-smoke` 和 `--skip-install-preflight` 跳过启动类检查；最终发布验收不得跳过：
 
@@ -916,6 +995,8 @@ scripts/validate-manual-qa-record.sh --allow-adhoc docs/release/manual-qa-record
 | 16 | App Store 截图已准备（已规划或完成） | 4.3 | ✅ |
 | 17 | 最终 readiness report 默认安装副本预检通过 | 4.4 | ⬜ |
 | 18 | 最终 readiness report 默认 Release smoke test 通过 | 4.4 | ⬜ |
+| 19 | Developer ID 签名、公证、正式 ZIP 与 appcast 全部验证 | 1.5 | ⬜ |
+| 20 | V1.0.0 → V1.0.1 手动与自动升级证据完整 | 1.5 | ⬜ |
 
 ### 发布决策
 
