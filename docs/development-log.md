@@ -2,6 +2,13 @@
 
 ## 2026-08-11
 
+### V1.0.2 DMG and GitHub formal release
+
+- Packaged the verified universal `1.0.2 (4)` Release application as `MacPasteHistory-1.0.2-4.dmg`, with the app and an `/Applications` shortcut for drag installation.
+- Verified the DMG checksum, mounted it read-only, confirmed the embedded app version/build and `x86_64 arm64` architectures, and matched the mounted executable SHA-256 against the source Release bundle.
+- Prepared both existing `v1.0.1` and `V1.0.2` GitHub Releases to move from Pre-release to formal release status, with V1.0.2 becoming the latest release, and synchronized their titles, release notes, and downloadable release-note assets.
+- Distribution boundary: the application remains ad-hoc signed and is not Apple-notarized. Formal GitHub Release status does not imply Developer ID signing or notarization.
+
 ### URL action menu consistency fix
 
 - Bug: URL history rows exposed generic text transformations in the inline menu, while opening All Actions showed only URL-specific operations.
