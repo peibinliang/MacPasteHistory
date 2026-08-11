@@ -131,6 +131,36 @@ final class PasteCoordinatorTests: XCTestCase {
         XCTAssertTrue(usageRecorder.pasteAttempts.isEmpty)
     }
 
+    func testPaste_whenReady_shouldPrepareUIOnceBeforeTargetActivation() async {
+        var preparationCount = 0
+        let target = StubPasteTarget(didActivate: true)
+        let fixture = makeFixture(readiness: .ready, target: target)
+
+        let outcome = await fixture.coordinator.paste(
+            PasteRequest(payload: .text("prepared paste"), historyID: 109)
+        ) {
+            preparationCount += 1
+        }
+
+        XCTAssertEqual(outcome, .pasted)
+        XCTAssertEqual(preparationCount, 1)
+        XCTAssertEqual(target.activationCount, 1)
+    }
+
+    func testPaste_whenClipboardOnly_shouldNotPrepareUIForDispatch() async {
+        var preparationCount = 0
+        let fixture = makeFixture(readiness: .clipboardOnly)
+
+        let outcome = await fixture.coordinator.paste(
+            PasteRequest(payload: .text("manual paste"), historyID: 110)
+        ) {
+            preparationCount += 1
+        }
+
+        XCTAssertEqual(outcome, .clipboardOnly(.automaticPasteDisabled))
+        XCTAssertEqual(preparationCount, 0)
+    }
+
     private func makeFixture(
         readiness: AutomaticPasteReadiness,
         writer: StubClipboardContentWriter = StubClipboardContentWriter(),

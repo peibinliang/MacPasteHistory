@@ -232,7 +232,9 @@ final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting
         case let .failed(failure):
             switch failure {
             case .clipboardWrite:
-                errorMessage = L10n.string("Failed to restore text to clipboard.")
+                if errorMessage == nil {
+                    errorMessage = L10n.string("Failed to restore text to clipboard.")
+                }
             case .dispatchPreparation:
                 errorMessage = L10n.string("Paste was not sent. Press Command-V to paste manually.")
             case .usageAccounting:
