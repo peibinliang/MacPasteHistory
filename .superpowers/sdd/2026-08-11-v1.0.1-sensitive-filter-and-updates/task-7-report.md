@@ -433,3 +433,97 @@ The earlier Task 7 full XCTest evidence remains 271 tests with 0 failures; the
 final integration controller will rerun the full suite. The Developer ID,
 notarization, genuine Sparkle artifact, upgrade evidence, and remote-action
 blockers are unchanged, and no remote operation was performed.
+
+## Readiness Review Round 1: JSON and Markdown Fences
+
+Review found two additional fail-closed gaps: `emit_json_summary` interpolated
+shell-controlled strings into Python source through an unquoted heredoc, and the
+Markdown task parser counted checkbox-looking lines inside fenced code blocks.
+
+### Round 1 RED
+
+Regression checkpoint:
+
+```text
+e61bfac test: cover readiness JSON and fenced tasks
+```
+
+Initial command and exact result:
+
+```text
+scripts/test-release-readiness-openspec-progress.sh
+Status: FAIL; failures: 5
+```
+
+The failures proved that:
+
+- a manual-record/appcast value containing quotes, backslashes, newlines,
+  Unicode, and Python-like text prevented JSON generation;
+- a deliberately valid Python-expression injection in `--manual-record`
+  created an isolated marker file and changed the JSON object rather than
+  remaining inert data;
+- four fake task checkboxes inside backtick and tilde fences were counted,
+  producing `3/7` instead of the hand-derived fixture result `2/3`;
+- the remaining-task list incorrectly included fenced task IDs `9.1`, `9.2`,
+  and `9.4`.
+
+### Round 1 GREEN
+
+Implementation checkpoint:
+
+```text
+6fc38c4 Harden readiness JSON serialization
+```
+
+`emit_json_summary` now uses a quoted `<<'PY'` heredoc. All scalar dynamic
+values are passed as quoted argv entries, and arrays are transferred through
+NUL-delimited temporary files so quotes, backslashes, tabs, newlines, and
+Unicode never become Python source. Python constructs the object and
+`json.dump` performs the only JSON serialization. No `eval` or equivalent
+dynamic execution is used.
+
+The Markdown parser now maintains fenced-block state for both backtick and
+tilde markers. A closing fence must use the same marker and be at least as long
+as the opener. The existing policy remains unchanged for nested/indented
+checkboxes: only column-zero task checkboxes are counted. The committed fixture
+also verifies a shorter false close, a different-marker false close, quotes,
+one backslash, an em dash, and Unicode task text.
+
+### Round 1 Verification
+
+```text
+bash -n scripts/release-readiness-report.sh \
+  scripts/test-release-readiness-openspec-progress.sh
+Exit 0; no output
+
+scripts/test-release-readiness-openspec-progress.sh
+Status: PASS; failures: 0
+Default V1.0.1 progress: 24/32; 8 remaining
+JSON escaping/injection fixtures: inert exact round-trip; no marker side effect
+Fenced checkbox fixture: 2/3; only task 1.2 remains
+Remaining text: Pending "quoted" \\ path — 雪
+```
+
+Fresh strict-final expected failure:
+
+```text
+env PATH=/usr/bin:/bin:/usr/sbin:/sbin \
+  scripts/release-readiness-report.sh \
+  --skip-xcodegen \
+  --skip-release-smoke \
+  --skip-install-preflight \
+  --allow-adhoc \
+  --strict-final \
+  --output /private/tmp/task7-json-review-readiness.md \
+  --json-output /private/tmp/task7-json-review-readiness.json
+
+Exit 1, as required.
+OpenSpec change: add-v1-0-1-sensitive-filter-and-updates
+OpenSpec progress: WARN; 24/32 complete; 8 remaining
+JSON remaining IDs: 6.1, 6.2, 6.3, 6.4, 6.5, 8.2, 8.3, 8.4
+Strict-final blocker: requires zero warnings
+```
+
+No Swift source, release artifact, credential, private key, remote release, or
+GitHub state was changed. Existing Developer ID, notarization, genuine Sparkle
+artifact, upgrade-evidence, and explicit remote-authorization blockers remain.
