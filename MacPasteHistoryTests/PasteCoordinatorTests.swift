@@ -161,6 +161,13 @@ final class PasteCoordinatorTests: XCTestCase {
         XCTAssertEqual(preparationCount, 0)
     }
 
+    func testPasteOutcomeFeedback_shouldShowManualPasteWhenCancellationKeptClipboardAvailable() {
+        XCTAssertEqual(PasteOutcomeFeedback.feedback(for: .cancelled(clipboardAvailable: true)), .manualPaste)
+        XCTAssertEqual(PasteOutcomeFeedback.feedback(for: .cancelled(clipboardAvailable: false)), .none)
+        XCTAssertEqual(PasteOutcomeFeedback.feedback(for: .clipboardOnly(.commandFailed)), .manualPaste)
+        XCTAssertEqual(PasteOutcomeFeedback.feedback(for: .permissionRequired), .permissionRequired)
+    }
+
     private func makeFixture(
         readiness: AutomaticPasteReadiness,
         writer: StubClipboardContentWriter = StubClipboardContentWriter(),
