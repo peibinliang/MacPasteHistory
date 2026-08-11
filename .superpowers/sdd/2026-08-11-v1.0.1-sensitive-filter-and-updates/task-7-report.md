@@ -294,3 +294,142 @@ No Developer ID Application identity, notarized artifact, genuine Sparkle
 EdDSA-signed archive/appcast pair, or completed upgrade record is available.
 No GitHub Release, Pages update, push, credential operation, or other remote
 modification was performed.
+
+## Final Review: V1.0.1 OpenSpec Progress
+
+Final branch review found that `release-readiness-report.sh` still invoked and
+serialized `prepare-release-testing-and-store-assets`, so a V1.0.1 readiness
+report could show the wrong change or `0/0` when the OpenSpec CLI was absent.
+
+### Progress RED
+
+Command:
+
+```text
+scripts/test-release-readiness-openspec-progress.sh
+```
+
+Exact result before implementation: `Status: FAIL`, 3 failures:
+
+- default JSON reported `prepare-release-testing-and-store-assets` with `0/0`;
+- explicit `--openspec-change add-v1-0-1-sensitive-filter-and-updates` did not
+  produce JSON because the option did not exist;
+- explicit `--openspec-change prepare-release-testing-and-store-assets` also
+  did not produce JSON.
+
+RED checkpoint:
+
+```text
+1508740 test: cover V1.0.1 readiness progress
+```
+
+### Progress GREEN
+
+Implementation commit:
+
+```text
+9e6ab44 Fix V1.0.1 readiness task progress
+```
+
+The report now defaults to
+`add-v1-0-1-sensitive-filter-and-updates`, reads checkbox state directly from
+the selected `openspec/changes/<change>/tasks.md`, and emits the same selected
+change/counts/tasks in Markdown and JSON. The explicit `--openspec-change NAME`
+option remains available for historical diagnostics; the change name is
+restricted to one safe directory component.
+
+The current V1.0.1 Markdown source reports `24/32` complete with 8 remaining
+tasks: `6.1`–`6.5` and `8.2`–`8.4`. Explicit selection of the historical change
+reports its actual `4/19` complete with 15 remaining tasks. Missing or failing
+OpenSpec CLI validation remains a warning even though Markdown progress is
+preserved. Pending tasks are also warnings, so `--strict-final` converts either
+condition into a blocker instead of allowing a report based on the old change
+to pass.
+
+### Progress Verification
+
+```text
+bash -n scripts/*.sh
+Exit 0; no output
+
+scripts/test-release-readiness-openspec-progress.sh
+Status: PASS; failures: 0
+Default: add-v1-0-1-sensitive-filter-and-updates, 24/32, 8 remaining
+Explicit legacy: prepare-release-testing-and-store-assets, 4/19, 15 remaining
+
+scripts/test-release-configuration-verifiers.sh
+Status: PASS; negative cases: 9; positive bundle cases: 1; failures: 0
+
+scripts/test-sparkle-release-artifact-tooling.sh
+Status: PASS; failures: 0
+
+scripts/validate-xcode-file-references.sh
+Status: PASS; Swift references checked: 175; missing Swift files: 0
+
+scripts/scan-privacy-log-safety.sh
+Status: PASS; Swift files scanned: 110; direct console calls: 0
+
+scripts/verify-privacy-usage-descriptions.sh
+Status: PASS; violations: 0
+
+scripts/verify-supported-macos-targets.sh
+Status: PASS; violations: 0
+
+scripts/verify-release-version-build.sh
+Status: PASS; violations: 0; version/build: 1.0.1 (2)
+
+scripts/verify-release-entitlements.sh
+Status: PASS; violations: 0
+
+scripts/verify-release-identity.sh
+Status: PASS; violations: 0
+
+scripts/verify-sparkle-configuration.sh
+Status: PASS; violations: 0; Sparkle: 2.9.2
+
+scripts/verify-app-icon-assets.sh
+Status: PASS; violations: 0
+
+scripts/verify-release-screenshot-assets.sh
+Status: PASS; violations: 0
+
+scripts/verify-xcode-authorization.sh
+Status: PASS; violations: 0
+
+scripts/verify-manual-qa-fixtures.sh
+Status: PASS; text fixtures: 7/7; image fixtures: 2/2; violations: 0
+
+scripts/verify-signing-identities.sh --allow-adhoc
+Status: WARN; 0 valid identities; formal distribution remains blocked
+
+git diff --check
+Exit 0; no output
+```
+
+Fresh expected-failure gate:
+
+```text
+env PATH=/usr/bin:/bin:/usr/sbin:/sbin \
+  scripts/release-readiness-report.sh \
+  --skip-xcodegen \
+  --skip-release-smoke \
+  --skip-install-preflight \
+  --allow-adhoc \
+  --strict-final \
+  --output /private/tmp/task7-openspec-readiness.md \
+  --json-output /private/tmp/task7-openspec-readiness.json
+
+Exit 1, as required.
+OpenSpec change: add-v1-0-1-sensitive-filter-and-updates
+OpenSpec progress: WARN; 24/32 complete; 8 remaining
+OpenSpec CLI: not available; Markdown progress retained
+Strict-final blocker: requires zero warnings
+JSON remaining IDs: 6.1, 6.2, 6.3, 6.4, 6.5, 8.2, 8.3, 8.4
+```
+
+No Swift source changed in this review fix, so the fresh verification used the
+complete shell syntax, focused self-test, and release static/verifier suite.
+The earlier Task 7 full XCTest evidence remains 271 tests with 0 failures; the
+final integration controller will rerun the full suite. The Developer ID,
+notarization, genuine Sparkle artifact, upgrade evidence, and remote-action
+blockers are unchanged, and no remote operation was performed.
