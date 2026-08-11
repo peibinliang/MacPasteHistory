@@ -26,6 +26,7 @@ flowchart LR
 | `Search` | Parse structured input, merge controls, issue read-only candidate queries and rank results. |
 | `ContentActions` | Classification, deterministic local transforms, session history and syntax tokens. |
 | `OCR` | Explicit user-triggered Vision request for one managed image at a time. |
+| `Services` | Shared application services, including the testable Sparkle update boundary. |
 | `ViewModels` / `Views` | Main-actor state and SwiftUI/AppKit presentation. |
 
 ## Data and concurrency
@@ -50,3 +51,25 @@ sequenceDiagram
 ```
 
 `ActionSession` retains only the active transformation branch. Copy increments reuse count; a successfully dispatched direct paste increments paste count; save-derived does not increment source usage. OCR is never an automatic historical scan: a user selects one image, edits the recognition, and explicitly saves it. Saving preserves image storage type but enables OCR text search and type-aware actions.
+
+## Software update subsystem
+
+The application links Sparkle at the exact package version `2.9.2`. `AppDelegate` owns one lazy `UpdateService` backed by one `SparkleUpdateDriver` and injects that same service into both Settings entry points. This keeps Sparkle's updater controller alive for the application lifecycle and prevents duplicate update sessions.
+
+```mermaid
+flowchart LR
+    AD[AppDelegate] --> US[UpdateService]
+    SV[SettingsView] --> US
+    US --> UD[UpdateDriving]
+    SD[SparkleUpdateDriver] --> UD
+    SD --> SPU[SPUStandardUpdaterController]
+    SPU --> UI[Sparkle standard update UI]
+```
+
+`UpdateDriving` is the test boundary. It publishes both `canCheckForUpdates` and `automaticallyChecksForUpdates`; `SparkleUpdateDriver` supplies those streams from Sparkle's KVO-compliant updater properties. `UpdateService` mirrors both values as `@Published` state on the main actor. User preference writes travel through `setAutomaticallyChecksForUpdates(_:)` to Sparkle, while driver-originated changes only update service state. This one-way subscription prevents feedback loops and keeps the About toggle synchronized when Sparkle's authorization UI changes the preference.
+
+The app owns only the About controls and observable state. `SPUStandardUpdaterController` owns update-check progress, latest-version notices, release notes, download, error, authorization, installation and relaunch UI.
+
+The dependency boundary is implemented, but update distribution security is not configured in this phase. Task 6 must add and validate the feed URL, EdDSA public key and any required sandbox network entitlement before the update path is release-ready. No placeholder feed, key or entitlement is defined by this subsystem.
+
+Current automated validation covers five update-service behaviors, shared updater identity, three-language localization coverage, 175 generated Xcode Swift references with zero missing files, and the complete 271-test macOS suite with zero failures.

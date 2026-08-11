@@ -1,5 +1,39 @@
 # Development Log
 
+## 2026-08-11
+
+### Added
+
+- Pinned the Sparkle dependency to exact version `2.9.2` and committed the resolved package revision.
+- Added a main-actor `UpdateDriving` boundary, Sparkle KVO/Combine driver, shared `UpdateService`, and About controls for manual and automatic update checks.
+- Made `AppDelegate` own one updater service and inject the same instance into both Settings entry points.
+
+### Fixed
+
+- Subscribed `UpdateService` to driver-originated `automaticallyChecksForUpdates` changes so Sparkle's authorization UI cannot leave the About toggle stale on a later launch.
+- Kept preference synchronization one-way: the explicit user setter writes to Sparkle, while KVO publishers only refresh service state and never write back.
+
+### Architecture and UI ownership
+
+- The app owns updater availability and preference presentation only.
+- Sparkle's standard updater controller owns progress, latest-version, release-notes, download, error, authorization, installation and relaunch feedback.
+
+### Security and release readiness
+
+- Feed URL, EdDSA public key and any required sandbox network entitlement remain intentionally absent and are assigned to Task 6.
+- The updater dependency and service boundary are not considered release-ready until Task 6 completes and validates that security configuration.
+
+### Verification
+
+- `UpdateServiceTests` passed with 5 tests and 0 failures, including driver-originated automatic-check preference synchronization.
+- `BrandAndInteractionTests` and `LocalizationCoverageTests` passed with 10 tests and 0 failures.
+- `scripts/validate-xcode-file-references.sh` passed with 175 Swift references checked and 0 missing.
+- The full macOS test suite passed with 271 tests and 0 failures while resolving Sparkle `2.9.2`.
+
+### Compatibility
+
+- No database migration, clipboard data change or new system permission is introduced in this phase.
+
 ## 2026-08-07
 
 ### Added
