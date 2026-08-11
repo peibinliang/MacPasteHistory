@@ -341,9 +341,26 @@ import sys
 
 task_pattern = re.compile(r"^- \[([ xX])\] ([0-9]+(?:\.[0-9]+)+) (.+)$")
 tasks = []
+fence_marker = None
+fence_length = 0
 with open(sys.argv[1], encoding="utf-8") as handle:
     for raw_line in handle:
-        match = task_pattern.match(raw_line.rstrip("\n"))
+        line = raw_line.rstrip("\r\n")
+        if fence_marker is not None:
+            closing_pattern = rf"^ {{0,3}}{re.escape(fence_marker)}{{{fence_length},}}[ \t]*$"
+            if re.match(closing_pattern, line):
+                fence_marker = None
+                fence_length = 0
+            continue
+
+        fence_match = re.match(r"^ {0,3}((?:\x60){3,}|~{3,})(.*)$", line)
+        if fence_match:
+            marker_run = fence_match.group(1)
+            fence_marker = marker_run[0]
+            fence_length = len(marker_run)
+            continue
+
+        match = task_pattern.match(line)
         if match:
             tasks.append(
                 {
@@ -777,91 +794,159 @@ EOF
 emit_json_summary() {
     local tmp_dir
     tmp_dir="$(mktemp -d)"
-    local checks_path="$tmp_dir/checks.tsv"
-    local blockers_path="$tmp_dir/blockers.txt"
-    local warnings_path="$tmp_dir/warnings.txt"
-    local openspec_tasks_path="$tmp_dir/openspec-tasks.tsv"
+    local checks_path="$tmp_dir/checks.nul"
+    local blockers_path="$tmp_dir/blockers.nul"
+    local warnings_path="$tmp_dir/warnings.nul"
+    local openspec_tasks_path="$tmp_dir/openspec-tasks.nul"
 
     local index
+    : >"$checks_path"
     for index in "${!check_names[@]}"; do
-        printf "%s\t%s\t%s\n" "${check_names[$index]}" "${check_statuses[$index]}" "${check_notes[$index]}"
-    done >"$checks_path"
+        printf '%s\0%s\0%s\0' \
+            "${check_names[$index]}" \
+            "${check_statuses[$index]}" \
+            "${check_notes[$index]}" >>"$checks_path"
+    done
 
+    : >"$blockers_path"
     if [[ "${#blockers[@]}" -gt 0 ]]; then
-        printf "%s\n" "${blockers[@]}" >"$blockers_path"
-    else
-        : >"$blockers_path"
+        printf '%s\0' "${blockers[@]}" >"$blockers_path"
     fi
+    : >"$warnings_path"
     if [[ "${#warnings[@]}" -gt 0 ]]; then
-        printf "%s\n" "${warnings[@]}" >"$warnings_path"
-    else
-        : >"$warnings_path"
+        printf '%s\0' "${warnings[@]}" >"$warnings_path"
     fi
+    : >"$openspec_tasks_path"
     if [[ "${#openspec_remaining_tasks[@]}" -gt 0 ]]; then
-        printf "%s\n" "${openspec_remaining_tasks[@]}" >"$openspec_tasks_path"
-    else
-        : >"$openspec_tasks_path"
+        local task_row task_id task_description
+        for task_row in "${openspec_remaining_tasks[@]}"; do
+            task_id="${task_row%%$'\t'*}"
+            task_description="${task_row#*$'\t'}"
+            printf '%s\0%s\0' "$task_id" "$task_description" >>"$openspec_tasks_path"
+        done
     fi
 
     mkdir -p "$(dirname "$json_output_path")"
-    python3 - "$json_output_path" "$checks_path" "$blockers_path" "$warnings_path" "$openspec_tasks_path" <<PY
+    python3 - \
+        "$json_output_path" \
+        "$checks_path" \
+        "$blockers_path" \
+        "$warnings_path" \
+        "$openspec_tasks_path" \
+        "$generated_at" \
+        "$REPO_ROOT" \
+        "$git_commit" \
+        "$macos_version" \
+        "$macos_build" \
+        "$machine_arch" \
+        "$xcode_path" \
+        "$xcode_version" \
+        "$first_launch_status" \
+        "$license_status" \
+        "$manual_record_display" \
+        "$qa_session_display" \
+        "$allow_adhoc" \
+        "$skip_release_smoke" \
+        "$skip_install_preflight" \
+        "$strict_final" \
+        "$formal_update_archive" \
+        "$appcast_path" \
+        "$openspec_change" \
+        "$openspec_progress_total" \
+        "$openspec_progress_complete" \
+        "$openspec_progress_remaining" <<'PY'
 import json
 import sys
 
-json_path, checks_path, blockers_path, warnings_path, openspec_tasks_path = sys.argv[1:6]
+(
+    json_path,
+    checks_path,
+    blockers_path,
+    warnings_path,
+    openspec_tasks_path,
+    generated_at,
+    repository,
+    git_commit,
+    macos_version,
+    macos_build,
+    architecture,
+    xcode_path,
+    xcode_version,
+    first_launch_status,
+    license_status,
+    manual_record,
+    qa_session,
+    allow_adhoc,
+    skip_release_smoke,
+    skip_install_preflight,
+    strict_final,
+    formal_update_archive,
+    appcast,
+    openspec_change,
+    openspec_total,
+    openspec_complete,
+    openspec_remaining,
+) = sys.argv[1:]
 
-checks = []
-with open(checks_path, encoding="utf-8") as handle:
-    for line in handle:
-        name, status, notes = line.rstrip("\n").split("\t", 2)
-        checks.append({"name": name, "status": status, "notes": notes})
+def read_nul_values(path):
+    with open(path, "rb") as handle:
+        data = handle.read()
+    if not data:
+        return []
+    values = data.split(b"\0")
+    if values[-1] == b"":
+        values.pop()
+    return [value.decode("utf-8") for value in values]
 
-def read_lines(path):
-    with open(path, encoding="utf-8") as handle:
-        return [line.rstrip("\n") for line in handle if line.strip()]
+def grouped(values, size, label):
+    if len(values) % size != 0:
+        raise ValueError(f"malformed {label} transport")
+    return [values[index:index + size] for index in range(0, len(values), size)]
 
-def read_openspec_tasks(path):
-    tasks = []
-    with open(path, encoding="utf-8") as handle:
-        for line in handle:
-            line = line.rstrip("\n")
-            if not line:
-                continue
-            task_id, description = line.split("\t", 1)
-            tasks.append({"id": task_id, "description": description})
-    return tasks
+checks = [
+    {"name": name, "status": status, "notes": notes}
+    for name, status, notes in grouped(read_nul_values(checks_path), 3, "checks")
+]
+blockers = read_nul_values(blockers_path)
+warnings = read_nul_values(warnings_path)
+openspec_tasks = [
+    {"id": task_id, "description": description}
+    for task_id, description in grouped(
+        read_nul_values(openspec_tasks_path), 2, "OpenSpec tasks"
+    )
+]
 
 payload = {
-    "status": "fail" if read_lines(blockers_path) else "pass",
-    "generatedAt": "$generated_at",
-    "repository": "$REPO_ROOT",
-    "gitCommit": "$git_commit",
-    "macOS": {"version": "$macos_version", "build": "$macos_build"},
-    "architecture": "$machine_arch",
+    "status": "fail" if blockers else "pass",
+    "generatedAt": generated_at,
+    "repository": repository,
+    "gitCommit": git_commit,
+    "macOS": {"version": macos_version, "build": macos_build},
+    "architecture": architecture,
     "xcode": {
-        "developerDirectory": "$xcode_path",
-        "version": "$xcode_version",
-        "firstLaunchStatus": "$first_launch_status",
-        "licenseStatus": "$license_status",
+        "developerDirectory": xcode_path,
+        "version": xcode_version,
+        "firstLaunchStatus": first_launch_status,
+        "licenseStatus": license_status,
     },
-    "manualQaRecord": "$manual_record_display",
-    "manualQaSession": "$qa_session_display",
-    "internalAdhocMode": bool($allow_adhoc),
-    "releaseSmokeSkipped": bool($skip_release_smoke),
-    "installPreflightSkipped": bool($skip_install_preflight),
-    "strictFinalMode": bool($strict_final),
-    "formalUpdateArchive": "${formal_update_archive}",
-    "appcast": "${appcast_path}",
+    "manualQaRecord": manual_record,
+    "manualQaSession": qa_session,
+    "internalAdhocMode": allow_adhoc == "1",
+    "releaseSmokeSkipped": skip_release_smoke == "1",
+    "installPreflightSkipped": skip_install_preflight == "1",
+    "strictFinalMode": strict_final == "1",
+    "formalUpdateArchive": formal_update_archive,
+    "appcast": appcast,
     "openSpecProgress": {
-        "change": "$openspec_change",
-        "total": int("$openspec_progress_total"),
-        "complete": int("$openspec_progress_complete"),
-        "remaining": int("$openspec_progress_remaining"),
+        "change": openspec_change,
+        "total": int(openspec_total),
+        "complete": int(openspec_complete),
+        "remaining": int(openspec_remaining),
     },
-    "openSpecRemainingTasks": read_openspec_tasks(openspec_tasks_path),
+    "openSpecRemainingTasks": openspec_tasks,
     "checks": checks,
-    "blockers": read_lines(blockers_path),
-    "warnings": read_lines(warnings_path),
+    "blockers": blockers,
+    "warnings": warnings,
     "manualEvidenceStillRequired": [
         "Signed Release build with the intended distribution certificate and Team ID.",
         "Developer ID notarization and a verified Sparkle appcast/formal ZIP pair.",
