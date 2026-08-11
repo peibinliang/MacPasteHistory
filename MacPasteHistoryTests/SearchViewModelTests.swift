@@ -153,6 +153,36 @@ final class SearchViewModelTests: XCTestCase {
         await waitUntil { viewModel.isSearchLoading == false }
     }
 
+    func testLoadHistory_whileSearchIsRunning_shouldCancelSearchAndKeepRepositoryResults() async throws {
+        let coordinator = ControlledViewModelSearchCoordinator()
+        let repository = try testRepository()
+        let repositoryItem = try repository.saveText("query repository", sourceApp: nil, sourceBundleID: nil)
+        let viewModel = ClipboardHistoryViewModel(
+            repository: repository,
+            writer: ClipboardWriter(restorationState: ClipboardRestorationState()),
+            searchCoordinator: coordinator
+        )
+        await coordinator.configure(
+            input: "query",
+            immediate: [item(id: 50, text: "query immediate")],
+            full: [item(id: 51, text: "query stale full")]
+        )
+
+        viewModel.updateSearchText("query")
+        await coordinator.waitUntilStarted("query")
+        await waitUntil { viewModel.isSearchLoading }
+        viewModel.loadHistory()
+
+        let wasCancelled = await coordinator.waitUntilCancelled("query")
+        XCTAssertTrue(wasCancelled)
+        XCTAssertFalse(viewModel.isSearchLoading)
+        XCTAssertEqual(viewModel.items.map(\.id), [repositoryItem.id])
+
+        await coordinator.release("query")
+        await Task.yield()
+        XCTAssertEqual(viewModel.items.map(\.id), [repositoryItem.id])
+    }
+
     private func waitUntil(
         attempts: Int = 1_000,
         _ condition: @escaping @MainActor () -> Bool
