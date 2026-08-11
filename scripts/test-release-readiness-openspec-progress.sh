@@ -5,6 +5,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d /private/tmp/macpastehistory-readiness-openspec.XXXXXX)"
 CURRENT_CHANGE="add-v1-0-1-sensitive-filter-and-updates"
 LEGACY_CHANGE="prepare-release-testing-and-store-assets"
+FENCED_FIXTURE="$REPO_ROOT/scripts/fixtures/release-readiness-openspec-fenced-tasks.md"
+FENCED_CHANGE="test-readiness-fences-${TEST_ROOT##*.}"
+FENCED_CHANGE_DIR="$REPO_ROOT/openspec/changes/$FENCED_CHANGE"
 
 case "$TEST_ROOT" in
     /private/tmp/macpastehistory-readiness-openspec.*) ;;
@@ -13,7 +16,22 @@ case "$TEST_ROOT" in
         exit 1
         ;;
 esac
-trap 'rm -rf "$TEST_ROOT"' EXIT
+
+cleanup() {
+    case "$FENCED_CHANGE_DIR" in
+        "$REPO_ROOT"/openspec/changes/test-readiness-fences-*)
+            rm -rf "$FENCED_CHANGE_DIR"
+            ;;
+        *)
+            echo "Refusing to remove unexpected fenced fixture directory" >&2
+            ;;
+    esac
+    rm -rf "$TEST_ROOT"
+}
+trap cleanup EXIT
+
+mkdir -p "$FENCED_CHANGE_DIR"
+cp "$FENCED_FIXTURE" "$FENCED_CHANGE_DIR/tasks.md"
 
 failures=()
 
@@ -133,6 +151,85 @@ run_readiness \
     --openspec-change "$LEGACY_CHANGE"
 assert_progress "legacy" "$legacy_json" "$LEGACY_CHANGE" 4 19 15
 
+special_manual_record=$'docs/release/manual-"quoted"\\record\nUnicode 雪\npayload __import__("pathlib")'
+special_appcast=$'appcast-"quoted"\\feed\nUnicode 雪\n__import__("pathlib")'
+escaping_json="$TEST_ROOT/escaping.json"
+run_readiness \
+    "escaping" \
+    "$escaping_json" \
+    --manual-record "$special_manual_record" \
+    --appcast "$special_appcast"
+if [[ -s "$escaping_json" ]] && ! /usr/bin/python3 - \
+    "$escaping_json" \
+    "$special_manual_record" \
+    "$special_appcast" <<'PY'
+import json
+import sys
+
+json_path, expected_manual_record, expected_appcast = sys.argv[1:]
+with open(json_path, encoding="utf-8") as handle:
+    payload = json.load(handle)
+if payload["manualQaRecord"] != expected_manual_record:
+    raise SystemExit("manual QA record did not round-trip exactly")
+if payload["appcast"] != expected_appcast:
+    raise SystemExit("appcast path did not round-trip exactly")
+PY
+then
+    add_failure "escaping: controlled strings did not produce valid JSON with exact values."
+fi
+
+injection_marker="$TEST_ROOT/python-injection-marker"
+marker_hex="$(printf '%s' "$injection_marker" | /usr/bin/xxd -p | /usr/bin/tr -d '\n')"
+printf -v injection_manual_record \
+    'docs/release/x",\n    "pwn": __import__("pathlib").Path(bytes.fromhex("%s").decode()).write_text("executed"),\n    "manualQaRecord2": "y' \
+    "$marker_hex"
+injection_json="$TEST_ROOT/injection.json"
+run_readiness \
+    "injection" \
+    "$injection_json" \
+    --manual-record "$injection_manual_record"
+if [[ -e "$injection_marker" ]]; then
+    add_failure "injection: a controlled manual-record value executed Python code."
+fi
+if [[ -s "$injection_json" ]] && ! /usr/bin/python3 - \
+    "$injection_json" \
+    "$injection_manual_record" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    payload = json.load(handle)
+if payload["manualQaRecord"] != sys.argv[2]:
+    raise SystemExit("injection-shaped manual record did not remain inert data")
+if "pwn" in payload:
+    raise SystemExit("injection-shaped manual record created an extra JSON field")
+PY
+then
+    add_failure "injection: payload-shaped input was not serialized as inert JSON data."
+fi
+
+fenced_json="$TEST_ROOT/fenced.json"
+run_readiness \
+    "fenced" \
+    "$fenced_json" \
+    --openspec-change "$FENCED_CHANGE"
+assert_progress "fenced" "$fenced_json" "$FENCED_CHANGE" 2 3 1
+if [[ -s "$fenced_json" ]] && ! /usr/bin/python3 - "$fenced_json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    payload = json.load(handle)
+expected = [{"id": "1.2", "description": 'Pending "quoted" \\ path — 雪'}]
+if payload["openSpecRemainingTasks"] != expected:
+    raise SystemExit(
+        f"expected quoted Unicode task outside fences only, got {payload['openSpecRemainingTasks']}"
+    )
+PY
+then
+    add_failure "fenced: code-fence checkboxes or task text were parsed incorrectly."
+fi
+
 echo "# Release Readiness OpenSpec Progress Self-Test"
 echo
 echo "| Field | Value |"
@@ -140,6 +237,8 @@ echo "|---|---|"
 echo "| Default change | \`$CURRENT_CHANGE\` |"
 echo "| Default Markdown progress | \`24/32; 8 remaining\` |"
 echo "| Explicit legacy progress | \`4/19; 15 remaining\` |"
+echo "| JSON escaping/injection fixtures | \`expected inert round-trip\` |"
+echo "| Fenced checkbox fixture | \`2/3; 1 remaining\` |"
 echo "| openspec CLI fixture | \`intentionally unavailable\` |"
 echo "| Failures | \`${#failures[@]}\` |"
 echo
