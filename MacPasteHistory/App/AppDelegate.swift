@@ -31,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let appPreferencesService = AppPreferencesService()
     private let appearanceService = AppearanceService()
     private let accessibilityPermissionService: AccessibilityPermissionService
+    private lazy var updateService = UpdateService(driver: SparkleUpdateDriver())
 
     override init() {
         shortcutService = ShortcutService()
@@ -275,10 +276,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
+    func makeUpdateService() -> UpdateService {
+        updateService
+    }
+
     @objc private func openSettings() {
         let controller = settingsWindowController ?? createWindowController(
             title: L10n.string("Settings"),
-            rootView: SettingsView(viewModel: makeSettingsViewModel()),
+            rootView: SettingsView(
+                viewModel: makeSettingsViewModel(),
+                updateService: makeUpdateService()
+            ),
             size: NSSize(width: 520, height: 420)
         )
         settingsWindowController = controller

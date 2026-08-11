@@ -10,6 +10,14 @@ Launch `粘易.app`. The app runs from the menu bar with a folded-loop icon. Cho
 
 Text recording and image recording can be enabled or disabled in **Settings**. Supported image inputs include PNG, TIFF, JPEG browser data where available, and local image file copies from Finder. Very large images are skipped according to the configured single-image size limit.
 
+## Sensitive Content Filtering
+
+**Settings → Privacy → Filter sensitive content** is enabled by default, including after upgrading from a version that did not store this preference. While enabled, text matching common password, token, identity-number, or payment-card patterns is skipped instead of being added to history.
+
+The first request to turn filtering off shows a warning that the local SQLite history database is not encrypted and that matching sensitive text may be stored on this Mac. Cancelling the warning leaves filtering enabled. If you accept the warning, filtering turns off immediately and matching text becomes eligible for the normal local capture flow, including multiline technical text.
+
+To restore the safer default, return to **Settings → Privacy** and enable **Filter sensitive content** again. Re-enabling takes effect immediately for future captures and does not require another confirmation. It does not automatically remove records saved while filtering was off; delete those records individually or use the clear-data controls if needed.
+
 ## Browse, Search, And Filter
 
 The history overlay groups records into **Just Now**, **Today**, and **Earlier** sections. Use the recent-source ribbon to focus on an application, the search field to filter text history, and the filter menu to choose all/text/image records, a time range, or favorites. Long text opens in the detail view; image records show thumbnails and an image detail preview.
@@ -38,12 +46,18 @@ Use row actions to favorite, restore, or delete individual records. **Clear Text
 
 ## Settings
 
-Settings are organized into **General**, **Privacy**, and **Storage and Data**. They include text/image recording toggles, launch-at-login preference backed by macOS Login Items, Dock icon preference, history retention days, text/image count limits, single-image size limit, and total storage cap. The single-image size limit applies to new image captures, while cleanup runs on startup and uses the count and storage limits to bound local data growth.
+Settings are organized into **General**, **Privacy**, **Storage and Data**, and **About & Updates**. They include text/image recording toggles, sensitive-content filtering, launch-at-login preference backed by macOS Login Items, Dock icon preference, history retention days, text/image count limits, single-image size limit, and total storage cap. The single-image size limit applies to new image captures, while cleanup runs on startup and uses the count and storage limits to bound local data growth.
 
 General settings also include **Appearance** with **Follow System**, **Light**, and **Dark** options. Appearance changes apply immediately and persist across launches; following the system remains the default.
 
+## About And Updates
+
+Open **Settings → About & Updates** to view the running application name, version, and build number. The **Automatically check for updates** switch controls Sparkle's periodic checks. Use **Check for Updates…** to request a foreground check at any time; Sparkle's standard update interface reports whether an update is available and handles verification, installation, cancellation, and relaunch for a formally published update.
+
+Automatic and manual checks request the fixed GitHub Pages appcast and may download GitHub-hosted release notes or an update package from GitHub Releases. These requests contain update metadata only. They do not upload clipboard history, copied text, images, content hashes, or app preferences, and the app does not query the GitHub Releases API to discover versions.
+
 ## Privacy Notes
 
-Clipboard content stays on this Mac. Do not copy sensitive data into history if you do not want it stored locally. Sensitive-text filtering and blocked-app controls are implemented in the capture pipeline, but release behavior should still be verified against your actual workflow before distribution.
+Clipboard content stays on this Mac and is not uploaded by update checks. Keep sensitive-content filtering enabled if you do not want recognized sensitive patterns stored locally, and use blocked-app controls for applications whose clipboard changes should always be skipped. Sensitive detection is best-effort, so release behavior should still be verified against your actual workflow before distribution.
 
 The current release does not encrypt the local history database or app-managed image files. Use macOS account security and disk encryption such as FileVault if you need device-level protection for local files.

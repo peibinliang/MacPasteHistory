@@ -126,6 +126,12 @@
 /* SettingsView - Privacy And Shortcuts */
 "Privacy Controls" = "隐私控制";
 "Pause recording" = "暂停记录";
+"Filter sensitive content" = "过滤敏感内容";
+"Disable Sensitive Content Filtering?" = "要关闭敏感内容过滤吗？";
+"Detected passwords, tokens, identity numbers, and payment card numbers may be stored in the local unencrypted history database." = "检测到的密码、令牌、身份证号码和支付卡号可能会存储在本地未加密的历史数据库中。";
+"Keep Filtering" = "保持过滤";
+"Disable Filtering" = "关闭过滤";
+"When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved." = "启用后，检测到的密码、令牌、身份证号码和支付卡号将不会被保存。";
 "App name" = "应用名称";
 "Add" = "添加";
 "Block Current App" = "加入当前应用";
@@ -270,3 +276,15 @@
 "Edited result" = "已编辑结果";
 "Recognized text" = "已识别文字";
 "Text recognition failed" = "文字识别失败";
+
+/* SettingsView - About */
+"About & Updates" = "关于与更新";
+"Version information and software updates" = "版本信息与软件更新";
+"Version %@ (Build %@)" = "版本 %@（构建 %@）";
+"View on GitHub" = "在 GitHub 上查看";
+"Automatically check for updates" = "自动检查更新";
+"Check for Updates…" = "检查更新…";
+"Checking for updates…" = "正在检查更新…";
+"You're up to date." = "当前已是最新版本。";
+"Update %@ is available." = "发现新版本 %@。";
+"Update check failed: %@" = "检查更新失败：%@";

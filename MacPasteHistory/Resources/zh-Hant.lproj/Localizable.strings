@@ -126,6 +126,12 @@
 /* SettingsView - Privacy And Shortcuts */
 "Privacy Controls" = "隱私控制";
 "Pause recording" = "暫停記錄";
+"Filter sensitive content" = "過濾敏感內容";
+"Disable Sensitive Content Filtering?" = "要關閉敏感內容過濾嗎？";
+"Detected passwords, tokens, identity numbers, and payment card numbers may be stored in the local unencrypted history database." = "偵測到的密碼、權杖、身分證號碼和支付卡號可能會儲存在本機未加密的歷史資料庫中。";
+"Keep Filtering" = "保持過濾";
+"Disable Filtering" = "關閉過濾";
+"When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved." = "啟用後，偵測到的密碼、權杖、身分證號碼和支付卡號將不會被儲存。";
 "App name" = "應用程式名稱";
 "Add" = "新增";
 "Block Current App" = "加入目前應用程式";
@@ -270,3 +276,15 @@
 "Edited result" = "已編輯結果";
 "Recognized text" = "已辨識文字";
 "Text recognition failed" = "文字辨識失敗";
+
+/* SettingsView - About */
+"About & Updates" = "關於與更新";
+"Version information and software updates" = "版本資訊與軟體更新";
+"Version %@ (Build %@)" = "版本 %@（組建 %@）";
+"View on GitHub" = "在 GitHub 上檢視";
+"Automatically check for updates" = "自動檢查更新";
+"Check for Updates…" = "檢查更新…";
+"Checking for updates…" = "正在檢查更新…";
+"You're up to date." = "目前已是最新版本。";
+"Update %@ is available." = "發現新版本 %@。";
+"Update check failed: %@" = "檢查更新失敗：%@";

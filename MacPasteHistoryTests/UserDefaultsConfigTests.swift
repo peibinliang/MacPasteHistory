@@ -49,6 +49,20 @@ final class UserDefaultsConfigTests: XCTestCase {
         XCTAssertTrue(UserDefaultsConfig(defaults: defaults).recordingPaused)
     }
 
+    func testFilterSensitiveContent_whenUnset_shouldDefaultToEnabled() {
+        XCTAssertTrue(UserDefaultsConfig(defaults: defaults).filterSensitiveContent)
+    }
+
+    func testSensitiveContentPreferences_shouldPersistDisabledAndAcknowledgedValues() {
+        var config = UserDefaultsConfig(defaults: defaults)
+        config.filterSensitiveContent = false
+        config.hasAcknowledgedSensitiveContentRisk = true
+
+        let reloaded = UserDefaultsConfig(defaults: defaults)
+        XCTAssertFalse(reloaded.filterSensitiveContent)
+        XCTAssertTrue(reloaded.hasAcknowledgedSensitiveContentRisk)
+    }
+
     func testBlockedApps_shouldPersistStructuredEntries() {
         var config = UserDefaultsConfig(defaults: defaults)
         let entry = BlockedAppEntry(bundleID: "com.apple.Safari", displayName: "Safari")

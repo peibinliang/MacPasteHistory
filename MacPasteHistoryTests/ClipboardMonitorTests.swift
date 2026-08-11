@@ -145,6 +145,51 @@ final class ClipboardMonitorTests: XCTestCase {
         defaults.removePersistentDomain(forName: suiteName)
     }
 
+    func testPollOnce_whenSensitiveFilteringEnabled_shouldSkipBearerText() throws {
+        let (config, cleanup) = makePrivacyConfig(filterSensitiveContent: true)
+        defer { cleanup() }
+        let monitor = makeMonitor(privacyService: PrivacyService(config: config))
+        _ = pasteboard.setString(
+            "curl -H 'Authorization: Bearer TESTTOKEN0123456789ABCDEF0123456789' https://example.invalid",
+            forType: .string
+        )
+
+        monitor.pollOnce()
+
+        XCTAssertTrue(try repository.fetchTextHistory(matching: nil).isEmpty)
+    }
+
+    func testPollOnce_whenSensitiveFilteringDisabled_shouldSaveMultilineCurlExactly() throws {
+        let text = """
+        curl -X POST 'https://example.invalid/completion' -H 'Authorization: Bearer TESTTOKEN0123456789ABCDEF0123456789' -d '{
+          "input": { "prompt": "你好" }, "parameters": {}
+        }';
+        """
+        let (config, cleanup) = makePrivacyConfig(filterSensitiveContent: false)
+        defer { cleanup() }
+        let monitor = makeMonitor(privacyService: PrivacyService(config: config))
+        _ = pasteboard.setString(text, forType: .string)
+
+        monitor.pollOnce()
+
+        XCTAssertEqual(try repository.fetchTextHistory(matching: nil).first?.textContent, text)
+    }
+
+    func testPollOnce_whenSensitiveFilteringDisabled_shouldSaveLongDocumentationExactly() throws {
+        let text = String(repeating: "钉钉机器人文档 https://example.invalid/send?access_token=xxxxx 😊\n", count: 80)
+        let (config, cleanup) = makePrivacyConfig(filterSensitiveContent: false)
+        defer { cleanup() }
+        let monitor = makeMonitor(privacyService: PrivacyService(config: config))
+        _ = pasteboard.setString(text, forType: .string)
+
+        monitor.pollOnce()
+
+        XCTAssertEqual(
+            try repository.fetchTextHistory(matching: nil).first?.textContent,
+            text.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+    }
+
     private func makeMonitor() -> ClipboardMonitor {
         makeMonitor(recordingSettings: StubRecordingSettings(shouldRecordText: true, shouldRecordImage: true))
     }
@@ -167,6 +212,19 @@ final class ClipboardMonitorTests: XCTestCase {
             privacyService: privacyService,
             logger: Logger(category: "ClipboardMonitorTests")
         )
+    }
+
+    private func makePrivacyConfig(filterSensitiveContent: Bool) -> (UserDefaultsConfig, () -> Void) {
+        let suiteName = "ClipboardMonitorTests.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            fatalError("Unable to create isolated UserDefaults suite")
+        }
+        defaults.removePersistentDomain(forName: suiteName)
+
+        var config = UserDefaultsConfig(defaults: defaults)
+        config.filterSensitiveContent = filterSensitiveContent
+
+        return (config, { defaults.removePersistentDomain(forName: suiteName) })
     }
 
     private func makePNGData() throws -> Data {

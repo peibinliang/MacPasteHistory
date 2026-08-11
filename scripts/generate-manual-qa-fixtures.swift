@@ -46,6 +46,34 @@ private func largeText(repetitions: Int) -> String {
         .joined(separator: "\n\n")
 }
 
+private func sensitiveCurlText() -> String {
+    [
+        "Synthetic cURL QA fixture. This file contains no real credential.",
+        "",
+        #"curl --request GET --url https://example.invalid/v1/clipboard-fixture --header "Authorization: Bearer TEST_ONLY_NOT_A_REAL_TOKEN_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ""#,
+        "",
+        "Expected: sensitive filtering detects this clearly fictional Bearer value."
+    ].joined(separator: "\n") + "\n"
+}
+
+private func sensitiveLongDocumentationText() -> String {
+    [
+        "粘易 V1.0.1 合成长文档 QA 样例（不包含真实凭据）",
+        "稳定标记：v1.0.1-sensitive-long-documentation-fixture",
+        "URL：https://example.invalid/docs?access_token=xxxxx&mode=synthetic",
+        "Emoji：🧪 📋 🔒",
+        "",
+        "第一段用于验证中文、URL 与 access_token=xxxxx 的敏感内容过滤。",
+        "此段只使用 xxxxx 占位符，不对应任何真实账号或服务。",
+        "",
+        "第二段用于验证关闭过滤后的多段文本完整性。",
+        "请检查搜索、详情、恢复以及重启后的设置持久化；不要把 payload 写入日志。",
+        "",
+        "第三段用于验证 Emoji 与换行：🚀 ✅ 🧭",
+        "结束标记：v1.0.1-sensitive-long-documentation-fixture-end"
+    ].joined(separator: "\n") + "\n"
+}
+
 private let textFixtures: [TextFixture] = [
     TextFixture(
         fileName: "01-browser-text-sample.txt",
@@ -85,6 +113,14 @@ private let textFixtures: [TextFixture] = [
     TextFixture(
         fileName: "04-large-text-sample.txt",
         contents: largeText(repetitions: 18_000)
+    ),
+    TextFixture(
+        fileName: "05-sensitive-curl-sample.txt",
+        contents: sensitiveCurlText()
+    ),
+    TextFixture(
+        fileName: "06-sensitive-long-documentation-sample.txt",
+        contents: sensitiveLongDocumentationText()
     ),
     TextFixture(
         fileName: "07-structured-actions-fixture.txt",
@@ -180,6 +216,8 @@ private func manifest(generatedFiles: [URL]) -> String {
     - Open `02-vscode-code-sample.swift` in VS Code and copy the code block.
     - Paste `03-chat-copy-sample.txt` into a non-private WeChat or DingTalk test chat, then copy it back.
     - Copy all of `04-large-text-sample.txt` for large text capture, search, and restore testing.
+    - Use `05-sensitive-curl-sample.txt` and `06-sensitive-long-documentation-sample.txt`
+      only for the documented sensitive-filter on/off regression. Both contain synthetic placeholders.
     - Open the PNG files in Preview, Safari, or Finder and copy them for image capture testing.
 
     Record actual results in `docs/release/manual-qa-record.md`.

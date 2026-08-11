@@ -6,7 +6,10 @@ struct MacPasteHistoryApp: App {
 
     var body: some Scene {
         Settings {
-            SettingsView(viewModel: appDelegate.makeSettingsViewModel())
+            SettingsView(
+                viewModel: appDelegate.makeSettingsViewModel(),
+                updateService: appDelegate.makeUpdateService()
+            )
         }
     }
 }

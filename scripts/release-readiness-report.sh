@@ -11,6 +11,11 @@ skip_xcodegen=0
 skip_install_preflight=0
 skip_release_smoke=0
 strict_final=0
+formal_update_archive=""
+appcast_path=""
+openspec_change="add-v1-0-1-sensitive-filter-and-updates"
+readiness_extract_dir=""
+formal_app_path=""
 
 usage() {
     cat <<'EOF'
@@ -29,6 +34,12 @@ Options:
   --skip-install-preflight
                         Skip launching a copied Release app during readiness checks.
   --skip-release-smoke  Skip the synthetic Release smoke test during readiness checks.
+  --formal-update-archive PATH
+                        Verify an explicit 粘易-1.0.1-2.zip formal update.
+  --appcast PATH        Verify an explicit appcast against the formal update archive.
+  --openspec-change NAME
+                        Read progress from openspec/changes/NAME/tasks.md.
+                        Defaults to add-v1-0-1-sensitive-filter-and-updates.
   --strict-final        Treat warnings as blockers for final distribution approval.
   -h, --help            Show this help.
 EOF
@@ -52,6 +63,12 @@ add_blocker() {
 
 add_warning() {
     warnings+=("$1")
+}
+
+cleanup() {
+    if [[ -n "$readiness_extract_dir" && -d "$readiness_extract_dir" ]]; then
+        rm -rf "$readiness_extract_dir"
+    fi
 }
 
 while [[ $# -gt 0 ]]; do
@@ -100,6 +117,30 @@ while [[ $# -gt 0 ]]; do
         --skip-release-smoke)
             skip_release_smoke=1
             ;;
+        --formal-update-archive)
+            if [[ $# -lt 2 ]]; then
+                echo "--formal-update-archive requires a path" >&2
+                exit 2
+            fi
+            formal_update_archive="$2"
+            shift
+            ;;
+        --appcast)
+            if [[ $# -lt 2 ]]; then
+                echo "--appcast requires a path" >&2
+                exit 2
+            fi
+            appcast_path="$2"
+            shift
+            ;;
+        --openspec-change)
+            if [[ $# -lt 2 ]]; then
+                echo "--openspec-change requires a change name" >&2
+                exit 2
+            fi
+            openspec_change="$2"
+            shift
+            ;;
         --strict-final)
             strict_final=1
             ;;
@@ -116,8 +157,14 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+if [[ ! "$openspec_change" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+    echo "--openspec-change must be a single safe change directory name" >&2
+    exit 2
+fi
+
 require_command date
 require_command git
+require_command grep
 require_command mktemp
 require_command python3
 require_command security
@@ -125,6 +172,8 @@ require_command sw_vers
 require_command uname
 require_command xcode-select
 require_command xcodebuild
+
+trap cleanup EXIT
 
 cd "$REPO_ROOT"
 
@@ -187,39 +236,145 @@ run_capture() {
     return "$status"
 }
 
-collect_openspec_progress() {
-    local tmp_file
-    tmp_file="$(mktemp)"
+verify_developer_id_app() {
+    local app_path="$1"
+    local codesign_output authority signature team_identifier
 
-    if ! command -v openspec >/dev/null 2>&1; then
-        add_check_row "OpenSpec progress" "WARN" "openspec CLI is not available."
-        add_warning "OpenSpec release change progress was not included because openspec CLI is unavailable."
-        rm -f "$tmp_file"
-        return
+    codesign_output="$(codesign -dvvv "$app_path" 2>&1 || true)"
+    authority="$(printf '%s\n' "$codesign_output" | awk -F= '/^Authority=/ {print $2; exit}')"
+    signature="$(printf '%s\n' "$codesign_output" | awk -F= '/^Signature=/ {print $2; exit}')"
+    team_identifier="$(printf '%s\n' "$codesign_output" | awk -F= '/^TeamIdentifier=/ {print $2; exit}')"
+
+    if [[ "$signature" == "adhoc" || "$authority" != "Developer ID Application:"* \
+        || -z "$team_identifier" || "$team_identifier" == "not set" ]]; then
+        echo "Developer ID Application signature is missing or invalid."
+        echo "Status: FAIL"
+        return 1
+    fi
+    if ! codesign --verify --deep --strict "$app_path" >/dev/null 2>&1; then
+        echo "Strict code-signature verification failed."
+        echo "Status: FAIL"
+        return 1
     fi
 
-    if ! openspec instructions apply --change prepare-release-testing-and-store-assets --json >"$tmp_file" 2>/tmp/macpastehistory-openspec-readiness.log; then
-        add_check_row "OpenSpec progress" "WARN" "Could not read OpenSpec change progress."
-        add_warning "OpenSpec release change progress could not be read; inspect prepare-release-testing-and-store-assets manually."
-        rm -f "$tmp_file"
+    echo "Developer ID Application signature and Team ID verified."
+    echo "Status: PASS"
+}
+
+verify_notarized_app() {
+    local app_path="$1"
+    local output command_status
+
+    set +e
+    output="$(spctl --assess --type execute --verbose=4 "$app_path" 2>&1)"
+    command_status=$?
+    set -e
+    if [[ "$command_status" -ne 0 ]] \
+        || ! printf '%s\n' "$output" | grep -Fq 'source=Notarized Developer ID'; then
+        echo "spctl did not accept the app as Notarized Developer ID."
+        echo "Status: FAIL"
+        return 1
+    fi
+
+    echo "spctl accepted the app as Notarized Developer ID."
+    echo "Status: PASS"
+}
+
+verify_upgrade_evidence() {
+    local record_path="$1"
+    local section_text scenario
+    local required_scenarios=(
+        "V1.0.0 baseline captured"
+        "Manual update check"
+        "Automatic update prompt"
+        "Download, install, and restart"
+        "History and favorites preserved"
+        "Settings and shortcut preserved"
+    )
+
+    if [[ ! -f "$record_path" ]]; then
+        echo "Upgrade evidence record is missing."
+        echo "Status: WARN"
+        return 1
+    fi
+    section_text="$(awk '
+        /^## V1\.0\.0 → V1\.0\.1 Upgrade Evidence$/ {in_section=1; next}
+        in_section && /^## / {exit}
+        in_section {print}
+    ' "$record_path")"
+    if [[ -z "$section_text" ]]; then
+        echo "Upgrade evidence section is missing."
+        echo "Status: WARN"
+        return 1
+    fi
+
+    for scenario in "${required_scenarios[@]}"; do
+        if ! printf '%s\n' "$section_text" \
+            | grep -F "| $scenario |" \
+            | grep -Fq '| ✅ Pass |'; then
+            echo "Upgrade evidence is incomplete for: $scenario"
+            echo "Status: WARN"
+            return 1
+        fi
+    done
+
+    echo "All required V1.0.0 → V1.0.1 upgrade scenarios contain direct pass evidence."
+    echo "Status: PASS"
+}
+
+collect_openspec_progress() {
+    local tasks_file="$REPO_ROOT/openspec/changes/$openspec_change/tasks.md"
+    local cli_output cli_error cli_note="" check_status="PASS"
+
+    if [[ ! -f "$tasks_file" ]]; then
+        add_check_row "OpenSpec progress" "FAIL" "Tasks file is missing for change $openspec_change."
+        add_blocker "OpenSpec tasks file is missing for selected change $openspec_change."
         return
     fi
 
     openspec_summary=()
     while IFS= read -r line; do
         openspec_summary+=("$line")
-    done < <(python3 - "$tmp_file" <<'PY'
-import json
+    done < <(python3 - "$tasks_file" <<'PY'
+import re
 import sys
 
+task_pattern = re.compile(r"^- \[([ xX])\] ([0-9]+(?:\.[0-9]+)+) (.+)$")
+tasks = []
+fence_marker = None
+fence_length = 0
 with open(sys.argv[1], encoding="utf-8") as handle:
-    payload = json.load(handle)
+    for raw_line in handle:
+        line = raw_line.rstrip("\r\n")
+        if fence_marker is not None:
+            closing_pattern = rf"^ {{0,3}}{re.escape(fence_marker)}{{{fence_length},}}[ \t]*$"
+            if re.match(closing_pattern, line):
+                fence_marker = None
+                fence_length = 0
+            continue
 
-progress = payload["progress"]
-print(progress["total"])
-print(progress["complete"])
-print(progress["remaining"])
-for task in payload["tasks"]:
+        fence_match = re.match(r"^ {0,3}((?:\x60){3,}|~{3,})(.*)$", line)
+        if fence_match:
+            marker_run = fence_match.group(1)
+            fence_marker = marker_run[0]
+            fence_length = len(marker_run)
+            continue
+
+        match = task_pattern.match(line)
+        if match:
+            tasks.append(
+                {
+                    "done": match.group(1).lower() == "x",
+                    "id": match.group(2),
+                    "description": match.group(3),
+                }
+            )
+
+complete = sum(task["done"] for task in tasks)
+print(len(tasks))
+print(complete)
+print(len(tasks) - complete)
+for task in tasks:
     if not task["done"]:
         print(f"{task['id']}\t{task['description']}")
 PY
@@ -230,19 +385,47 @@ PY
     openspec_progress_remaining="${openspec_summary[2]:-0}"
     openspec_remaining_tasks=()
 
+    if [[ "$openspec_progress_total" -eq 0 ]]; then
+        add_check_row "OpenSpec progress" "FAIL" "No task checkboxes were found for change $openspec_change."
+        add_blocker "Selected OpenSpec change $openspec_change has no readable Markdown tasks."
+        return
+    fi
+
     local index
     for ((index = 3; index < ${#openspec_summary[@]}; index++)); do
         openspec_remaining_tasks+=("${openspec_summary[$index]}")
     done
 
-    if [[ "$openspec_progress_remaining" -eq 0 ]]; then
-        add_check_row "OpenSpec progress" "PASS" "$openspec_progress_complete/$openspec_progress_total tasks complete."
-    else
-        add_check_row "OpenSpec progress" "WARN" "$openspec_progress_complete/$openspec_progress_total tasks complete; $openspec_progress_remaining remaining."
-        add_warning "OpenSpec release change still has $openspec_progress_remaining pending tasks."
+    cli_output="$(mktemp)"
+    cli_error="$(mktemp)"
+    if ! command -v openspec >/dev/null 2>&1; then
+        check_status="WARN"
+        cli_note=" openspec CLI is not available."
+        add_warning "openspec CLI is not available; Markdown progress for $openspec_change was included, but final readiness requires the CLI check."
+    elif ! openspec instructions apply --change "$openspec_change" --json >"$cli_output" 2>"$cli_error"; then
+        check_status="WARN"
+        cli_note=" openspec CLI could not validate the selected change."
+        add_warning "OpenSpec CLI could not validate change $openspec_change; inspect the selected change manually."
+        detailed_sections+=("## OpenSpec CLI"$'\n\n```text\n'"$(cat "$cli_error")"$'\n```')
+    fi
+    rm -f "$cli_output" "$cli_error"
+
+    if [[ "$openspec_progress_remaining" -gt 0 ]]; then
+        check_status="WARN"
+        add_warning "OpenSpec change $openspec_change still has $openspec_progress_remaining pending tasks."
     fi
 
-    rm -f "$tmp_file"
+    if [[ "$openspec_progress_remaining" -eq 0 ]]; then
+        add_check_row \
+            "OpenSpec progress" \
+            "$check_status" \
+            "$openspec_progress_complete/$openspec_progress_total tasks complete for $openspec_change.$cli_note"
+    else
+        add_check_row \
+            "OpenSpec progress" \
+            "$check_status" \
+            "$openspec_progress_complete/$openspec_progress_total tasks complete for $openspec_change; $openspec_progress_remaining remaining.$cli_note"
+    fi
 }
 
 xcode_ref_args=("$REPO_ROOT/scripts/validate-xcode-file-references.sh")
@@ -275,6 +458,85 @@ fi
 
 if ! run_capture "Release identity" "$REPO_ROOT/scripts/verify-release-identity.sh"; then
     add_blocker "Release bundle identity or menu-bar app declarations are inconsistent."
+fi
+
+if ! run_capture "Sparkle configuration" "$REPO_ROOT/scripts/verify-sparkle-configuration.sh"; then
+    add_blocker "Sparkle version, feed, public key, service flags, or sandbox boundaries are invalid."
+fi
+
+if [[ -z "$formal_update_archive" ]]; then
+    add_check_row "Formal update ZIP" "SKIP" "No --formal-update-archive provided."
+    add_check_row "Embedded Sparkle framework and XPC services" "SKIP" "Formal update archive was not provided."
+    add_check_row "Developer ID signature" "SKIP" "Formal update archive was not provided."
+    add_check_row "Apple notarization" "SKIP" "Formal update archive was not provided."
+    add_warning "Formal update ZIP, embedded Sparkle services, Developer ID signature, and notarization were not validated."
+else
+    require_command codesign
+    require_command ditto
+    require_command spctl
+
+    if ! run_capture \
+        "Formal update ZIP" \
+        "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
+        --formal-update \
+        "$formal_update_archive"; then
+        add_blocker "Formal update ZIP failed checksum, identity, signature, notarization, or bundle validation."
+    fi
+
+    if [[ -f "$formal_update_archive" ]]; then
+        readiness_extract_dir="$(mktemp -d /private/tmp/macpastehistory-readiness-update.XXXXXX)"
+        case "$readiness_extract_dir" in
+            /private/tmp/macpastehistory-readiness-update.*) ;;
+            *)
+                echo "Unsafe readiness extraction directory: $readiness_extract_dir" >&2
+                exit 1
+                ;;
+        esac
+        if /usr/bin/ditto -x -k "$formal_update_archive" "$readiness_extract_dir" >/dev/null 2>&1; then
+            formal_app_path="$readiness_extract_dir/粘易.app"
+        fi
+    fi
+
+    if [[ -d "$formal_app_path" ]]; then
+        if ! run_capture \
+            "Embedded Sparkle framework and XPC services" \
+            "$REPO_ROOT/scripts/verify-sparkle-release-bundle.sh" \
+            "$formal_app_path"; then
+            add_blocker "Formal update app is missing the required Sparkle framework or XPC services."
+        fi
+        if ! run_capture "Developer ID signature" verify_developer_id_app "$formal_app_path"; then
+            add_blocker "Formal update app is not signed with Developer ID Application."
+        fi
+        if ! run_capture "Apple notarization" verify_notarized_app "$formal_app_path"; then
+            add_blocker "Formal update app is not accepted by spctl as notarized."
+        fi
+    else
+        add_check_row "Embedded Sparkle framework and XPC services" "FAIL" "Formal update app could not be extracted."
+        add_check_row "Developer ID signature" "FAIL" "Formal update app could not be extracted."
+        add_check_row "Apple notarization" "FAIL" "Formal update app could not be extracted."
+        add_blocker "Formal update archive does not contain the expected 粘易.app bundle."
+    fi
+fi
+
+if [[ -z "$appcast_path" ]]; then
+    add_check_row "Sparkle appcast" "SKIP" "No --appcast provided."
+    add_warning "Sparkle appcast was not validated against a formal update ZIP."
+elif [[ -z "$formal_update_archive" ]]; then
+    add_check_row "Sparkle appcast" "FAIL" "--appcast also requires --formal-update-archive."
+    add_blocker "Appcast validation requires the exact formal update ZIP."
+else
+    expected_public_key="$(
+        /usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' \
+            "$REPO_ROOT/MacPasteHistory/Resources/Info.plist" 2>/dev/null || true
+    )"
+    if ! run_capture \
+        "Sparkle appcast" \
+        "$REPO_ROOT/scripts/verify-sparkle-appcast.sh" \
+        --appcast "$appcast_path" \
+        --archive "$formal_update_archive" \
+        --expected-public-key "$expected_public_key"; then
+        add_blocker "Sparkle appcast failed URL, length, signature, checksum, version, bundle ID, or public-key validation."
+    fi
 fi
 
 if ! run_capture "App icon assets" "$REPO_ROOT/scripts/verify-app-icon-assets.sh"; then
@@ -350,6 +612,9 @@ else
 fi
 
 release_app_signature_args=("$REPO_ROOT/scripts/verify-release-app-signature.sh")
+if [[ -d "$formal_app_path" ]]; then
+    release_app_signature_args+=("--app" "$formal_app_path")
+fi
 if [[ "$allow_adhoc" -eq 1 ]]; then
     release_app_signature_args+=("--allow-adhoc")
 fi
@@ -387,6 +652,10 @@ fi
 manual_args+=("$manual_record")
 if ! run_capture "Manual QA record" "${manual_args[@]}"; then
     add_blocker "Manual QA record is incomplete or still contains release blockers."
+fi
+
+if ! run_capture "V1.0.0 → V1.0.1 upgrade evidence" verify_upgrade_evidence "$manual_record"; then
+    add_warning "V1.0.0 → V1.0.1 upgrade evidence is incomplete; final release approval is blocked in --strict-final mode."
 fi
 
 git_status="$(git status --short)"
@@ -436,6 +705,9 @@ Generated: $generated_at
 | Release smoke skipped | \`$([[ "$skip_release_smoke" -eq 1 ]] && printf "yes" || printf "no")\` |
 | Install preflight skipped | \`$([[ "$skip_install_preflight" -eq 1 ]] && printf "yes" || printf "no")\` |
 | Strict final mode | \`$([[ "$strict_final" -eq 1 ]] && printf "yes" || printf "no")\` |
+| Formal update archive | \`$(escape_table_cell "${formal_update_archive:-not provided}")\` |
+| Appcast | \`$(escape_table_cell "${appcast_path:-not provided}")\` |
+| OpenSpec change | \`$(escape_table_cell "$openspec_change")\` |
 
 ## Automated Checks
 
@@ -484,6 +756,7 @@ EOF
 
     echo "| Progress | Value |"
     echo "|---|---|"
+    echo "| Change | \`$openspec_change\` |"
     echo "| Complete | \`$openspec_progress_complete/$openspec_progress_total\` |"
     echo "| Remaining | \`$openspec_progress_remaining\` |"
     echo
@@ -503,6 +776,8 @@ EOF
 ## Manual Evidence Still Required
 
 - Signed Release build with the intended distribution certificate and Team ID.
+- Developer ID notarization and a verified Sparkle appcast/formal ZIP pair.
+- Direct V1.0.0 → V1.0.1 manual and automatic update evidence, including restart and data preservation.
 - Menu bar, history window, restore, delete, clear-all, pause, blacklist, and launch-at-login manual QA.
 - Apple Silicon, Intel, and supported macOS version coverage or explicit release decision records.
 - Final reviewer decision in the manual QA record.
@@ -519,91 +794,163 @@ EOF
 emit_json_summary() {
     local tmp_dir
     tmp_dir="$(mktemp -d)"
-    local checks_path="$tmp_dir/checks.tsv"
-    local blockers_path="$tmp_dir/blockers.txt"
-    local warnings_path="$tmp_dir/warnings.txt"
-    local openspec_tasks_path="$tmp_dir/openspec-tasks.tsv"
+    local checks_path="$tmp_dir/checks.nul"
+    local blockers_path="$tmp_dir/blockers.nul"
+    local warnings_path="$tmp_dir/warnings.nul"
+    local openspec_tasks_path="$tmp_dir/openspec-tasks.nul"
 
     local index
+    : >"$checks_path"
     for index in "${!check_names[@]}"; do
-        printf "%s\t%s\t%s\n" "${check_names[$index]}" "${check_statuses[$index]}" "${check_notes[$index]}"
-    done >"$checks_path"
+        printf '%s\0%s\0%s\0' \
+            "${check_names[$index]}" \
+            "${check_statuses[$index]}" \
+            "${check_notes[$index]}" >>"$checks_path"
+    done
 
+    : >"$blockers_path"
     if [[ "${#blockers[@]}" -gt 0 ]]; then
-        printf "%s\n" "${blockers[@]}" >"$blockers_path"
-    else
-        : >"$blockers_path"
+        printf '%s\0' "${blockers[@]}" >"$blockers_path"
     fi
+    : >"$warnings_path"
     if [[ "${#warnings[@]}" -gt 0 ]]; then
-        printf "%s\n" "${warnings[@]}" >"$warnings_path"
-    else
-        : >"$warnings_path"
+        printf '%s\0' "${warnings[@]}" >"$warnings_path"
     fi
+    : >"$openspec_tasks_path"
     if [[ "${#openspec_remaining_tasks[@]}" -gt 0 ]]; then
-        printf "%s\n" "${openspec_remaining_tasks[@]}" >"$openspec_tasks_path"
-    else
-        : >"$openspec_tasks_path"
+        local task_row task_id task_description
+        for task_row in "${openspec_remaining_tasks[@]}"; do
+            task_id="${task_row%%$'\t'*}"
+            task_description="${task_row#*$'\t'}"
+            printf '%s\0%s\0' "$task_id" "$task_description" >>"$openspec_tasks_path"
+        done
     fi
 
     mkdir -p "$(dirname "$json_output_path")"
-    python3 - "$json_output_path" "$checks_path" "$blockers_path" "$warnings_path" "$openspec_tasks_path" <<PY
+    python3 - \
+        "$json_output_path" \
+        "$checks_path" \
+        "$blockers_path" \
+        "$warnings_path" \
+        "$openspec_tasks_path" \
+        "$generated_at" \
+        "$REPO_ROOT" \
+        "$git_commit" \
+        "$macos_version" \
+        "$macos_build" \
+        "$machine_arch" \
+        "$xcode_path" \
+        "$xcode_version" \
+        "$first_launch_status" \
+        "$license_status" \
+        "$manual_record_display" \
+        "$qa_session_display" \
+        "$allow_adhoc" \
+        "$skip_release_smoke" \
+        "$skip_install_preflight" \
+        "$strict_final" \
+        "$formal_update_archive" \
+        "$appcast_path" \
+        "$openspec_change" \
+        "$openspec_progress_total" \
+        "$openspec_progress_complete" \
+        "$openspec_progress_remaining" <<'PY'
 import json
 import sys
 
-json_path, checks_path, blockers_path, warnings_path, openspec_tasks_path = sys.argv[1:6]
+(
+    json_path,
+    checks_path,
+    blockers_path,
+    warnings_path,
+    openspec_tasks_path,
+    generated_at,
+    repository,
+    git_commit,
+    macos_version,
+    macos_build,
+    architecture,
+    xcode_path,
+    xcode_version,
+    first_launch_status,
+    license_status,
+    manual_record,
+    qa_session,
+    allow_adhoc,
+    skip_release_smoke,
+    skip_install_preflight,
+    strict_final,
+    formal_update_archive,
+    appcast,
+    openspec_change,
+    openspec_total,
+    openspec_complete,
+    openspec_remaining,
+) = sys.argv[1:]
 
-checks = []
-with open(checks_path, encoding="utf-8") as handle:
-    for line in handle:
-        name, status, notes = line.rstrip("\n").split("\t", 2)
-        checks.append({"name": name, "status": status, "notes": notes})
+def read_nul_values(path):
+    with open(path, "rb") as handle:
+        data = handle.read()
+    if not data:
+        return []
+    values = data.split(b"\0")
+    if values[-1] == b"":
+        values.pop()
+    return [value.decode("utf-8") for value in values]
 
-def read_lines(path):
-    with open(path, encoding="utf-8") as handle:
-        return [line.rstrip("\n") for line in handle if line.strip()]
+def grouped(values, size, label):
+    if len(values) % size != 0:
+        raise ValueError(f"malformed {label} transport")
+    return [values[index:index + size] for index in range(0, len(values), size)]
 
-def read_openspec_tasks(path):
-    tasks = []
-    with open(path, encoding="utf-8") as handle:
-        for line in handle:
-            line = line.rstrip("\n")
-            if not line:
-                continue
-            task_id, description = line.split("\t", 1)
-            tasks.append({"id": task_id, "description": description})
-    return tasks
+checks = [
+    {"name": name, "status": status, "notes": notes}
+    for name, status, notes in grouped(read_nul_values(checks_path), 3, "checks")
+]
+blockers = read_nul_values(blockers_path)
+warnings = read_nul_values(warnings_path)
+openspec_tasks = [
+    {"id": task_id, "description": description}
+    for task_id, description in grouped(
+        read_nul_values(openspec_tasks_path), 2, "OpenSpec tasks"
+    )
+]
 
 payload = {
-    "status": "fail" if read_lines(blockers_path) else "pass",
-    "generatedAt": "$generated_at",
-    "repository": "$REPO_ROOT",
-    "gitCommit": "$git_commit",
-    "macOS": {"version": "$macos_version", "build": "$macos_build"},
-    "architecture": "$machine_arch",
+    "status": "fail" if blockers else "pass",
+    "generatedAt": generated_at,
+    "repository": repository,
+    "gitCommit": git_commit,
+    "macOS": {"version": macos_version, "build": macos_build},
+    "architecture": architecture,
     "xcode": {
-        "developerDirectory": "$xcode_path",
-        "version": "$xcode_version",
-        "firstLaunchStatus": "$first_launch_status",
-        "licenseStatus": "$license_status",
+        "developerDirectory": xcode_path,
+        "version": xcode_version,
+        "firstLaunchStatus": first_launch_status,
+        "licenseStatus": license_status,
     },
-    "manualQaRecord": "$manual_record_display",
-    "manualQaSession": "$qa_session_display",
-    "internalAdhocMode": bool($allow_adhoc),
-    "releaseSmokeSkipped": bool($skip_release_smoke),
-    "installPreflightSkipped": bool($skip_install_preflight),
-    "strictFinalMode": bool($strict_final),
+    "manualQaRecord": manual_record,
+    "manualQaSession": qa_session,
+    "internalAdhocMode": allow_adhoc == "1",
+    "releaseSmokeSkipped": skip_release_smoke == "1",
+    "installPreflightSkipped": skip_install_preflight == "1",
+    "strictFinalMode": strict_final == "1",
+    "formalUpdateArchive": formal_update_archive,
+    "appcast": appcast,
     "openSpecProgress": {
-        "change": "prepare-release-testing-and-store-assets",
-        "total": int("$openspec_progress_total"),
-        "complete": int("$openspec_progress_complete"),
-        "remaining": int("$openspec_progress_remaining"),
+        "change": openspec_change,
+        "total": int(openspec_total),
+        "complete": int(openspec_complete),
+        "remaining": int(openspec_remaining),
     },
-    "openSpecRemainingTasks": read_openspec_tasks(openspec_tasks_path),
+    "openSpecRemainingTasks": openspec_tasks,
     "checks": checks,
-    "blockers": read_lines(blockers_path),
-    "warnings": read_lines(warnings_path),
+    "blockers": blockers,
+    "warnings": warnings,
     "manualEvidenceStillRequired": [
         "Signed Release build with the intended distribution certificate and Team ID.",
+        "Developer ID notarization and a verified Sparkle appcast/formal ZIP pair.",
+        "Direct V1.0.0 to V1.0.1 manual and automatic update evidence, including restart and data preservation.",
         "Menu bar, history window, restore, delete, clear-all, pause, blacklist, and launch-at-login manual QA.",
         "Apple Silicon, Intel, and supported macOS version coverage or explicit release decision records.",
         "Final reviewer decision in the manual QA record.",

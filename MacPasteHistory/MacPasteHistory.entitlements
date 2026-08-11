@@ -11,9 +11,11 @@
     <key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
     <array>
         <string>com.apple.coreaudio</string>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER)-spks</string>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER)-spki</string>
     </array>
 
-    <!-- 网络：首版无需网络访问，保持关闭 -->
+    <!-- 网络由 Sparkle Downloader XPC 隔离处理，主应用保持关闭 -->
     <key>com.apple.security.network.client</key>
     <false/>
     <key>com.apple.security.network.server</key>

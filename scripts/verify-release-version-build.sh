@@ -6,8 +6,8 @@ INFO_PLIST="$REPO_ROOT/MacPasteHistory/Resources/Info.plist"
 RELEASE_GUIDE="$REPO_ROOT/docs/release/RELEASE_PREP_GUIDE.md"
 MANUAL_QA_RECORD="$REPO_ROOT/docs/release/manual-qa-record.md"
 
-EXPECTED_VERSION="1.0.0"
-EXPECTED_BUILD="1"
+EXPECTED_VERSION="1.0.1"
+EXPECTED_BUILD="2"
 EXPECTED_VERSION_BUILD="$EXPECTED_VERSION ($EXPECTED_BUILD)"
 
 add_violation() {
@@ -32,23 +32,23 @@ if [[ "$plist_build" != "$EXPECTED_BUILD" ]]; then
     add_violation "Info.plist CFBundleVersion is '$plist_build', expected '$EXPECTED_BUILD'."
 fi
 
-if ! grep -q "版本.*v$EXPECTED_VERSION" "$RELEASE_GUIDE"; then
+if ! grep -Fq "> **版本**: v$EXPECTED_VERSION |" "$RELEASE_GUIDE"; then
     add_violation "Release guide header does not mention v$EXPECTED_VERSION."
 fi
 
-if ! grep -q "CFBundleShortVersionString\`: \`$EXPECTED_VERSION\`" "$RELEASE_GUIDE"; then
+if ! grep -Fq "CFBundleShortVersionString\`: \`$EXPECTED_VERSION\`" "$RELEASE_GUIDE"; then
     add_violation "Release guide does not document CFBundleShortVersionString as $EXPECTED_VERSION."
 fi
 
-if ! grep -q "CFBundleVersion\`: \`$EXPECTED_BUILD\`" "$RELEASE_GUIDE"; then
+if ! grep -Fq "CFBundleVersion\`: \`$EXPECTED_BUILD\`" "$RELEASE_GUIDE"; then
     add_violation "Release guide does not document CFBundleVersion as $EXPECTED_BUILD."
 fi
 
-if ! grep -q "版本号为 \`$EXPECTED_VERSION_BUILD\`" "$RELEASE_GUIDE"; then
+if ! grep -Fq "版本号为 \`$EXPECTED_VERSION_BUILD\`" "$RELEASE_GUIDE"; then
     add_violation "Release guide acceptance checklist does not mention version $EXPECTED_VERSION_BUILD."
 fi
 
-if ! grep -q "| Version / build | \`$EXPECTED_VERSION_BUILD\` |" "$MANUAL_QA_RECORD"; then
+if ! grep -Fq "| Version / build | \`$EXPECTED_VERSION_BUILD\` |" "$MANUAL_QA_RECORD"; then
     add_violation "Manual QA record template does not use Version / build '$EXPECTED_VERSION_BUILD'."
 fi
 

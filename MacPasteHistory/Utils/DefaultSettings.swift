@@ -10,4 +10,5 @@ enum DefaultSettings {
     static let captureEventAggregationRetentionDays = 30
     static let shouldRecordText = true
     static let shouldRecordImage = true
+    static let filterSensitiveContent = true
 }

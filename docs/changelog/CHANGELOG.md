@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## 1.0.1 - 2026-08-11
+
+### Added
+
+- Added a user-controlled sensitive-content filter that remains enabled by default and requires an explicit local-storage risk confirmation before first being disabled.
+- Added an About & Updates settings page with Bundle-derived application name, version, and build information.
+- Added automatic and on-demand update checks plus Sparkle-based verification, installation, and relaunch support for formally published GitHub-hosted updates.
+
+### Fixed
+
+- Fixed intentional local capture of long technical text, including multiline cURL-style commands and documentation containing URLs, Chinese text, quotes, and Emoji, when sensitive-content filtering has been explicitly disabled.
+- Kept ordinary long text eligible while filtering is enabled; length alone is not treated as a sensitive-content match.
+
+### Security
+
+- Preserved sensitive filtering as the missing-preference default for new and upgraded installations.
+- Added a warning that disabling filtering may save password- or token-like text in the local unencrypted SQLite history database.
+- Kept clipboard payloads out of application logs and update requests; update checks contact only the configured GitHub-hosted update endpoints.
+- Added fail-closed Sparkle configuration, sandbox, archive, checksum, appcast, version, and bundle verification tooling. Developer ID signing, notarization, genuine EdDSA release artifacts, and end-to-end public upgrade evidence remain release gates rather than claimed completion.
+
 ## 1.0.0 - 2026-08-10
 
 ### Added

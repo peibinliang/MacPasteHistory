@@ -126,6 +126,12 @@
 /* SettingsView - Privacy And Shortcuts */
 "Privacy Controls" = "Privacy Controls";
 "Pause recording" = "Pause recording";
+"Filter sensitive content" = "Filter sensitive content";
+"Disable Sensitive Content Filtering?" = "Disable Sensitive Content Filtering?";
+"Detected passwords, tokens, identity numbers, and payment card numbers may be stored in the local unencrypted history database." = "Detected passwords, tokens, identity numbers, and payment card numbers may be stored in the local unencrypted history database.";
+"Keep Filtering" = "Keep Filtering";
+"Disable Filtering" = "Disable Filtering";
+"When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved." = "When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved.";
 "App name" = "App name";
 "Add" = "Add";
 "Block Current App" = "Block Current App";
@@ -270,3 +276,15 @@
 "Edited result" = "Edited result";
 "Recognized text" = "Recognized text";
 "Text recognition failed" = "Text recognition failed";
+
+/* SettingsView - About */
+"About & Updates" = "About & Updates";
+"Version information and software updates" = "Version information and software updates";
+"Version %@ (Build %@)" = "Version %@ (Build %@)";
+"View on GitHub" = "View on GitHub";
+"Automatically check for updates" = "Automatically check for updates";
+"Check for Updates…" = "Check for Updates…";
+"Checking for updates…" = "Checking for updates…";
+"You're up to date." = "You're up to date.";
+"Update %@ is available." = "Update %@ is available.";
+"Update check failed: %@" = "Update check failed: %@";

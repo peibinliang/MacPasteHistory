@@ -43,6 +43,15 @@ final class ClipboardReaderTests: XCTestCase {
         XCTAssertNil(text)
     }
 
+    func testReadPlainText_whenTextIsLongAndMultiline_shouldNotTruncateContent() {
+        let original = String(repeating: "line with 中文 and emoji 😊\n", count: 500)
+        pasteboard.setString(original, forType: .string)
+
+        let result = ClipboardReader(pasteboard: pasteboard).readPlainText()
+
+        XCTAssertEqual(result, original.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
     func testReadImage_whenPasteboardContainsPNG_shouldReturnPNGImageCandidate() throws {
         let pngData = try makePNGData(width: 12, height: 8)
         pasteboard.setData(pngData, forType: .png)
