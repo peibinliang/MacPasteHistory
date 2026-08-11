@@ -65,6 +65,45 @@ final class ImageStorageServiceTests: XCTestCase {
         XCTAssertThrowsError(try service.storeImage(candidate))
     }
 
+    func testDeleteImageFiles_whenPathsAreOutsideManagedRoots_shouldLeaveFilesUntouched() throws {
+        try FileManager.default.createDirectory(at: rootURL, withIntermediateDirectories: true)
+        let outsideURL = rootURL.appendingPathComponent("outside.png")
+        try Data("outside".utf8).write(to: outsideURL)
+
+        service.deleteImageFiles(filePath: outsideURL.path, thumbnailPath: outsideURL.path)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: outsideURL.path))
+    }
+
+    func testDeleteImageFiles_whenManagedPathIsSymlinkToOutsideFile_shouldLeaveBothUntouched() throws {
+        try FileManager.default.createDirectory(at: rootURL, withIntermediateDirectories: true)
+        let outsideURL = rootURL.appendingPathComponent("outside.png")
+        try Data("outside".utf8).write(to: outsideURL)
+        try FileManager.default.createDirectory(at: imagesURL, withIntermediateDirectories: true)
+        let symlinkURL = imagesURL.appendingPathComponent("linked.png")
+        try FileManager.default.createSymbolicLink(at: symlinkURL, withDestinationURL: outsideURL)
+
+        service.deleteImageFiles(filePath: symlinkURL.path, thumbnailPath: nil)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: outsideURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: symlinkURL.path))
+    }
+
+    func testDeleteAllFiles_whenManagedRootIsSymlinkToOutsideDirectory_shouldLeaveOutsideFilesUntouched() throws {
+        try FileManager.default.createDirectory(at: rootURL, withIntermediateDirectories: true)
+        let outsideDirectory = rootURL.appendingPathComponent("outside", isDirectory: true)
+        try FileManager.default.createDirectory(at: outsideDirectory, withIntermediateDirectories: true)
+        let outsideFile = outsideDirectory.appendingPathComponent("keep.png")
+        try Data("outside".utf8).write(to: outsideFile)
+        try FileManager.default.createSymbolicLink(at: imagesURL, withDestinationURL: outsideDirectory)
+        try FileManager.default.createDirectory(at: thumbnailsURL, withIntermediateDirectories: true)
+
+        try service.deleteAllFiles()
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: outsideFile.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: imagesURL.path))
+    }
+
     private func makeCandidate(width: Int, height: Int) throws -> ClipboardImageCandidate {
         let image = NSImage(size: NSSize(width: width, height: height))
         image.lockFocus()

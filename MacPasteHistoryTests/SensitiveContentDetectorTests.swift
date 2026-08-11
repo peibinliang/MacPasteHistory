@@ -29,6 +29,22 @@ final class SensitiveContentDetectorTests: XCTestCase {
         XCTAssertFalse(result.reason.rawValue.contains("TEST-PASSWORD-ONLY"))
     }
 
+    func testDetect_whenCredentialAssignmentUsesPrefixedEnvironmentKey_shouldBlockPersistence() {
+        let samples = [
+            "OPENAI_API_KEY=TEST_OPENAI_KEY_0123456789",
+            "DASHSCOPE_API_KEY=TEST_DASHSCOPE_KEY_0123456789",
+            "MY_ACCESS_TOKEN=TEST_ACCESS_TOKEN_0123456789",
+            "AWS_SECRET_ACCESS_KEY=TEST_AWS_SECRET_0123456789"
+        ]
+
+        for sample in samples {
+            let result = SensitiveContentDetector.detect(sample)
+
+            XCTAssertEqual(result.category, .credential, "Expected prefixed credential key to be detected")
+            XCTAssertTrue(result.shouldBlockPersistence)
+        }
+    }
+
     func testDetect_whenValidatedCardMatches_shouldReturnCardResult() {
         let result = SensitiveContentDetector.detect("4111111111111111")
 

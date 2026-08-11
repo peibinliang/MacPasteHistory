@@ -482,7 +482,7 @@ struct MainPanelView: View {
     }
 
     private func restoreAndShowFeedback(_ item: ClipboardHistoryItem) {
-        viewModel.restore(item)
+        guard viewModel.restore(item) else { return }
         showCopyToast()
     }
 

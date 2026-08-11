@@ -98,7 +98,7 @@ struct UserSensitiveContentRule: SensitiveContentRule {
 
 private struct CredentialSensitiveContentRule: SensitiveContentRule {
     private let assignmentRegex = try? NSRegularExpression(
-        pattern: #"(?i)\b(password|passwd|pwd|api[_-]?key|access[_-]?token)\b\s*[:=]\s*["']?\S+"#
+        pattern: #"(?i)(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-])*(?:password|passwd|pwd|api[_-]?key|access[_-]?token|secret[_-]?access[_-]?key)\b\s*[:=]\s*["']?\S+"#
     )
     private let authorizationRegex = try? NSRegularExpression(
         pattern: #"(?i)(\bauthorization\s*:\s*)?\b(bearer|basic)\s+[A-Za-z0-9+/_=.\-]{20,}"#
@@ -125,7 +125,7 @@ private struct CredentialSensitiveContentRule: SensitiveContentRule {
 
 private struct ContextualSecretContentRule: SensitiveContentRule {
     private let regex = try? NSRegularExpression(
-        pattern: #"(?i)\b(secret(?:[_-]?key)?|client[_-]?secret)\b\s*[:=]\s*["']?\S+"#
+        pattern: #"(?i)(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-])*(?:secret(?:[_-]?key)?|client[_-]?secret)\b\s*[:=]\s*["']?\S+"#
     )
 
     func match(in text: String) -> SensitiveDetectionResult? {
