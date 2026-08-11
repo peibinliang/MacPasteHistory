@@ -6,9 +6,9 @@
 
 ## 2. Clipboard Source Capture Consistency
 
-- [x] 2.1 Add failing text and image tests proving the source provider is called once and a rapid foreground-app switch cannot bypass blocked-app privacy; validate RED and commit the test checkpoint
+- [x] 2.1 Add failing text and image tests proving the source provider is called once and a foreground-app switch after capture-context creation cannot change blocked-app privacy or persisted source; validate RED and commit the test checkpoint
 - [x] 2.2 Introduce an immutable capture context and pass it through privacy, text/image persistence, and capture-event creation; validate targeted GREEN and commit the implementation checkpoint
-- [ ] 2.3 Add unknown-source and duplicate-capture regression coverage, update capture/privacy development docs, and run the capture QA subset
+- [x] 2.3 Add unknown-source and duplicate-capture regression coverage, update capture/privacy development docs, and run the capture QA subset
 
 ## 3. Sensitive Detector V2
 
@@ -44,7 +44,7 @@
 
 ## 8. SQLite Concurrency Governance
 
-- [ ] 8.1 Add a representative V1.0.2 build 4 database fixture plus deterministic integration tests for overlapping capture writes/search reads, bounded busy handling, rollback, reopen, sidecar lifecycle, and fixture upgrade under the current journal mode
+- [ ] 8.1 Add a representative V1.0.2 build 4 database fixture plus deterministic integration tests for overlapping capture writes/search reads, bounded busy handling, rollback, reopen, sidecar lifecycle, same-second recapture ordering/time precision, and fixture upgrade under the current journal mode
 - [ ] 8.2 Run the same matrix with WAL as an isolated experiment and record comparative correctness/performance evidence
 - [ ] 8.3 Keep the current journal mode if any gate fails, or implement/document explicit WAL, busy timeout, checkpoint and transaction ownership if every gate passes; commit the evidence-backed decision
 - [ ] 8.4 Update immutable migration, schema, architecture and recovery documentation only if the accepted configuration requires them; validate old-database upgrade again

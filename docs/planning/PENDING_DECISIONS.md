@@ -8,3 +8,4 @@
 | PD-002 | 待决策 | 全版本 | Tag 是否从下一版本起统一使用小写 `v`？当前存在 `v1.0.0`、`v1.0.1` 与 `V1.0.2` 混用。 | 不修改历史 Tag；V1.0.3 完成前不创建新 Tag。 | 影响版本命名一致性和自动化脚本。 |
 | PD-003 | 待决策 | V1.0.x | 旧 OpenSpec 中依赖证书、Intel 机器或真实升级链路的未完成 QA 项应补齐、豁免还是迁移到独立 Release Task？ | 保留原勾选状态和证据，不虚假完成；新版本需求单独跟踪。 | 影响旧变更归档，不阻塞本地代码迭代。 |
 | PD-004 | 待决策 | V1.1 | V1.1 采用一个总 OpenSpec change，还是按 Slots、Tags/Collections、App Rules、FTS5 拆分多个 change？ | V1.0.3 完成前不提前实现；建议同一 release 分支内按能力拆成可独立审查的 change。 | 影响 V1.1 排期、migration 次数和 Review 粒度。 |
+| PD-005 | 待决策 | V1.0.3 | 是否接受“来源应用为轮询观察时的前台 App”这一 macOS 限制？如果用户复制后在下一次 0.5 秒轮询前切换 App，pasteboard 不提供真实复制来源；项目规则禁止用键盘监听推断复制。 | 当前只保证 capture pipeline 开始后来源快照不漂移；文档明确为 best-effort，不宣称可防住轮询前切换。 | 若不接受，需要批准并另行设计更强来源信号及其 Accessibility/隐私成本；当前 blocked-app 功能不能作为绝对安全边界。 |

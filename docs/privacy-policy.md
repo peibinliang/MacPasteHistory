@@ -36,7 +36,7 @@ Users may disable the filter under **Settings → Privacy → Filter sensitive c
 
 ## App Blocking And Pause Controls
 
-The capture pipeline supports paused recording and blocked application checks. When recording is paused or the foreground app is blocked, matching clipboard changes are skipped. Users should verify blocked-app behavior in their own environment before relying on it for high-risk workflows.
+The capture pipeline supports paused recording and blocked application checks. For each observed pasteboard change, the app resolves the current foreground application once and reuses that immutable snapshot for the blocked-app decision, history metadata, and capture event. Switching to another foreground app after processing begins does not replace that snapshot. macOS pasteboard data does not identify which process performed the copy, so switching apps before the polling loop observes the change can cause the later foreground app to be used; blocked-app filtering is best-effort and is not an absolute security boundary. When recording is paused or the captured source app is blocked, matching clipboard changes are skipped.
 
 ## User Controls
 

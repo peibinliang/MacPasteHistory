@@ -49,10 +49,13 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
     }
 
     func testSaveText_shouldCreateCaptureEventForNewAndDuplicateCaptures() throws {
+        let firstCapturedAt = try XCTUnwrap(Self.date("2026-08-11 10:00:00"))
+        let secondCapturedAt = try XCTUnwrap(Self.date("2026-08-11 10:05:00"))
         let firstItem = try repository.saveText(
             "captured text",
             sourceApp: "Old Source",
-            sourceBundleID: "com.example.old"
+            sourceBundleID: "com.example.old",
+            capturedAt: firstCapturedAt
         )
         try database.execute("""
         UPDATE clipboard_history
@@ -65,7 +68,8 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
         let duplicateItem = try repository.saveText(
             "captured text",
             sourceApp: "Latest Source",
-            sourceBundleID: "com.example.latest"
+            sourceBundleID: "com.example.latest",
+            capturedAt: secondCapturedAt
         )
         let events = try repository.fetchCaptureEvents(
             historyID: firstItem.id,
@@ -78,9 +82,10 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
         XCTAssertEqual(duplicateItem.sourceBundleID, "com.example.latest")
         XCTAssertEqual(duplicateItem.createdAt, Self.date("2020-01-01 00:00:00"))
         XCTAssertEqual(duplicateItem.firstCapturedAt, Self.date("2020-01-01 00:00:00"))
-        XCTAssertGreaterThan(duplicateItem.lastCapturedAt ?? .distantPast, duplicateItem.firstCapturedAt ?? .distantFuture)
+        XCTAssertEqual(duplicateItem.lastCapturedAt, secondCapturedAt)
         XCTAssertEqual(events.count, 2)
         XCTAssertEqual(events.map(\.sourceApp), ["Latest Source", "Old Source"])
+        XCTAssertEqual(events.map(\.capturedAt), [secondCapturedAt, firstCapturedAt])
     }
 
     func testFetchTextHistory_whenKeywordProvided_shouldReturnMatchingRecords() throws {

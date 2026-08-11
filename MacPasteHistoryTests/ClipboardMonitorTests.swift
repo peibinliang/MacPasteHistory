@@ -78,6 +78,25 @@ final class ClipboardMonitorTests: XCTestCase {
         XCTAssertEqual(events.first?.sourceBundleID, item.sourceBundleID)
     }
 
+    func testPollOnce_whenSourceApplicationIsUnavailable_shouldPersistOneUnknownSourceSnapshot() throws {
+        let sourceProvider = SequencedSourceApplicationProvider(sources: [
+            SourceApplication(name: nil, bundleID: nil),
+            SourceApplication(name: "Later App", bundleID: "com.example.later")
+        ])
+        let monitor = makeMonitor(sourceApplicationProvider: sourceProvider)
+        _ = pasteboard.setString("unknown source note", forType: .string)
+
+        monitor.pollOnce()
+
+        let item = try XCTUnwrap(repository.fetchTextHistory(matching: nil).first)
+        let event = try XCTUnwrap(repository.fetchCaptureEvents(historyID: item.id, since: .distantPast).first)
+        XCTAssertEqual(sourceProvider.callCount, 1)
+        XCTAssertNil(item.sourceApp)
+        XCTAssertNil(item.sourceBundleID)
+        XCTAssertNil(event.sourceApp)
+        XCTAssertNil(event.sourceBundleID)
+    }
+
     func testPollOnce_whenTextIsSQLOrShell_shouldPersistCompleteClassification() throws {
         let monitor = makeMonitor()
         _ = pasteboard.setString("SELECT id FROM users WHERE active = 1", forType: .string)
