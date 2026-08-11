@@ -126,6 +126,12 @@
 /* SettingsView - Privacy And Shortcuts */
 "Privacy Controls" = "隱私控制";
 "Pause recording" = "暫停記錄";
+"Filter sensitive content" = "過濾敏感內容";
+"Disable Sensitive Content Filtering?" = "要關閉敏感內容過濾嗎？";
+"Detected passwords, tokens, identity numbers, and payment card numbers may be stored in the local unencrypted history database." = "偵測到的密碼、權杖、身分證號碼和支付卡號可能會儲存在本機未加密的歷史資料庫中。";
+"Keep Filtering" = "保持過濾";
+"Disable Filtering" = "關閉過濾";
+"When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved." = "啟用後，偵測到的密碼、權杖、身分證號碼和支付卡號將不會被儲存。";
 "App name" = "應用程式名稱";
 "Add" = "新增";
 "Block Current App" = "加入目前應用程式";

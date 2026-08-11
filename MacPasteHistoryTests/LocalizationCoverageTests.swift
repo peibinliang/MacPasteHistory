@@ -14,7 +14,11 @@ final class LocalizationCoverageTests: XCTestCase {
             "url.encode-query-value", "url.decode", "url.extract-host", "url.parse-query", "sql.single-line", "shell.quote-argument",
             "header", "payload", "summary", "local", "utc", "iso8601", "seconds", "milliseconds", "Unsupported for this content",
             "content-type.plain-text", "content-type.image", "content-type.json", "content-type.url", "content-type.base64",
-            "content-type.jwt", "content-type.timestamp", "content-type.sql", "content-type.shell", "Space", "Return"
+            "content-type.jwt", "content-type.timestamp", "content-type.sql", "content-type.shell", "Space", "Return",
+            "Filter sensitive content", "Disable Sensitive Content Filtering?",
+            "Detected passwords, tokens, identity numbers, and payment card numbers may be stored in the local unencrypted history database.",
+            "Keep Filtering", "Disable Filtering",
+            "When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved."
         ]
         let localizations = ["en", "zh-Hans", "zh-Hant"]
 

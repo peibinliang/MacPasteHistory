@@ -61,6 +61,43 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testRequestSensitiveFilteringDisabled_whenRiskNotAcknowledged_shouldKeepEnabledAndRequestConfirmation() {
+        let viewModel = makeViewModel()
+        viewModel.loadSettings()
+
+        viewModel.requestSensitiveContentFiltering(false)
+
+        XCTAssertTrue(viewModel.filterSensitiveContent)
+        XCTAssertTrue(viewModel.showSensitiveContentWarning)
+        XCTAssertTrue(config.filterSensitiveContent)
+    }
+
+    @MainActor
+    func testConfirmSensitiveFilteringDisabled_shouldPersistChoiceAndAcknowledgement() {
+        let viewModel = makeViewModel()
+
+        viewModel.requestSensitiveContentFiltering(false)
+        viewModel.confirmSensitiveContentFilteringDisabled()
+
+        XCTAssertFalse(viewModel.filterSensitiveContent)
+        XCTAssertFalse(viewModel.showSensitiveContentWarning)
+        XCTAssertFalse(config.filterSensitiveContent)
+        XCTAssertTrue(config.hasAcknowledgedSensitiveContentRisk)
+    }
+
+    @MainActor
+    func testRequestSensitiveFilteringDisabled_whenRiskAlreadyAcknowledged_shouldDisableImmediately() {
+        config.hasAcknowledgedSensitiveContentRisk = true
+        let viewModel = makeViewModel()
+        viewModel.loadSettings()
+
+        viewModel.requestSensitiveContentFiltering(false)
+
+        XCTAssertFalse(viewModel.filterSensitiveContent)
+        XCTAssertFalse(viewModel.showSensitiveContentWarning)
+    }
+
+    @MainActor
     func testLoadAndUpdateAppearance_shouldPersistAndApplyImmediately() {
         config.appAppearance = .dark
         var appliedAppearances: [AppAppearance] = []

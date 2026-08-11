@@ -5,6 +5,8 @@ import Combine
 final class SettingsViewModel: ObservableObject {
     @Published var shouldRecordText = DefaultSettings.shouldRecordText
     @Published var shouldRecordImage = DefaultSettings.shouldRecordImage
+    @Published var filterSensitiveContent = DefaultSettings.filterSensitiveContent
+    @Published var showSensitiveContentWarning = false
     @Published var launchAtStartup = false
     @Published var showDockIcon = false
     @Published var historyRetentionDays = DefaultSettings.historyRetentionDays
@@ -57,6 +59,7 @@ final class SettingsViewModel: ObservableObject {
     func loadSettings() {
         shouldRecordText = config.shouldRecordText
         shouldRecordImage = config.shouldRecordImage
+        filterSensitiveContent = config.filterSensitiveContent
         launchAtStartup = config.launchAtStartup
         showDockIcon = config.showDockIcon
         historyRetentionDays = config.historyRetentionDays
@@ -76,6 +79,35 @@ final class SettingsViewModel: ObservableObject {
 
     func updateShouldRecordImage(_ value: Bool) {
         config.shouldRecordImage = value
+    }
+
+    func requestSensitiveContentFiltering(_ enabled: Bool) {
+        if enabled {
+            config.filterSensitiveContent = true
+            filterSensitiveContent = true
+            return
+        }
+
+        guard config.hasAcknowledgedSensitiveContentRisk else {
+            filterSensitiveContent = true
+            showSensitiveContentWarning = true
+            return
+        }
+
+        config.filterSensitiveContent = false
+        filterSensitiveContent = false
+    }
+
+    func confirmSensitiveContentFilteringDisabled() {
+        config.hasAcknowledgedSensitiveContentRisk = true
+        config.filterSensitiveContent = false
+        filterSensitiveContent = false
+        showSensitiveContentWarning = false
+    }
+
+    func cancelSensitiveContentFilteringDisabled() {
+        filterSensitiveContent = true
+        showSensitiveContentWarning = false
     }
 
     func updateLaunchAtStartup(_ value: Bool) {

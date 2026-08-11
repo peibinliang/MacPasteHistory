@@ -59,6 +59,19 @@ struct SettingsView: View {
         } message: {
             Text(L10n.string("The app needs to restart to apply the new language. Would you like to restart now?"))
         }
+        .alert(
+            L10n.string("Disable Sensitive Content Filtering?"),
+            isPresented: $viewModel.showSensitiveContentWarning
+        ) {
+            Button(L10n.string("Keep Filtering"), role: .cancel) {
+                viewModel.cancelSensitiveContentFilteringDisabled()
+            }
+            Button(L10n.string("Disable Filtering"), role: .destructive) {
+                viewModel.confirmSensitiveContentFilteringDisabled()
+            }
+        } message: {
+            Text(L10n.string("Detected passwords, tokens, identity numbers, and payment card numbers may be stored in the local unencrypted history database."))
+        }
     }
 
     @ViewBuilder
@@ -137,6 +150,14 @@ struct SettingsView: View {
                 .onChange(of: viewModel.recordingPaused) { _, newValue in
                     viewModel.updateRecordingPaused(newValue)
                 }
+
+            Toggle(L10n.string("Filter sensitive content"), isOn: $viewModel.filterSensitiveContent)
+                .onChange(of: viewModel.filterSensitiveContent) { _, enabled in
+                    viewModel.requestSensitiveContentFiltering(enabled)
+                }
+            Text(L10n.string("When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
