@@ -34,7 +34,7 @@
 - [x] 6.1 Add characterization and failing tests for history restore, action-output paste, clipboard write failure, disabled Automatic Paste, missing Accessibility permission, missing target app, successful dispatch, cancellation, feedback, and exact usage accounting; validate RED and commit the test checkpoint
 - [x] 6.2 Implement typed PasteCoordinator outcomes by composing existing writer, policy, permission, target activation, command, and accounting dependencies; validate service-level GREEN and commit the checkpoint
 - [x] 6.3 Delegate history and content-action reuse paths to PasteCoordinator without changing shortcuts or UI behavior; validate integration GREEN and commit the checkpoint
-- [ ] 6.4 Update automatic-paste, Accessibility, architecture, privacy and user-guide documentation plus three-language feedback coverage
+- [x] 6.4 Update automatic-paste, Accessibility, architecture, privacy and user-guide documentation plus three-language feedback coverage
 
 ## 7. History ViewModel Architecture Convergence
 

@@ -44,7 +44,7 @@ The returned text opens in the normal editable result preview and can be copied,
 
 Selecting a history row always restores it to the clipboard. **Automatic Paste** is off by default; while it is off, use `Command-V` manually. If enabled and Accessibility permission is available, 粘易 returns focus to the previous app and sends `Command-V`. Use the row's **More Actions** menu to preview long text or images without pasting. Arrow keys move the inline selection, and `Enter` uses the same policy.
 
-No Accessibility prompt appears at launch. Enable **Settings → General → Automatic Paste** when desired. If access is missing, use **Open System Settings**, grant access under **Privacy & Security → Accessibility**, and try again. Disabling the setting immediately returns to clipboard-only behavior.
+No Accessibility prompt appears at launch. Enable **Settings → General → Automatic Paste** when desired. If access is missing, use **Open System Settings**, grant access under **Privacy & Security → Accessibility**, and try again. Disabling the setting immediately returns both history items and action results to clipboard-only behavior. If the previous app is unavailable or macOS cannot send the paste command, the copied content remains on the clipboard for manual `Command-V`.
 
 ## Manage Data
 

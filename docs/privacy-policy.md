@@ -44,7 +44,7 @@ Users can disable text recording, disable image recording, delete individual rec
 
 ## System Permissions
 
-Automatic Paste is off by default. The app does not ask for Accessibility access on launch. When a user enables Automatic Paste, settings explains the permission and links to the correct macOS pane. Without permission—or while the setting is off—the app still restores content to the clipboard and asks the user to press `Command-V` manually. Permission state is checked locally and is never transmitted.
+Automatic Paste is off by default. The app does not ask for Accessibility access on launch. When a user enables Automatic Paste, settings explains the permission and links to the correct macOS pane. Without permission—or while the setting is off—the app still restores content to the clipboard and asks the user to press `Command-V` manually. Target-app activation, paste dispatch and usage accounting are coordinated locally; failed or cancelled dispatch does not transmit clipboard content and does not retry in the background. Permission state is checked locally and is never transmitted.
 
 ## Logs
 
