@@ -31,8 +31,33 @@ The system SHALL keep the main application sandboxed with `com.apple.security.ne
 - **THEN** the application bundle SHALL include the required Sparkle framework and XPC services with the entitlement configuration required for secure update retrieval and installation
 
 ### Requirement: Release metadata is consistent and verifiable
-The system SHALL publish V1.0.1 as marketing version `1.0.1` and build `2` through a valid fixed appcast that references an HTTPS GitHub Release ZIP signed with Sparkle EdDSA.
+The system SHALL prepare V1.0.1 as marketing version `1.0.1` and build `2` through a valid fixed appcast that references an HTTPS GitHub Release ZIP signed with Sparkle EdDSA.
 
 #### Scenario: Release appcast is checked
 - **WHEN** the V1.0.1 appcast and referenced ZIP are verified before release
 - **THEN** their version and build metadata SHALL match and the enclosure signature SHALL validate the ZIP
+
+### Requirement: Release configuration preserves application identity
+The system SHALL preserve deployment target macOS `14.0` and bundle identifier `com.peibin.MacPasteHistory` for the V1.0.1 update.
+
+#### Scenario: Release configuration is validated
+- **WHEN** the generated project and Release application bundle are validated for V1.0.1
+- **THEN** they SHALL report deployment target macOS `14.0` and bundle identifier `com.peibin.MacPasteHistory`
+
+### Requirement: Distributed updates are signed and notarized
+The system SHALL use Developer ID signing and Apple notarization for the distributed update application and ZIP before publication.
+
+#### Scenario: Release artifact is verified
+- **WHEN** the V1.0.1 update ZIP is approved for publication
+- **THEN** its application SHALL have a valid Developer ID signature and successful notarization evidence
+
+### Requirement: Remote release publication requires explicit approval
+The system SHALL upload GitHub Release assets and publish the fixed appcast only after documented explicit user approval.
+
+#### Scenario: Approval has not been granted
+- **WHEN** signed local release artifacts and appcast content are ready but explicit user approval is not documented
+- **THEN** the system SHALL retain only local artifacts and a release-publication checklist and SHALL NOT upload release assets or publish the appcast
+
+#### Scenario: Approval has been granted
+- **WHEN** explicit user approval to publish is documented
+- **THEN** the system MAY upload the approved GitHub Release assets and publish the fixed appcast after its enclosure is available

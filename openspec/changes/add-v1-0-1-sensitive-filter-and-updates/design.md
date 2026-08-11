@@ -54,6 +54,10 @@ classification, deduplication, and repository persistence flow. This does not pe
 truncation: internal newlines, quotes, URLs, Chinese text, and Emoji SHALL remain
 intact after the existing allowed cleanup.
 
+Clipboard payloads SHALL never be written to logs, regardless of whether filtering is
+enabled, disabled, matched, or bypassed. Logging may report only non-sensitive
+metadata needed for diagnostics.
+
 ### Read version information from the running bundle
 
 An `AppVersionProviding` protocol and Bundle-backed implementation SHALL provide the
@@ -81,6 +85,20 @@ Sparkle SHALL validate the update's signature and application code signing befor
 installation. The EdDSA private key SHALL remain only in protected publisher
 storage; it SHALL NOT be committed, placed in the appcast, uploaded as a release
 asset, or printed to CI logs. Only the required public key may be shipped in the app.
+
+The release app and update ZIP SHALL use Developer ID signing and SHALL complete
+Apple notarization before distribution. The update capability SHALL preserve the
+existing deployment target of macOS 14.0 and bundle identifier
+`com.peibin.MacPasteHistory`; generated project and Release-bundle validation SHALL
+verify both values.
+
+### Gate remote release publication on explicit approval
+
+Release preparation MAY generate local signed/notarized artifacts, checksums,
+release notes, appcast content, and a publication checklist. Uploading GitHub Release
+assets or publishing the appcast is a remote mutation and SHALL occur only after
+documented explicit user approval. Without that approval, the work SHALL stop at the
+local artifacts and checklist.
 
 ### Preserve the sandbox boundary
 
@@ -135,8 +153,9 @@ and entitlement configuration.
 3. Add Sparkle package, embedding, sandbox configuration, and public update key.
 4. Build, test, and validate generated Xcode references and release entitlements.
 5. Sign and notarize the release app, create a ZIP preserving app metadata, generate
-   its EdDSA signature, upload the release assets, then publish a valid appcast that
-   references already-uploaded HTTPS assets.
+   its EdDSA signature, and prepare local release artifacts plus a publication
+   checklist. Only after documented explicit user approval, upload the release assets
+   and publish a valid appcast that references already-uploaded HTTPS assets.
 6. Test automatic and manual update from a real V1.0.0 installation. Confirm that
    cancellation and all failure modes retain V1.0.0 and its user data.
 

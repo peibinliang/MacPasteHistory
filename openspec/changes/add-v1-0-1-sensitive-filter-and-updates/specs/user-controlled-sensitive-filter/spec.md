@@ -7,6 +7,10 @@ The system SHALL enable sensitive-content filtering when no user preference exis
 - **WHEN** the user confirms disabling sensitive-content filtering
 - **THEN** matching text SHALL be eligible for normal local persistence without truncation
 
+#### Scenario: User reviews the disable warning
+- **WHEN** the user requests to disable sensitive-content filtering
+- **THEN** the confirmation SHALL clearly state that sensitive text may be stored in the unencrypted local SQLite history database
+
 #### Scenario: User cancels the disable warning
 - **WHEN** the user cancels the confirmation to disable sensitive-content filtering
 - **THEN** sensitive-content filtering SHALL remain enabled and matching text SHALL continue to be skipped
@@ -28,6 +32,17 @@ The system SHALL run the existing sensitive-content detector before local text p
 #### Scenario: Copied text matches a sensitive rule while filtering is enabled
 - **WHEN** eligible copied text matches an existing password, token, identity, or bank-card rule and filtering is enabled
 - **THEN** the system SHALL not persist the text and SHALL not log its copied payload
+
+### Requirement: Clipboard payloads are never logged
+The system SHALL NOT log clipboard text payloads regardless of sensitive-content filtering state or detector outcome.
+
+#### Scenario: Clipboard capture occurs with filtering disabled
+- **WHEN** eligible copied text is captured while sensitive-content filtering is disabled
+- **THEN** the system SHALL persist only the eligible text through the normal local flow and SHALL NOT log its clipboard payload
+
+#### Scenario: Clipboard capture occurs with filtering enabled and no match
+- **WHEN** eligible copied text does not match a sensitive rule while sensitive-content filtering is enabled
+- **THEN** the system SHALL persist only the eligible text through the normal local flow and SHALL NOT log its clipboard payload
 
 ### Requirement: Disabling filtering does not alter non-sensitive text processing
 The system SHALL retain existing allowed text cleanup, classification, deduplication, and local persistence behavior when filtering is disabled, except that it SHALL bypass the sensitive-content detector.

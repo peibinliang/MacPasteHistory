@@ -1,19 +1,21 @@
 ## 1. Sensitive Settings
 
 - [ ] 1.1 Add `filterSensitiveContent` to the shared settings configuration with a missing-value default of `true` and persistence tests.
-- [ ] 1.2 Expose the setting through `SettingsViewModel`, including a disable confirmation that leaves filtering enabled when cancelled.
-- [ ] 1.3 Add the Privacy settings control, localized safety explanation, and immediate state feedback.
-- [ ] 1.4 Update `ClipboardMonitor` to read the current setting on every text capture and bypass only sensitive detection when filtering is disabled.
+- [ ] 1.2 Expose the setting through `SettingsViewModel`, including a disable confirmation that clearly states sensitive text may be stored in the unencrypted local SQLite history database and leaves filtering enabled when cancelled.
+- [ ] 1.3 Add a UI test or documented acceptance check proving the disable confirmation contains the unencrypted local database disclosure before the user can confirm.
+- [ ] 1.4 Add the Privacy settings control, localized safety explanation, and immediate state feedback.
+- [ ] 1.5 Update `ClipboardMonitor` to read the current setting on every text capture and bypass only sensitive detection when filtering is disabled.
 
 ## 2. Capture Regression
 
-- [ ] 2.1 Add capture regression tests proving enabled filtering still skips synthetic password, token, identity, and bank-card matches without logging payloads.
-- [ ] 2.2 Add regression tests proving disabled filtering completely persists the synthetic cURL and DingTalk-style token samples, including internal newlines, quotes, URLs, Chinese text, and Emoji.
-- [ ] 2.3 Add a regression test proving ordinary long text remains eligible when filtering is enabled, so length is not treated as a sensitive-content rule.
+- [ ] 2.1 Add capture regression tests proving enabled filtering still skips synthetic password, token, identity, and bank-card matches and that no clipboard payload is logged.
+- [ ] 2.2 Add regression tests proving disabled filtering completely persists the synthetic cURL and DingTalk-style token samples, including internal newlines, quotes, URLs, Chinese text, and Emoji, while no clipboard payload is logged.
+- [ ] 2.3 Add regression coverage proving no clipboard payload is logged for every filter state: enabled and matched, enabled and unmatched, and disabled.
+- [ ] 2.4 Add a regression test proving ordinary long text remains eligible when filtering is enabled, so length is not treated as a sensitive-content rule.
 
 ## 3. About UI and Runtime Version Information
 
-- [ ] 3.1 Update application metadata to version `1.0.1` and build `2`.
+- [ ] 3.1 Update application metadata to version `1.0.1` and build `2` while preserving deployment target macOS `14.0` and bundle identifier `com.peibin.MacPasteHistory`.
 - [ ] 3.2 Add a testable `AppVersionProviding` abstraction and Bundle-backed implementation for display name, `CFBundleShortVersionString`, and `CFBundleVersion`.
 - [ ] 3.3 Add an “关于与更新” settings category showing the app icon, name, runtime version/build, automatic-check state, update status, and GitHub project link.
 - [ ] 3.4 Add unit tests confirming the About UI state uses injected Bundle/provider values rather than a hard-coded version.
@@ -30,12 +32,15 @@
 
 - [ ] 5.1 Keep `com.apple.security.network.client` disabled for the main app and configure Sparkle Installer Launcher XPC, Downloader XPC, and required Mach lookup exceptions per Sparkle sandbox guidance.
 - [ ] 5.2 Extend entitlement and generated-app validation so Release builds prove Sparkle framework/XPC embedding and the intended sandbox boundary.
+- [ ] 5.3 Add configuration and Release-bundle validation proving deployment target macOS `14.0` and bundle identifier `com.peibin.MacPasteHistory` remain unchanged.
 
 ## 6. Release Artifacts
 
 - [ ] 6.1 Produce a Developer ID-signed, notarized V1.0.1 app ZIP that preserves required metadata, plus checksum and release notes.
-- [ ] 6.2 Generate the Sparkle EdDSA signature without exposing the private key, upload the signed ZIP/checksum/release notes to GitHub Release `v1.0.1`, and publish a valid fixed appcast only after its enclosure is available.
-- [ ] 6.3 Verify appcast XML parsing, HTTPS enclosure URL, version `1.0.1`, build `2`, matching ZIP Bundle values, and valid enclosure signature.
+- [ ] 6.2 Generate the Sparkle EdDSA signature without exposing the private key and prepare local signed ZIP, checksum, release notes, appcast content, and a release-publication checklist.
+- [ ] 6.3 Obtain and record explicit user approval before uploading signed ZIP/checksum/release notes to GitHub Release `v1.0.1` or publishing the fixed appcast; without that approval, do not perform either remote mutation.
+- [ ] 6.4 After the documented approval in 6.3, upload the approved assets and publish the valid fixed appcast only after its enclosure is available.
+- [ ] 6.5 Verify appcast XML parsing, HTTPS enclosure URL, version `1.0.1`, build `2`, matching ZIP Bundle values, Developer ID signing, notarization, and valid enclosure signature.
 
 ## 7. Documentation
 
