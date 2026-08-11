@@ -151,3 +151,146 @@ record is available locally. Consequently:
 
 No database migration or user-data compatibility change is introduced by this
 task.
+
+## Independent Review Hardening
+
+An independent Task 7 review identified archive-boundary, XML namespace,
+signature-shape, and packaging-path gaps. Each issue received a regression test
+before its implementation.
+
+### Review RED
+
+Command:
+
+```bash
+scripts/test-sparkle-release-artifact-tooling.sh
+```
+
+Initial review result: `FAIL`, 11 failures. The failures demonstrated that the
+old tooling accepted or insufficiently rejected a synthetic text signature, an
+evil Sparkle namespace, a symlink-only app archive, traversal entries, an
+escaping bundle symlink, app/output path aliases, and an unverified staged
+package.
+
+RED checkpoint commit:
+
+```text
+7341977 test: cover release archive boundary hardening
+```
+
+A narrower symlink regression was then run before its implementation: a bundle
+link resolving to an allowed `__MACOSX` entry stayed inside the extraction root
+but outside the application bundle. Exact result: `FAIL`, 2 failures before the
+fixture was narrowed to the appcast case; the appcast verifier unexpectedly
+passed, and the formal package fixture exposed `ditto`'s `__MACOSX` extraction
+behavior. The final regression creates the complete archive with `ditto` and
+proves the appcast verifier rejects that link while still accepting an internal
+`Contents/InternalInfoLink -> Info.plist` fixture.
+
+### Review GREEN
+
+Implementation commit:
+
+```text
+2f31199 Harden release archive verification
+```
+
+The implementation now:
+
+- preflights every ZIP entry and rejects empty/invalid archives, absolute paths,
+  Windows absolute paths, and any `..` component before `ditto` extraction;
+- rejects a top-level app symlink, requires a physical/canonical app under the
+  extraction root, and rejects broken or escaping symlinks; links lexically
+  inside the app must resolve inside the app, while legitimate internal
+  framework-style links remain supported;
+- binds `shortVersionString`, `version`, and `edSignature` to the exact Sparkle
+  namespace URI and rejects wrong-namespace lookalikes;
+- requires canonical Base64 for exactly 64 decoded Ed25519-signature bytes, so
+  arbitrary non-empty text fails closed;
+- canonicalizes the formal app and output directory, rejects app symlink input
+  (including a trailing slash), rejects output equal to or inside the app even
+  through an alias, and verifies a staged formal ZIP before publishing final
+  local filenames.
+
+The 64-byte Base64 fixture is a structural positive only. It is not a valid
+Sparkle signature and is not formal release evidence. Sparkle 2.9.2's official
+`sign_update --verify` does not provide public-key-only verification: it derives
+the public key by accessing a private key file or the keychain. The project
+verifier therefore does not invoke it, never accepts or reads private material,
+and explicitly reports that cryptographic authenticity is deferred to the
+official `generate_appcast` signing workflow and Sparkle client verification
+against the embedded `SUPublicEDKey`.
+
+### Review Verification
+
+Commands and exact results:
+
+```text
+bash -n scripts/generate-sparkle-appcast.sh \
+  scripts/verify-sparkle-appcast.sh \
+  scripts/package-release-qa-build.sh \
+  scripts/verify-release-qa-package.sh \
+  scripts/release-readiness-report.sh \
+  scripts/test-sparkle-release-artifact-tooling.sh
+Exit 0; no output
+
+scripts/test-sparkle-release-artifact-tooling.sh
+Status: PASS; failures: 0
+
+scripts/test-release-configuration-verifiers.sh
+Status: PASS; negative cases: 9; positive bundle cases: 1; failures: 0
+
+scripts/verify-sparkle-configuration.sh
+Status: PASS; violations: 0; Sparkle: 2.9.2; version/build: 1.0.1 (2)
+
+scripts/verify-release-version-build.sh
+Status: PASS; violations: 0; expected and actual: 1.0.1 (2)
+
+scripts/validate-xcode-file-references.sh
+Status: PASS; Swift references checked: 175; missing Swift files: 0
+
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+  xcodebuild -project MacPasteHistory.xcodeproj \
+  -scheme MacPasteHistory \
+  -destination 'platform=macOS,arch=arm64' test
+** TEST SUCCEEDED **; executed 271 tests with 0 failures
+
+git diff --check
+Exit 0; no output
+```
+
+The first sandboxed Xcode run exited 74 because it could not write Xcode,
+SwiftPM, or Clang caches. The same command was immediately rerun with the needed
+local cache/service access and produced the passing 271-test result above.
+
+The fresh strict-final missing-evidence audit remained fail-closed:
+
+```text
+scripts/release-readiness-report.sh \
+  --skip-xcodegen \
+  --skip-release-smoke \
+  --skip-install-preflight \
+  --allow-adhoc \
+  --strict-final \
+  --output /private/tmp/task7-review-readiness.md
+
+Exit 1, as required.
+Formal update ZIP: SKIP
+Developer ID signature: SKIP
+Apple notarization: SKIP
+Sparkle appcast: SKIP
+V1.0.0 → V1.0.1 upgrade evidence: WARN
+Blocker: Strict final mode requires zero warnings.
+```
+
+Formal positive evidence is still blocked and was not claimed:
+
+```text
+security find-identity -p codesigning -v
+0 valid identities found
+```
+
+No Developer ID Application identity, notarized artifact, genuine Sparkle
+EdDSA-signed archive/appcast pair, or completed upgrade record is available.
+No GitHub Release, Pages update, push, credential operation, or other remote
+modification was performed.
