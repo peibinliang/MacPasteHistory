@@ -13,6 +13,7 @@ skip_release_smoke=0
 strict_final=0
 formal_update_archive=""
 appcast_path=""
+openspec_change="add-v1-0-1-sensitive-filter-and-updates"
 readiness_extract_dir=""
 formal_app_path=""
 
@@ -36,6 +37,9 @@ Options:
   --formal-update-archive PATH
                         Verify an explicit 粘易-1.0.1-2.zip formal update.
   --appcast PATH        Verify an explicit appcast against the formal update archive.
+  --openspec-change NAME
+                        Read progress from openspec/changes/NAME/tasks.md.
+                        Defaults to add-v1-0-1-sensitive-filter-and-updates.
   --strict-final        Treat warnings as blockers for final distribution approval.
   -h, --help            Show this help.
 EOF
@@ -129,6 +133,14 @@ while [[ $# -gt 0 ]]; do
             appcast_path="$2"
             shift
             ;;
+        --openspec-change)
+            if [[ $# -lt 2 ]]; then
+                echo "--openspec-change requires a change name" >&2
+                exit 2
+            fi
+            openspec_change="$2"
+            shift
+            ;;
         --strict-final)
             strict_final=1
             ;;
@@ -144,6 +156,11 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+
+if [[ ! "$openspec_change" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+    echo "--openspec-change must be a single safe change directory name" >&2
+    exit 2
+fi
 
 require_command date
 require_command git
@@ -306,38 +323,41 @@ verify_upgrade_evidence() {
 }
 
 collect_openspec_progress() {
-    local tmp_file
-    tmp_file="$(mktemp)"
+    local tasks_file="$REPO_ROOT/openspec/changes/$openspec_change/tasks.md"
+    local cli_output cli_error cli_note="" check_status="PASS"
 
-    if ! command -v openspec >/dev/null 2>&1; then
-        add_check_row "OpenSpec progress" "WARN" "openspec CLI is not available."
-        add_warning "OpenSpec release change progress was not included because openspec CLI is unavailable."
-        rm -f "$tmp_file"
-        return
-    fi
-
-    if ! openspec instructions apply --change prepare-release-testing-and-store-assets --json >"$tmp_file" 2>/tmp/macpastehistory-openspec-readiness.log; then
-        add_check_row "OpenSpec progress" "WARN" "Could not read OpenSpec change progress."
-        add_warning "OpenSpec release change progress could not be read; inspect prepare-release-testing-and-store-assets manually."
-        rm -f "$tmp_file"
+    if [[ ! -f "$tasks_file" ]]; then
+        add_check_row "OpenSpec progress" "FAIL" "Tasks file is missing for change $openspec_change."
+        add_blocker "OpenSpec tasks file is missing for selected change $openspec_change."
         return
     fi
 
     openspec_summary=()
     while IFS= read -r line; do
         openspec_summary+=("$line")
-    done < <(python3 - "$tmp_file" <<'PY'
-import json
+    done < <(python3 - "$tasks_file" <<'PY'
+import re
 import sys
 
+task_pattern = re.compile(r"^- \[([ xX])\] ([0-9]+(?:\.[0-9]+)+) (.+)$")
+tasks = []
 with open(sys.argv[1], encoding="utf-8") as handle:
-    payload = json.load(handle)
+    for raw_line in handle:
+        match = task_pattern.match(raw_line.rstrip("\n"))
+        if match:
+            tasks.append(
+                {
+                    "done": match.group(1).lower() == "x",
+                    "id": match.group(2),
+                    "description": match.group(3),
+                }
+            )
 
-progress = payload["progress"]
-print(progress["total"])
-print(progress["complete"])
-print(progress["remaining"])
-for task in payload["tasks"]:
+complete = sum(task["done"] for task in tasks)
+print(len(tasks))
+print(complete)
+print(len(tasks) - complete)
+for task in tasks:
     if not task["done"]:
         print(f"{task['id']}\t{task['description']}")
 PY
@@ -348,19 +368,47 @@ PY
     openspec_progress_remaining="${openspec_summary[2]:-0}"
     openspec_remaining_tasks=()
 
+    if [[ "$openspec_progress_total" -eq 0 ]]; then
+        add_check_row "OpenSpec progress" "FAIL" "No task checkboxes were found for change $openspec_change."
+        add_blocker "Selected OpenSpec change $openspec_change has no readable Markdown tasks."
+        return
+    fi
+
     local index
     for ((index = 3; index < ${#openspec_summary[@]}; index++)); do
         openspec_remaining_tasks+=("${openspec_summary[$index]}")
     done
 
-    if [[ "$openspec_progress_remaining" -eq 0 ]]; then
-        add_check_row "OpenSpec progress" "PASS" "$openspec_progress_complete/$openspec_progress_total tasks complete."
-    else
-        add_check_row "OpenSpec progress" "WARN" "$openspec_progress_complete/$openspec_progress_total tasks complete; $openspec_progress_remaining remaining."
-        add_warning "OpenSpec release change still has $openspec_progress_remaining pending tasks."
+    cli_output="$(mktemp)"
+    cli_error="$(mktemp)"
+    if ! command -v openspec >/dev/null 2>&1; then
+        check_status="WARN"
+        cli_note=" openspec CLI is not available."
+        add_warning "openspec CLI is not available; Markdown progress for $openspec_change was included, but final readiness requires the CLI check."
+    elif ! openspec instructions apply --change "$openspec_change" --json >"$cli_output" 2>"$cli_error"; then
+        check_status="WARN"
+        cli_note=" openspec CLI could not validate the selected change."
+        add_warning "OpenSpec CLI could not validate change $openspec_change; inspect the selected change manually."
+        detailed_sections+=("## OpenSpec CLI"$'\n\n```text\n'"$(cat "$cli_error")"$'\n```')
+    fi
+    rm -f "$cli_output" "$cli_error"
+
+    if [[ "$openspec_progress_remaining" -gt 0 ]]; then
+        check_status="WARN"
+        add_warning "OpenSpec change $openspec_change still has $openspec_progress_remaining pending tasks."
     fi
 
-    rm -f "$tmp_file"
+    if [[ "$openspec_progress_remaining" -eq 0 ]]; then
+        add_check_row \
+            "OpenSpec progress" \
+            "$check_status" \
+            "$openspec_progress_complete/$openspec_progress_total tasks complete for $openspec_change.$cli_note"
+    else
+        add_check_row \
+            "OpenSpec progress" \
+            "$check_status" \
+            "$openspec_progress_complete/$openspec_progress_total tasks complete for $openspec_change; $openspec_progress_remaining remaining.$cli_note"
+    fi
 }
 
 xcode_ref_args=("$REPO_ROOT/scripts/validate-xcode-file-references.sh")
@@ -642,6 +690,7 @@ Generated: $generated_at
 | Strict final mode | \`$([[ "$strict_final" -eq 1 ]] && printf "yes" || printf "no")\` |
 | Formal update archive | \`$(escape_table_cell "${formal_update_archive:-not provided}")\` |
 | Appcast | \`$(escape_table_cell "${appcast_path:-not provided}")\` |
+| OpenSpec change | \`$(escape_table_cell "$openspec_change")\` |
 
 ## Automated Checks
 
@@ -690,6 +739,7 @@ EOF
 
     echo "| Progress | Value |"
     echo "|---|---|"
+    echo "| Change | \`$openspec_change\` |"
     echo "| Complete | \`$openspec_progress_complete/$openspec_progress_total\` |"
     echo "| Remaining | \`$openspec_progress_remaining\` |"
     echo
@@ -803,7 +853,7 @@ payload = {
     "formalUpdateArchive": "${formal_update_archive}",
     "appcast": "${appcast_path}",
     "openSpecProgress": {
-        "change": "prepare-release-testing-and-store-assets",
+        "change": "$openspec_change",
         "total": int("$openspec_progress_total"),
         "complete": int("$openspec_progress_complete"),
         "remaining": int("$openspec_progress_remaining"),

@@ -981,6 +981,14 @@ scripts/verify-release-screenshot-assets.sh
 scripts/release-readiness-report.sh --output build/release-readiness-report.md
 ```
 
+报告默认从
+`openspec/changes/add-v1-0-1-sensitive-filter-and-updates/tasks.md` 读取 V1.0.1
+任务 checkbox，并在 Markdown 与 JSON 中输出同一个 change 名称、完成数、总数和
+剩余任务。诊断其他历史 change 时必须显式传入
+`--openspec-change prepare-release-testing-and-store-assets`；正式 V1.0.1 验收不要使用
+历史 change 代替默认值。即使本机缺少 `openspec` CLI，Markdown 统计仍会保留，
+同时产生明确 warning；`--strict-final` 会把该 warning 和任何未完成任务阻断为失败。
+
 如需给 CI 或后续自动化读取阻断项，可同时输出 JSON 摘要：
 
 ```bash
@@ -994,7 +1002,7 @@ scripts/release-readiness-report.sh \
   --strict-final
 ```
 
-该报告会汇总 Xcode 文件引用、日志隐私扫描、Info.plist 用途说明、支持 macOS 版本声明一致性、版本/构建号一致性、Release entitlements 配置、Bundle ID 和菜单栏应用身份、Sparkle 配置、嵌入 framework/XPC、正式 ZIP、appcast、Developer ID、公证、V1.0.0 → V1.0.1 升级证据、App Icon 素材、截图 PNG 尺寸、人工 QA 样本生成校验、人工 QA 会话目录完整性、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、Release app 实际签名、用户文档、隐私政策、人工 QA 记录、OpenSpec release change 剩余任务和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`，并使用 `--strict-final`；该模式在缺少 appcast、正式 ZIP、Developer ID、公证或升级证据时必定阻断，也会把所有其他 warning 视为阻断项。JSON 摘要会包含 `status`、`checks`、`blockers`、`warnings`、人工 QA 记录路径、人工 QA 会话路径、正式更新路径、appcast 路径、`openSpecProgress`、`openSpecRemainingTasks` 和仍需人工证据的列表。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份和 ad-hoc app 签名降级为 `WARN`，不能作为最终分发验收依据。
+该报告会汇总 Xcode 文件引用、日志隐私扫描、Info.plist 用途说明、支持 macOS 版本声明一致性、版本/构建号一致性、Release entitlements 配置、Bundle ID 和菜单栏应用身份、Sparkle 配置、嵌入 framework/XPC、正式 ZIP、appcast、Developer ID、公证、V1.0.0 → V1.0.1 升级证据、App Icon 素材、截图 PNG 尺寸、人工 QA 样本生成校验、人工 QA 会话目录完整性、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、Release app 实际签名、用户文档、隐私政策、人工 QA 记录、所选 OpenSpec change 的 Markdown 任务进度和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`，并使用 `--strict-final`；该模式在缺少 appcast、正式 ZIP、Developer ID、公证、升级证据、OpenSpec CLI 或所选 change 尚有未完成任务时必定阻断，也会把所有其他 warning 视为阻断项。JSON 摘要会包含 `status`、`checks`、`blockers`、`warnings`、人工 QA 记录路径、人工 QA 会话路径、正式更新路径、appcast 路径、`openSpecProgress`、`openSpecRemainingTasks` 和仍需人工证据的列表。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份和 ad-hoc app 签名降级为 `WARN`，不能作为最终分发验收依据。
 
 如果只需要临时检查静态材料，可使用 `--skip-release-smoke` 和 `--skip-install-preflight` 跳过启动类检查；最终发布验收不得跳过：
 
