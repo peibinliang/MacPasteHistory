@@ -3,11 +3,9 @@ import Foundation
 /// Handles privacy controls: pause recording, blocked apps, and sensitive content filtering.
 struct PrivacyService {
     private var config: UserDefaultsConfig
-    private let filterSensitiveContent: Bool
 
-    init(config: UserDefaultsConfig = UserDefaultsConfig(), filterSensitiveContent: Bool = true) {
+    init(config: UserDefaultsConfig = UserDefaultsConfig()) {
         self.config = config
-        self.filterSensitiveContent = filterSensitiveContent
     }
 
     // MARK: - Pause
@@ -58,7 +56,7 @@ struct PrivacyService {
 
     /// Returns true if the text appears to contain sensitive information that should not be persisted.
     func isSensitiveContent(_ text: String) -> Bool {
-        guard filterSensitiveContent else { return false }
+        guard config.filterSensitiveContent else { return false }
         return SensitiveContentDetector.isSensitive(text)
     }
 }

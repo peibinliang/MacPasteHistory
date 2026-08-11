@@ -24,6 +24,8 @@ struct UserDefaultsConfig {
         case preferredLanguage = "config.preferredLanguage"
         case appAppearance = "config.appAppearance"
         case recordingPaused = "config.recordingPaused"
+        case filterSensitiveContent = "config.filterSensitiveContent"
+        case hasAcknowledgedSensitiveContentRisk = "config.hasAcknowledgedSensitiveContentRisk"
         case blockedApps = "config.blockedApps"
         case shortcutKeyCode = "config.shortcutKeyCode"
         case shortcutModifiers = "config.shortcutModifiers"
@@ -135,6 +137,16 @@ struct UserDefaultsConfig {
     var recordingPaused: Bool {
         get { bool(forKey: .recordingPaused, defaultValue: false) }
         set { setBool(newValue, forKey: .recordingPaused) }
+    }
+
+    var filterSensitiveContent: Bool {
+        get { bool(forKey: .filterSensitiveContent, defaultValue: DefaultSettings.filterSensitiveContent) }
+        set { setBool(newValue, forKey: .filterSensitiveContent) }
+    }
+
+    var hasAcknowledgedSensitiveContentRisk: Bool {
+        get { bool(forKey: .hasAcknowledgedSensitiveContentRisk, defaultValue: false) }
+        set { setBool(newValue, forKey: .hasAcknowledgedSensitiveContentRisk) }
     }
 
     var blockedApps: [BlockedAppEntry] {
