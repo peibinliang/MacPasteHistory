@@ -276,3 +276,9 @@
 "Edited result" = "Edited result";
 "Recognized text" = "Recognized text";
 "Text recognition failed" = "Text recognition failed";
+
+/* SettingsView - About */
+"About & Updates" = "About & Updates";
+"Version information and software updates" = "Version information and software updates";
+"Version %@ (Build %@)" = "Version %@ (Build %@)";
+"View on GitHub" = "View on GitHub";

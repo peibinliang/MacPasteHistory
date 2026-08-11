@@ -18,7 +18,8 @@ final class LocalizationCoverageTests: XCTestCase {
             "Filter sensitive content", "Disable Sensitive Content Filtering?",
             "Detected passwords, tokens, identity numbers, and payment card numbers may be stored in the local unencrypted history database.",
             "Keep Filtering", "Disable Filtering",
-            "When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved."
+            "When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved.",
+            "About & Updates", "Version information and software updates", "Version %@ (Build %@)", "View on GitHub"
         ]
         let localizations = ["en", "zh-Hans", "zh-Hant"]
 

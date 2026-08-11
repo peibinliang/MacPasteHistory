@@ -276,3 +276,9 @@
 "Edited result" = "已编辑结果";
 "Recognized text" = "已识别文字";
 "Text recognition failed" = "文字识别失败";
+
+/* SettingsView - About */
+"About & Updates" = "关于与更新";
+"Version information and software updates" = "版本信息与软件更新";
+"Version %@ (Build %@)" = "版本 %@（构建 %@）";
+"View on GitHub" = "在 GitHub 上查看";

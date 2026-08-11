@@ -6,9 +6,11 @@ struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @State private var showClearConfirmation = false
     @State private var selectedCategory: SettingsCategory? = .general
+    private let appVersion: AppVersionInfo
 
-    init(viewModel: SettingsViewModel) {
+    init(viewModel: SettingsViewModel, appVersion: AppVersionInfo = .current) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.appVersion = appVersion
     }
 
     var body: some View {
@@ -113,6 +115,8 @@ struct SettingsView: View {
                     limitsSection
                     storageSection
                     dataSection
+                case .about:
+                    aboutSection
                 }
             }
             .formStyle(.grouped)
@@ -333,6 +337,27 @@ struct SettingsView: View {
         }
     }
 
+    private var aboutSection: some View {
+        Section(L10n.string("About & Updates")) {
+            HStack(spacing: 12) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 56, height: 56)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(appVersion.displayName)
+                        .font(.headline)
+                    Text(appVersion.localizedVersionText)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if let repositoryURL = URL(string: "https://github.com/peibinliang/MacPasteHistory") {
+                Link(L10n.string("View on GitHub"), destination: repositoryURL)
+            }
+        }
+    }
+
     private func restartApp() {
         AppRelauncher().relaunchAfterTermination(bundlePath: Bundle.main.bundlePath)
         NSApp.terminate(nil)
@@ -343,6 +368,7 @@ private enum SettingsCategory: String, CaseIterable, Identifiable {
     case general
     case privacy
     case storage
+    case about
 
     var id: String { rawValue }
 
@@ -351,6 +377,7 @@ private enum SettingsCategory: String, CaseIterable, Identifiable {
         case .general: return L10n.string("General")
         case .privacy: return L10n.string("Privacy")
         case .storage: return L10n.string("Storage and Data")
+        case .about: return L10n.string("About & Updates")
         }
     }
 
@@ -362,6 +389,8 @@ private enum SettingsCategory: String, CaseIterable, Identifiable {
             return L10n.string("Control where clipboard history is recorded")
         case .storage:
             return L10n.string("Retention, limits, and local data")
+        case .about:
+            return L10n.string("Version information and software updates")
         }
     }
 
@@ -370,6 +399,7 @@ private enum SettingsCategory: String, CaseIterable, Identifiable {
         case .general: return "gearshape"
         case .privacy: return "hand.raised"
         case .storage: return "internaldrive"
+        case .about: return "info.circle"
         }
     }
 }
