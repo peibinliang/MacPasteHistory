@@ -162,6 +162,37 @@ final class ClipboardHistoryRepositoryTests: XCTestCase {
         XCTAssertEqual(items.map(\.textContent), ["recaptured", "newer"])
     }
 
+    func testFetchHistory_whenDuplicateIsRecapturedWithinSameSecond_shouldOrderBySubsecondCaptureTime() throws {
+        let second = Date(timeIntervalSince1970: 1_786_422_400)
+        _ = try repository.saveText(
+            "recaptured within second",
+            sourceApp: nil,
+            sourceBundleID: nil,
+            capturedAt: second.addingTimeInterval(0.1)
+        )
+        _ = try repository.saveText(
+            "newer id within second",
+            sourceApp: nil,
+            sourceBundleID: nil,
+            capturedAt: second.addingTimeInterval(0.2)
+        )
+        _ = try repository.saveText(
+            "recaptured within second",
+            sourceApp: nil,
+            sourceBundleID: nil,
+            capturedAt: second.addingTimeInterval(0.9)
+        )
+
+        let items = try repository.fetchHistory(query: HistoryQuery())
+
+        XCTAssertEqual(items.map(\.textContent), ["recaptured within second", "newer id within second"])
+        XCTAssertEqual(
+            try XCTUnwrap(items.first?.lastCapturedAt).timeIntervalSince1970,
+            second.addingTimeInterval(0.9).timeIntervalSince1970,
+            accuracy: 0.001
+        )
+    }
+
     func testFetchHistory_whenTimeRangeProvided_shouldReturnItemsInsideRange() throws {
         let oldItem = try repository.saveText("old note", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
         _ = try repository.saveText("new note", sourceApp: "Notes", sourceBundleID: "com.apple.Notes")
