@@ -59,6 +59,25 @@ final class ClipboardMonitorTests: XCTestCase {
         XCTAssertEqual(items.first?.sourceBundleID, "com.peibin.tests")
     }
 
+    func testPollOnce_whenForegroundAppChangesDuringTextCapture_shouldUseInitialSourceOnce() throws {
+        let sourceProvider = SequencedSourceApplicationProvider(sources: [
+            SourceApplication(name: "Password Manager", bundleID: "com.example.password-manager"),
+            SourceApplication(name: "Browser", bundleID: "com.example.browser")
+        ])
+        let monitor = makeMonitor(sourceApplicationProvider: sourceProvider)
+        _ = pasteboard.setString("non-sensitive account note", forType: .string)
+
+        monitor.pollOnce()
+
+        let item = try XCTUnwrap(repository.fetchTextHistory(matching: nil).first)
+        let events = try repository.fetchCaptureEvents(historyID: item.id, since: .distantPast)
+        XCTAssertEqual(sourceProvider.callCount, 1)
+        XCTAssertEqual(item.sourceApp, "Password Manager")
+        XCTAssertEqual(item.sourceBundleID, "com.example.password-manager")
+        XCTAssertEqual(events.first?.sourceApp, item.sourceApp)
+        XCTAssertEqual(events.first?.sourceBundleID, item.sourceBundleID)
+    }
+
     func testPollOnce_whenTextIsSQLOrShell_shouldPersistCompleteClassification() throws {
         let monitor = makeMonitor()
         _ = pasteboard.setString("SELECT id FROM users WHERE active = 1", forType: .string)
@@ -106,6 +125,25 @@ final class ClipboardMonitorTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: items.first?.thumbnailPath ?? ""))
     }
 
+    func testPollOnce_whenForegroundAppChangesDuringImageCapture_shouldUseInitialSourceOnce() throws {
+        let sourceProvider = SequencedSourceApplicationProvider(sources: [
+            SourceApplication(name: "Preview", bundleID: "com.apple.Preview"),
+            SourceApplication(name: "Browser", bundleID: "com.example.browser")
+        ])
+        let monitor = makeMonitor(sourceApplicationProvider: sourceProvider)
+        _ = pasteboard.setData(try makePNGData(), forType: .png)
+
+        monitor.pollOnce()
+
+        let item = try XCTUnwrap(repository.fetchHistory(query: HistoryQuery(contentType: .image)).first)
+        let events = try repository.fetchCaptureEvents(historyID: item.id, since: .distantPast)
+        XCTAssertEqual(sourceProvider.callCount, 1)
+        XCTAssertEqual(item.sourceApp, "Preview")
+        XCTAssertEqual(item.sourceBundleID, "com.apple.Preview")
+        XCTAssertEqual(events.first?.sourceApp, item.sourceApp)
+        XCTAssertEqual(events.first?.sourceBundleID, item.sourceBundleID)
+    }
+
     func testPollOnce_whenImageRecordingDisabled_shouldSkipSavingImage() throws {
         let monitor = makeMonitor(recordingSettings: StubRecordingSettings(shouldRecordText: true, shouldRecordImage: false))
         _ = pasteboard.setData(try makePNGData(), forType: .png)
@@ -143,6 +181,34 @@ final class ClipboardMonitorTests: XCTestCase {
 
         XCTAssertTrue(try repository.fetchTextHistory(matching: nil).isEmpty)
         defaults.removePersistentDomain(forName: suiteName)
+    }
+
+    func testPollOnce_whenBlockedSourceLosesForegroundDuringCapture_shouldStillSkipUsingInitialSource() throws {
+        let suiteName = "ClipboardMonitorTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        var config = UserDefaultsConfig(defaults: defaults)
+        config.blockedApps = [
+            BlockedAppEntry(
+                bundleID: "com.example.password-manager",
+                displayName: "Password Manager",
+                isEnabled: true
+            )
+        ]
+        let sourceProvider = SequencedSourceApplicationProvider(sources: [
+            SourceApplication(name: "Password Manager", bundleID: "com.example.password-manager"),
+            SourceApplication(name: "Browser", bundleID: "com.example.browser")
+        ])
+        let monitor = makeMonitor(
+            privacyService: PrivacyService(config: config),
+            sourceApplicationProvider: sourceProvider
+        )
+        _ = pasteboard.setString("blocked source text", forType: .string)
+
+        monitor.pollOnce()
+
+        XCTAssertEqual(sourceProvider.callCount, 1)
+        XCTAssertTrue(try repository.fetchTextHistory(matching: nil).isEmpty)
     }
 
     func testPollOnce_whenSensitiveFilteringEnabled_shouldSkipBearerText() throws {
@@ -198,15 +264,23 @@ final class ClipboardMonitorTests: XCTestCase {
         makeMonitor(recordingSettings: recordingSettings, privacyService: PrivacyService())
     }
 
+    private func makeMonitor(sourceApplicationProvider: SourceApplicationProviding) -> ClipboardMonitor {
+        makeMonitor(
+            privacyService: PrivacyService(),
+            sourceApplicationProvider: sourceApplicationProvider
+        )
+    }
+
     private func makeMonitor(
         recordingSettings: RecordingSettingsProviding = StubRecordingSettings(shouldRecordText: true, shouldRecordImage: true),
-        privacyService: PrivacyService
+        privacyService: PrivacyService,
+        sourceApplicationProvider: SourceApplicationProviding = StubSourceApplicationProvider()
     ) -> ClipboardMonitor {
         ClipboardMonitor(
             pasteboard: pasteboard,
             repository: repository,
             imageStorageService: imageStorageService,
-            sourceApplicationProvider: StubSourceApplicationProvider(),
+            sourceApplicationProvider: sourceApplicationProvider,
             restorationState: restorationState,
             recordingSettings: recordingSettings,
             privacyService: privacyService,
@@ -258,6 +332,23 @@ final class ClipboardMonitorTests: XCTestCase {
 private struct StubSourceApplicationProvider: SourceApplicationProviding {
     func currentSourceApplication() -> SourceApplication {
         SourceApplication(name: "Unit Test Host", bundleID: "com.peibin.tests")
+    }
+}
+
+private final class SequencedSourceApplicationProvider: SourceApplicationProviding {
+    private let sources: [SourceApplication]
+    private(set) var callCount = 0
+
+    init(sources: [SourceApplication]) {
+        self.sources = sources
+    }
+
+    func currentSourceApplication() -> SourceApplication {
+        defer { callCount += 1 }
+        guard sources.indices.contains(callCount) else {
+            return sources.last ?? SourceApplication(name: nil, bundleID: nil)
+        }
+        return sources[callCount]
     }
 }
 

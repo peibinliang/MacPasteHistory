@@ -6,7 +6,7 @@
 
 ## 2. Clipboard Source Capture Consistency
 
-- [ ] 2.1 Add failing text and image tests proving the source provider is called once and a rapid foreground-app switch cannot bypass blocked-app privacy; validate RED and commit the test checkpoint
+- [x] 2.1 Add failing text and image tests proving the source provider is called once and a rapid foreground-app switch cannot bypass blocked-app privacy; validate RED and commit the test checkpoint
 - [ ] 2.2 Introduce an immutable capture context and pass it through privacy, text/image persistence, and capture-event creation; validate targeted GREEN and commit the implementation checkpoint
 - [ ] 2.3 Add unknown-source and duplicate-capture regression coverage, update capture/privacy development docs, and run the capture QA subset
 
