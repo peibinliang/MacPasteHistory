@@ -17,9 +17,9 @@ final class StorageReconciliationServiceTests: XCTestCase {
         imagesURL = rootURL.appendingPathComponent("images", isDirectory: true)
         thumbnailsURL = rootURL.appendingPathComponent("thumbnails", isDirectory: true)
         temporaryURL = rootURL.appendingPathComponent("temporary", isDirectory: true)
-        for directory in [imagesURL, thumbnailsURL, temporaryURL] {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        }
+        try FileManager.default.createDirectory(at: imagesURL, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: thumbnailsURL, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: temporaryURL, withIntermediateDirectories: true)
         database = try DatabaseConnection(databaseURL: rootURL.appendingPathComponent("clipboard.sqlite"))
         try MigrationManager(database: database).migrate()
         repository = ClipboardHistoryRepository(database: database)

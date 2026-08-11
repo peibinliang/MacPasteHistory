@@ -19,7 +19,7 @@
 ## 4. Storage Reconciliation
 
 - [x] 4.1 Add failing inventory/plan tests for retained missing originals, retained orphaned managed files, missing thumbnails, retained corrupted images, the 24-hour app-owned temporary-file rule, uncertain ownership, per-item failures, and repeat runs; validate RED and commit the test checkpoint
-- [ ] 4.2 Implement canonical managed-path inventory plus non-mutating reconciliation planning; validate report-only GREEN and commit the checkpoint
+- [x] 4.2 Implement canonical managed-path inventory plus non-mutating reconciliation planning; validate report-only GREEN and commit the checkpoint
 - [ ] 4.3 Implement only proven-safe idempotent repairs: thumbnail regeneration and deletion of unreferenced app-owned temporary files older than 24 hours; retain missing originals, corrupted images, orphaned images and uncertain files; validate GREEN and commit the checkpoint
 - [ ] 4.4 Integrate reconciliation at a non-blocking lifecycle boundary, add failure-summary QA, and update storage/database/architecture documentation
 

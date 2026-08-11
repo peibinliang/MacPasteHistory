@@ -680,6 +680,20 @@ final class ClipboardHistoryRepository {
         return Int(sqlite3_column_int(statement, 0))
     }
 
+    /// Returns every image record for conservative storage reconciliation without a UI pagination limit.
+    func imageRecordsForReconciliation() throws -> [ClipboardHistoryItem] {
+        let statement = try database.prepare(
+            """
+            \(Self.selectHistorySQL)
+            WHERE content_type = ?
+            ORDER BY id ASC;
+            """
+        )
+        defer { sqlite3_finalize(statement) }
+        try bindText(ClipboardContentType.image.rawValue, to: statement, index: 1)
+        return try collectItems(from: statement)
+    }
+
     /// Returns the total count of text records currently stored.
     func textRecordCount() throws -> Int {
         let statement = try database.prepare(
