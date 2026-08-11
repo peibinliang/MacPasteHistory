@@ -3,6 +3,7 @@ import Combine
 @MainActor
 protocol UpdateDriving: AnyObject {
     var canCheckForUpdatesPublisher: AnyPublisher<Bool, Never> { get }
+    var automaticallyChecksForUpdatesPublisher: AnyPublisher<Bool, Never> { get }
     var automaticallyChecksForUpdates: Bool { get set }
 
     func checkForUpdates()
@@ -22,6 +23,10 @@ final class UpdateService: ObservableObject {
         driver.canCheckForUpdatesPublisher
             .removeDuplicates()
             .assign(to: &$canCheckForUpdates)
+
+        driver.automaticallyChecksForUpdatesPublisher
+            .removeDuplicates()
+            .assign(to: &$automaticallyChecksForUpdates)
     }
 
     func checkForUpdates() {

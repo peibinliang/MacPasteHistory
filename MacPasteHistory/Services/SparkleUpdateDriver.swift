@@ -17,6 +17,10 @@ final class SparkleUpdateDriver: UpdateDriving {
         controller.updater.publisher(for: \.canCheckForUpdates).eraseToAnyPublisher()
     }
 
+    var automaticallyChecksForUpdatesPublisher: AnyPublisher<Bool, Never> {
+        controller.updater.publisher(for: \.automaticallyChecksForUpdates).eraseToAnyPublisher()
+    }
+
     var automaticallyChecksForUpdates: Bool {
         get { controller.updater.automaticallyChecksForUpdates }
         set { controller.updater.automaticallyChecksForUpdates = newValue }
