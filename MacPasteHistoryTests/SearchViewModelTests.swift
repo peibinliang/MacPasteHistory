@@ -183,6 +183,25 @@ final class SearchViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.items.map(\.id), [repositoryItem.id])
     }
 
+    func testViewModelDeinit_whileSearchIsRunning_shouldReleaseViewModelAndCancelTask() async throws {
+        let coordinator = ControlledViewModelSearchCoordinator()
+        var viewModel: ClipboardHistoryViewModel? = ClipboardHistoryViewModel(
+            repository: try testRepository(),
+            writer: ClipboardWriter(restorationState: ClipboardRestorationState()),
+            searchCoordinator: coordinator
+        )
+        weak var weakViewModel = viewModel
+        await coordinator.configure(input: "pending", immediate: [], full: [])
+        viewModel?.updateSearchText("pending")
+        await coordinator.waitUntilStarted("pending")
+
+        viewModel = nil
+
+        let wasCancelled = await coordinator.waitUntilCancelled("pending")
+        XCTAssertNil(weakViewModel)
+        XCTAssertTrue(wasCancelled)
+    }
+
     private func waitUntil(
         attempts: Int = 1_000,
         _ condition: @escaping @MainActor () -> Bool

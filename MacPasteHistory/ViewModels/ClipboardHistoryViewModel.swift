@@ -56,6 +56,7 @@ final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting
 
     func loadHistory() {
         searchLifecycle.invalidate()
+        isSearchLoading = false
         do {
             let snapshot = try listCoordinator.load(query: currentQuery(offset: 0))
             items = snapshot.items
@@ -83,28 +84,33 @@ final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting
         searchSuggestions = SearchSuggestionProvider(sourceOptions: sourceOptions).suggestions(for: text)
         guard let searchCoordinator else { loadHistory(); return }
         let filters = SearchUIFilters(selectedSourceOption: selectedSourceOption, selectedContentType: selectedContentType, isFavoritesOnly: isFavoritesOnly, selectedTimeRange: selectedTimeRange)
+        let loadedItems = items
         let task = Task { [weak self] in
-            guard let self else { return }
-            guard isCurrentSearchRequest(requestID) else { return }
+            guard self?.isCurrentSearchRequest(requestID) == true else { return }
             await searchCoordinator.cancelCurrentSearch()
-            guard isCurrentSearchRequest(requestID) else { return }
-            isSearchLoading = true
+            guard self?.isCurrentSearchRequest(requestID) == true else { return }
+            self?.isSearchLoading = true
             defer {
-                if searchLifecycle.isCurrent(requestID) {
-                    isSearchLoading = false
-                }
-                searchLifecycle.finish(requestID)
+                self?.finishSearchRequest(requestID)
             }
-            let immediate = await searchCoordinator.immediateResults(input: text, loadedItems: items, filters: filters)
-            guard isCurrentSearchRequest(requestID), immediate.isCurrent else { return }
-            showRankedResults(immediate.results.map(\.item))
-            let full = await searchCoordinator.search(input: text, loadedItems: items, filters: filters)
-            guard isCurrentSearchRequest(requestID), full.isCurrent else { return }
+            let immediate = await searchCoordinator.immediateResults(
+                input: text,
+                loadedItems: loadedItems,
+                filters: filters
+            )
+            guard self?.isCurrentSearchRequest(requestID) == true, immediate.isCurrent else { return }
+            self?.showRankedResults(immediate.results.map(\.item))
+            let full = await searchCoordinator.search(
+                input: text,
+                loadedItems: loadedItems,
+                filters: filters
+            )
+            guard self?.isCurrentSearchRequest(requestID) == true, full.isCurrent else { return }
             if let errorDescription = full.errorDescription {
-                errorMessage = errorDescription
+                self?.errorMessage = errorDescription
             } else {
-                showRankedResults(full.results.map(\.item))
-                errorMessage = nil
+                self?.showRankedResults(full.results.map(\.item))
+                self?.errorMessage = nil
             }
         }
         searchLifecycle.retain(task, for: requestID)
@@ -112,6 +118,13 @@ final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting
 
     private func isCurrentSearchRequest(_ requestID: Int) -> Bool {
         searchLifecycle.isCurrent(requestID)
+    }
+
+    private func finishSearchRequest(_ requestID: Int) {
+        if searchLifecycle.isCurrent(requestID) {
+            isSearchLoading = false
+        }
+        searchLifecycle.finish(requestID)
     }
 
     func acceptSuggestion(_ suggestion: SearchSuggestion) {

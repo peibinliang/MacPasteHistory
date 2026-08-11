@@ -40,7 +40,7 @@
 
 - [x] 7.1 Add characterization tests for current list loading, selection, filters, search, restore, delete, favorite, derived-item, keyboard and feedback behavior
 - [x] 7.2 Extract focused list/search/selection collaborators behind narrow protocols while preserving the existing View-facing API; run the full ViewModel test suite and commit the refactor checkpoint
-- [ ] 7.3 Verify MainActor and cancellation boundaries under rapid UI interaction, update architecture documentation, and confirm no View gained database or paste business logic
+- [x] 7.3 Verify MainActor and cancellation boundaries under rapid UI interaction, update architecture documentation, and confirm no View gained database or paste business logic
 
 ## 8. SQLite Concurrency Governance
 

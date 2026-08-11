@@ -42,6 +42,8 @@ Automatic paste is controlled by a persisted default-off preference and live Acc
 
 ## Search, action and OCR lifecycle
 
+`ClipboardHistoryViewModel` remains the stable SwiftUI-facing MainActor facade. Focused collaborators own ordinary/ranked pagination (`HistoryListCoordinator`), retained Task plus request ownership (`SearchTaskLifecycle`), and derived-item selection (`HistorySelectionState`) behind narrow injectable protocols. A list reload invalidates the active search before fetching, and the search Task captures the ViewModel weakly so replacing or closing a panel releases the old facade and cancels its work. Views continue to call the facade and do not access SQLite or paste accounting directly.
+
 ```mermaid
 sequenceDiagram
     participant U as User
