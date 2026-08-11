@@ -8,6 +8,7 @@ EXPECTED_URL="https://github.com/peibinliang/MacPasteHistory/releases/download/v
 EXPECTED_VERSION="1.0.1"
 EXPECTED_BUILD="2"
 EXPECTED_BUNDLE_ID="com.peibin.MacPasteHistory"
+SPARKLE_NAMESPACE_URI="http://www.andymatuschak.org/xml-namespaces/sparkle"
 
 appcast_path=""
 archive_path=""
@@ -55,6 +56,11 @@ xml_value() {
     /usr/bin/xmllint --xpath "string($xpath)" "$appcast_path" 2>/dev/null || true
 }
 
+xml_count() {
+    local xpath="$1"
+    /usr/bin/xmllint --xpath "count($xpath)" "$appcast_path" 2>/dev/null || printf "0"
+}
+
 is_valid_public_key() {
     local public_key="$1"
     local decoded_size
@@ -72,6 +78,154 @@ is_valid_public_key() {
             | /usr/bin/tr -d '[:space:]'
     )"
     [[ "$decoded_size" == "32" ]]
+}
+
+is_valid_signature_shape() {
+    local signature="$1"
+    local decoded_size reencoded_signature
+
+    if ! printf '%s\n' "$signature" | grep -Eq '^[A-Za-z0-9+/]{86}==$'; then
+        return 1
+    fi
+    if ! printf '%s' "$signature" | /usr/bin/base64 -D >/dev/null 2>&1; then
+        return 1
+    fi
+    decoded_size="$(
+        printf '%s' "$signature" \
+            | /usr/bin/base64 -D 2>/dev/null \
+            | /usr/bin/wc -c \
+            | /usr/bin/tr -d '[:space:]'
+    )"
+    [[ "$decoded_size" == "64" ]] || return 1
+
+    reencoded_signature="$(
+        printf '%s' "$signature" \
+            | /usr/bin/base64 -D 2>/dev/null \
+            | /usr/bin/base64 \
+            | /usr/bin/tr -d '\r\n'
+    )"
+    [[ "$reencoded_signature" == "$signature" ]]
+}
+
+validate_archive_entries() {
+    local result validation_status
+
+    set +e
+    result="$(/usr/bin/python3 - "$archive_path" <<'PY'
+import re
+import stat
+import sys
+import zipfile
+
+archive_path = sys.argv[1]
+expected_root = "粘易.app"
+try:
+    with zipfile.ZipFile(archive_path) as archive:
+        entries = archive.infolist()
+except (OSError, zipfile.BadZipFile):
+    print("invalid-zip")
+    raise SystemExit(1)
+
+if not entries:
+    print("empty-zip")
+    raise SystemExit(1)
+
+for entry in entries:
+    name = entry.filename.replace("\\", "/")
+    parts = name.split("/")
+    if (
+        not name
+        or "\x00" in name
+        or name.startswith("/")
+        or re.match(r"^[A-Za-z]:/", name)
+        or any(part == ".." for part in parts)
+    ):
+        print("unsafe-entry")
+        raise SystemExit(2)
+
+    trimmed_name = name.rstrip("/")
+    mode = entry.external_attr >> 16
+    if trimmed_name == expected_root and stat.S_ISLNK(mode):
+        print("top-level-symlink")
+        raise SystemExit(3)
+
+print("ok")
+PY
+    )"
+    validation_status=$?
+    set -e
+
+    case "$result:$validation_status" in
+        ok:0) return 0 ;;
+        top-level-symlink:3) fail "top-level application path must not be a symbolic link" ;;
+        unsafe-entry:2) fail "archive contains an unsafe archive entry path" ;;
+        *) fail "archive is empty, invalid, or unreadable" ;;
+    esac
+}
+
+validate_extracted_tree() {
+    local application_path="$extract_dir/粘易.app"
+    local result validation_status
+
+    set +e
+    result="$(/usr/bin/python3 - "$extract_dir" "$application_path" <<'PY'
+import os
+import sys
+
+root, app = sys.argv[1:]
+root_real = os.path.realpath(root)
+unexpected_top_level = [name for name in os.listdir(root) if name not in {"粘易.app", "__MACOSX"}]
+if unexpected_top_level:
+    print("unexpected-root")
+    raise SystemExit(6)
+if os.path.islink(app):
+    print("top-level-symlink")
+    raise SystemExit(2)
+if not os.path.isdir(app):
+    print("missing-app")
+    raise SystemExit(3)
+
+app_real = os.path.realpath(app)
+app_absolute = os.path.abspath(app)
+try:
+    if os.path.commonpath([root_real, app_real]) != root_real:
+        print("app-escape")
+        raise SystemExit(4)
+except ValueError:
+    print("app-escape")
+    raise SystemExit(4)
+
+for directory, subdirectories, filenames in os.walk(root, followlinks=False):
+    for name in subdirectories + filenames:
+        path = os.path.join(directory, name)
+        if not os.path.islink(path):
+            continue
+        resolved = os.path.realpath(path)
+        path_absolute = os.path.abspath(path)
+        try:
+            link_is_in_app = os.path.commonpath([app_absolute, path_absolute]) == app_absolute
+            required_root = app_real if link_is_in_app else root_real
+            stays_inside = os.path.commonpath([required_root, resolved]) == required_root
+        except ValueError:
+            stays_inside = False
+        if not stays_inside or not os.path.exists(path):
+            print("symlink-escape")
+            raise SystemExit(5)
+
+print("ok")
+PY
+    )"
+    validation_status=$?
+    set -e
+
+    case "$result:$validation_status" in
+        ok:0) return 0 ;;
+        top-level-symlink:2) fail "top-level application path must not be a symbolic link" ;;
+        symlink-escape:5) fail "application bundle symlink escapes application bundle or is broken" ;;
+        app-escape:4) fail "canonical application path escapes extraction root" ;;
+        unexpected-root:6) fail "archive contains entries outside 粘易.app" ;;
+        *) fail "archive does not contain a safe physical 粘易.app bundle" ;;
+    esac
 }
 
 while [[ $# -gt 0 ]]; do
@@ -109,7 +263,9 @@ done
 [[ -n "$expected_public_key" ]] || { usage >&2; exit 2; }
 
 require_command ditto
+require_command grep
 require_command mktemp
+require_command python3
 require_command shasum
 require_command stat
 require_command xmllint
@@ -134,11 +290,28 @@ if ! /usr/bin/xmllint --noout "$appcast_path" >/dev/null 2>&1; then
 fi
 
 item_xpath='(/*[local-name()="rss"]/*[local-name()="channel"]/*[local-name()="item"])[1]'
-short_version="$(xml_value "$item_xpath/*[local-name()=\"shortVersionString\"]")"
-build_version="$(xml_value "$item_xpath/*[local-name()=\"version\"]")"
-enclosure_url="$(xml_value "$item_xpath/*[local-name()=\"enclosure\"]/@url")"
-enclosure_length="$(xml_value "$item_xpath/*[local-name()=\"enclosure\"]/@length")"
-enclosure_signature="$(xml_value "$item_xpath/*[local-name()=\"enclosure\"]/@*[local-name()=\"edSignature\"]")"
+short_version_xpath="$item_xpath/*[local-name()=\"shortVersionString\" and namespace-uri()=\"$SPARKLE_NAMESPACE_URI\"]"
+build_version_xpath="$item_xpath/*[local-name()=\"version\" and namespace-uri()=\"$SPARKLE_NAMESPACE_URI\"]"
+enclosure_xpath="$item_xpath/*[local-name()=\"enclosure\" and namespace-uri()=\"\"]"
+signature_xpath="$enclosure_xpath/@*[local-name()=\"edSignature\" and namespace-uri()=\"$SPARKLE_NAMESPACE_URI\"]"
+any_signature_xpath="$enclosure_xpath/@*[local-name()=\"edSignature\"]"
+
+if [[ "$(xml_count "$short_version_xpath")" != "1" \
+    || "$(xml_count "$build_version_xpath")" != "1" ]]; then
+    fail "latest item must use the Sparkle namespace URI for version metadata"
+fi
+if [[ "$(xml_count "$any_signature_xpath")" == "0" ]]; then
+    fail "missing sparkle:edSignature"
+fi
+if [[ "$(xml_count "$signature_xpath")" != "1" ]]; then
+    fail "latest item must use the Sparkle namespace URI for sparkle:edSignature"
+fi
+
+short_version="$(xml_value "$short_version_xpath")"
+build_version="$(xml_value "$build_version_xpath")"
+enclosure_url="$(xml_value "$enclosure_xpath/@url")"
+enclosure_length="$(xml_value "$enclosure_xpath/@length")"
+enclosure_signature="$(xml_value "$signature_xpath")"
 
 [[ "$short_version" == "$EXPECTED_VERSION" ]] || fail "latest item short version is not 1.0.1"
 [[ "$build_version" == "$EXPECTED_BUILD" ]] || fail "latest item build version is not 2"
@@ -146,7 +319,9 @@ enclosure_signature="$(xml_value "$item_xpath/*[local-name()=\"enclosure\"]/@*[l
 
 archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
 [[ "$enclosure_length" == "$archive_length" ]] || fail "enclosure length does not match archive byte size"
-[[ -n "${enclosure_signature//[[:space:]]/}" ]] || fail "missing sparkle:edSignature"
+if ! is_valid_signature_shape "$enclosure_signature"; then
+    fail "sparkle:edSignature must be strict Base64 for a 64-byte Ed25519 signature"
+fi
 
 checksum_line_count="$(awk 'NF {count += 1} END {print count + 0}' "$archive_path.sha256")"
 [[ "$checksum_line_count" == "1" ]] || fail "adjacent SHA-256 file must contain exactly one checksum"
@@ -158,6 +333,8 @@ actual_checksum_lower="$(printf '%s' "$actual_checksum" | /usr/bin/tr '[:upper:]
 [[ "$expected_checksum_lower" == "$actual_checksum_lower" ]] \
     || fail "archive SHA-256 does not match adjacent checksum file"
 
+validate_archive_entries
+
 extract_dir="$(mktemp -d /private/tmp/macpastehistory-appcast-verify.XXXXXX)"
 case "$extract_dir" in
     /private/tmp/macpastehistory-appcast-verify.*) ;;
@@ -168,6 +345,7 @@ trap cleanup EXIT
 if ! /usr/bin/ditto -x -k "$archive_path" "$extract_dir" >/dev/null 2>&1; then
     fail "archive could not be extracted"
 fi
+validate_extracted_tree
 archive_info_plist="$extract_dir/粘易.app/Contents/Info.plist"
 [[ -f "$archive_info_plist" ]] || fail "archive does not contain 粘易.app/Contents/Info.plist"
 
@@ -190,7 +368,8 @@ echo "| Bundle identifier | \`$archive_bundle_id\` |"
 echo "| Archive | \`$archive_path\` |"
 echo "| Archive bytes | \`$archive_length\` |"
 echo "| SHA-256 | \`verified\` |"
-echo "| EdDSA signature field | \`present\` |"
+echo "| EdDSA signature field | \`strict 64-byte Base64 shape verified\` |"
+echo "| Cryptographic authenticity | \`deferred to Sparkle generate_appcast and client verification\` |"
 echo "| Public key | \`matches source Info.plist\` |"
 echo
 echo "Status: PASS"

@@ -83,6 +83,14 @@ scripts/verify-sparkle-appcast.sh \
   --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)"
 ```
 
+The verifiers reject unsafe archive paths, a top-level app symlink, and bundle
+symlinks that resolve outside the extracted application. The appcast verifier
+also requires the exact Sparkle namespace and canonical Base64 encoding of a
+64-byte Ed25519 signature. That shape check is not cryptographic authenticity:
+formal evidence must show the appcast came from Sparkle's official
+`generate_appcast` workflow, and Sparkle performs the archive signature check
+against the embedded `SUPublicEDKey` during the real update.
+
 Do not paste a private Sparkle key into any command, record, or log. The public
 key argument above is safe evidence and must match the committed Info.plist.
 

@@ -340,6 +340,37 @@ expect_failure_containing \
     --formal-update \
     "$archive_path"
 
+/usr/bin/python3 - "$archive_path" <<'PY'
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1], "w") as archive:
+    archive.writestr("/absolute-escape.txt", "must not use an absolute extraction path")
+PY
+(
+    cd "$release_dir"
+    /usr/bin/shasum -a 256 "$(basename "$archive_path")" >"$(basename "$archive_path").sha256"
+)
+archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
+write_appcast \
+    "$appcast_path" \
+    "$EXPECTED_URL" \
+    "$archive_length" \
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
+expect_failure_containing \
+    "appcast verifier rejects absolute archive entry" \
+    "unsafe archive entry path" \
+    "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
+    --appcast "$appcast_path" \
+    --archive "$archive_path" \
+    --expected-public-key "$EXPECTED_PUBLIC_KEY"
+expect_failure_containing \
+    "formal package verifier rejects absolute archive entry" \
+    "unsafe archive entry path" \
+    "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
+    --formal-update \
+    "$archive_path"
+
 cp "$TEST_ROOT/normal-archive.zip" "$archive_path"
 cp "$TEST_ROOT/normal-archive.zip.sha256" "$archive_path.sha256"
 outside_target="$TEST_ROOT/outside-target"
@@ -359,19 +390,44 @@ write_appcast \
     " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
 expect_failure_containing \
     "appcast verifier rejects escaping bundle symlink" \
-    "bundle symlink escapes extraction root" \
+    "bundle symlink escapes application bundle" \
     "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
     --appcast "$appcast_path" \
     --archive "$archive_path" \
     --expected-public-key "$EXPECTED_PUBLIC_KEY"
 expect_failure_containing \
     "formal package verifier rejects escaping bundle symlink" \
-    "bundle symlink escapes extraction root" \
+    "bundle symlink escapes application bundle" \
     "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
     --formal-update \
     "$archive_path"
 
 rm "$archive_app/Contents/EscapeLink"
+outside_app_staging="$TEST_ROOT/outside-app-staging"
+mkdir -p "$outside_app_staging/__MACOSX"
+/usr/bin/ditto "$archive_app" "$outside_app_staging/粘易.app"
+echo "outside the application bundle" >"$outside_app_staging/__MACOSX/target"
+ln -s "../../__MACOSX/target" "$outside_app_staging/粘易.app/Contents/EscapeLink"
+rm -f "$archive_path"
+/usr/bin/ditto -c -k --sequesterRsrc "$outside_app_staging" "$archive_path"
+(
+    cd "$release_dir"
+    /usr/bin/shasum -a 256 "$(basename "$archive_path")" >"$(basename "$archive_path").sha256"
+)
+archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
+write_appcast \
+    "$appcast_path" \
+    "$EXPECTED_URL" \
+    "$archive_length" \
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
+expect_failure_containing \
+    "appcast verifier rejects bundle symlink outside app" \
+    "bundle symlink escapes application bundle" \
+    "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
+    --appcast "$appcast_path" \
+    --archive "$archive_path" \
+    --expected-public-key "$EXPECTED_PUBLIC_KEY"
+
 ln -s "Info.plist" "$archive_app/Contents/InternalInfoLink"
 rm -f "$archive_path"
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$archive_app" "$archive_path"
@@ -552,6 +608,18 @@ expect_failure_containing \
     --app "$package_app" \
     --output-dir "$package_app/Contents/ReleaseOutput"
 
+mkdir -p "$package_app/Contents/AliasedReleaseOutput"
+package_output_alias="$package_fixture/output-alias"
+ln -s "$package_app/Contents/AliasedReleaseOutput" "$package_output_alias"
+expect_failure_containing \
+    "formal packaging canonicalizes output symlink into app" \
+    "formal output directory must not be the app bundle or inside it" \
+    env PATH="$package_fake_bin:$PATH" \
+    "$package_fixture/scripts/package-release-qa-build.sh" \
+    --formal-update \
+    --app "$package_app" \
+    --output-dir "$package_output_alias"
+
 package_app_link="$package_fixture/input/AppLink.app"
 ln -s "$package_app" "$package_app_link"
 expect_failure_containing \
@@ -561,6 +629,14 @@ expect_failure_containing \
     "$package_fixture/scripts/package-release-qa-build.sh" \
     --formal-update \
     --app "$package_app_link" \
+    --output-dir "$package_output"
+expect_failure_containing \
+    "formal packaging rejects symlink app input with trailing slash" \
+    "formal update app path must not be a symbolic link" \
+    env PATH="$package_fake_bin:$PATH" \
+    "$package_fixture/scripts/package-release-qa-build.sh" \
+    --formal-update \
+    --app "$package_app_link/" \
     --output-dir "$package_output"
 
 export PACKAGE_VERIFY_RECORD="$package_verify_record"

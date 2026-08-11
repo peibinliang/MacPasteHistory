@@ -46,6 +46,152 @@ executable_architectures() {
     fi
 }
 
+validate_archive_entries() {
+    local archive_path="$1"
+    local expected_root="$2"
+    local result validation_status
+
+    set +e
+    result="$(/usr/bin/python3 - "$archive_path" "$expected_root" <<'PY'
+import re
+import stat
+import sys
+import zipfile
+
+archive_path, expected_root = sys.argv[1:]
+try:
+    with zipfile.ZipFile(archive_path) as archive:
+        entries = archive.infolist()
+except (OSError, zipfile.BadZipFile):
+    print("invalid-zip")
+    raise SystemExit(1)
+
+if not entries:
+    print("empty-zip")
+    raise SystemExit(1)
+
+for entry in entries:
+    name = entry.filename.replace("\\", "/")
+    parts = name.split("/")
+    if (
+        not name
+        or "\x00" in name
+        or name.startswith("/")
+        or re.match(r"^[A-Za-z]:/", name)
+        or any(part == ".." for part in parts)
+    ):
+        print("unsafe-entry")
+        raise SystemExit(2)
+
+    trimmed_name = name.rstrip("/")
+    mode = entry.external_attr >> 16
+    if expected_root and trimmed_name == expected_root and stat.S_ISLNK(mode):
+        print("top-level-symlink")
+        raise SystemExit(3)
+
+print("ok")
+PY
+    )"
+    validation_status=$?
+    set -e
+
+    case "$result:$validation_status" in
+        ok:0) return 0 ;;
+        top-level-symlink:3)
+            echo "Formal archive top-level application path must not be a symbolic link" >&2
+            return 1
+            ;;
+        unsafe-entry:2)
+            echo "Formal archive contains an unsafe archive entry path" >&2
+            return 1
+            ;;
+        *)
+            echo "Package zip is empty, invalid, or unreadable" >&2
+            return 1
+            ;;
+    esac
+}
+
+validate_extracted_tree() {
+    local extraction_root="$1"
+    local application_path="$2"
+    local result validation_status
+
+    set +e
+    result="$(/usr/bin/python3 - "$extraction_root" "$application_path" "$formal_update" <<'PY'
+import os
+import sys
+
+root, app, strict_root = sys.argv[1:]
+root_real = os.path.realpath(root)
+
+if strict_root == "1":
+    unexpected_top_level = [name for name in os.listdir(root) if name not in {"粘易.app", "__MACOSX"}]
+    if unexpected_top_level:
+        print("unexpected-root")
+        raise SystemExit(6)
+
+if os.path.islink(app):
+    print("top-level-symlink")
+    raise SystemExit(2)
+if not os.path.isdir(app):
+    print("missing-app")
+    raise SystemExit(3)
+
+app_real = os.path.realpath(app)
+app_absolute = os.path.abspath(app)
+try:
+    if os.path.commonpath([root_real, app_real]) != root_real:
+        print("app-escape")
+        raise SystemExit(4)
+except ValueError:
+    print("app-escape")
+    raise SystemExit(4)
+
+for directory, subdirectories, filenames in os.walk(root, followlinks=False):
+    for name in subdirectories + filenames:
+        path = os.path.join(directory, name)
+        if not os.path.islink(path):
+            continue
+        resolved = os.path.realpath(path)
+        path_absolute = os.path.abspath(path)
+        try:
+            link_is_in_app = os.path.commonpath([app_absolute, path_absolute]) == app_absolute
+            required_root = app_real if link_is_in_app else root_real
+            stays_inside = os.path.commonpath([required_root, resolved]) == required_root
+        except ValueError:
+            stays_inside = False
+        if not stays_inside or not os.path.exists(path):
+            print("symlink-escape")
+            raise SystemExit(5)
+
+print("ok")
+PY
+    )"
+    validation_status=$?
+    set -e
+
+    case "$result:$validation_status" in
+        ok:0) return 0 ;;
+        top-level-symlink:2)
+            echo "Extracted top-level application path must not be a symbolic link" >&2
+            ;;
+        symlink-escape:5)
+            echo "Extracted application bundle symlink escapes application bundle or is broken" >&2
+            ;;
+        app-escape:4)
+            echo "Canonical application path escapes extraction root" >&2
+            ;;
+        unexpected-root:6)
+            echo "Formal archive contains entries outside the expected application root" >&2
+            ;;
+        *)
+            echo "No safe .app bundle found in package" >&2
+            ;;
+    esac
+    return 1
+}
+
 cleanup() {
     if [[ "$keep_extracted" -eq 0 && -n "${extract_dir:-}" && -d "$extract_dir" ]]; then
         rm -rf "$extract_dir"
@@ -98,6 +244,7 @@ require_command codesign
 require_command ditto
 require_command find
 require_command mktemp
+require_command python3
 require_command rm
 require_command shasum
 if [[ "$formal_update" -eq 1 ]]; then
@@ -121,6 +268,12 @@ fi
 
 if [[ -z "$checksum_path" ]]; then
     checksum_path="$zip_path.sha256"
+fi
+
+if [[ "$formal_update" -eq 1 ]]; then
+    validate_archive_entries "$zip_path" "粘易.app"
+else
+    validate_archive_entries "$zip_path" ""
 fi
 
 echo "Verifying QA package: $zip_path"
@@ -154,13 +307,22 @@ ditto -x -k "$zip_path" "$extract_dir"
 if [[ "$formal_update" -eq 1 ]]; then
     app_path="$extract_dir/粘易.app"
 else
-    app_path="$(find "$extract_dir" -type d -name "*.app" -print -quit)"
+    if find "$extract_dir" -type l -name "*.app" -print -quit | grep -q .; then
+        echo "Extracted top-level application path must not be a symbolic link" >&2
+        exit 1
+    fi
+    app_paths=()
+    while IFS= read -r -d '' candidate; do
+        app_paths+=("$candidate")
+    done < <(find "$extract_dir" -type d -name "*.app" -print0)
+    if [[ "${#app_paths[@]}" -ne 1 ]]; then
+        echo "Package must contain exactly one physical .app bundle" >&2
+        exit 1
+    fi
+    app_path="${app_paths[0]}"
 fi
 
-if [[ -z "$app_path" || ! -d "$app_path" ]]; then
-    echo "No .app bundle found in package" >&2
-    exit 1
-fi
+validate_extracted_tree "$extract_dir" "$app_path"
 
 info_plist="$app_path/Contents/Info.plist"
 executable_path="$app_path/Contents/MacOS/粘易"

@@ -458,6 +458,9 @@ scripts/package-release-qa-build.sh \
 ```
 
 该命令不搜索其他 `.app`，不会修改输入应用，也拒绝覆盖已经存在的正式产物。
+输入 app 和输出目录都会先规范化；输入不能是符号链接，输出目录不能等于或位于
+app bundle 内（包括经符号链接解析后的别名）。正式产物先写入隔离 staging 目录，
+通过正式 ZIP verifier 后才移动到最终名称。
 输出必须包括：
 
 - `粘易-1.0.1-2.zip`
@@ -483,8 +486,18 @@ scripts/generate-sparkle-appcast.sh \
 
 生成脚本只接受上述两个目录参数，不接受、读取或打印私钥参数。EdDSA 私钥必须
 仅保存在发布者钥匙串或受保护的发布环境中。脚本运行 Sparkle 官方工具后，会严格
-验证 XML、`1.0.1 (2)`、固定 URL、ZIP 字节长度、非空签名、相邻 SHA-256、
-Bundle ID 和仓库内 `SUPublicEDKey`，全部通过后才更新 `docs/appcast.xml`。
+验证 XML、Sparkle namespace URI、`1.0.1 (2)`、固定 URL、ZIP 字节长度、
+64-byte Ed25519 签名的严格 Base64 结构、相邻 SHA-256、Bundle ID 和仓库内
+`SUPublicEDKey`，全部通过后才更新 `docs/appcast.xml`。两个 ZIP verifier 都会在
+解压前拒绝绝对路径与 `..` traversal 条目，解压后拒绝顶层 app symlink、逃出 app
+bundle 的内嵌 symlink，以及不在隔离解压根目录内的规范化 app 路径。
+
+本地 `verify-sparkle-appcast.sh` 的签名字段检查是 fail-closed 的类型/长度/编码检查，
+不是密码学真实性证明。Sparkle 2.9.2 的官方 `sign_update --verify` 不能仅接收
+`SUPublicEDKey` 完成验证，还会读取钥匙串或私钥输入；因此本项目的 verifier 不调用它，
+也绝不接收私钥。正式签名必须来自上述官方 `generate_appcast` 流程，最终下载的密码学
+真实性由 Sparkle 客户端使用 app 内 `SUPublicEDKey` 验证。隔离测试中的 64-byte
+Base64 fixture 只证明结构校验，不得作为正式签名或发布证据。
 
 也可手动重复验证：
 
@@ -508,7 +521,7 @@ V1.0.1 (2)，并把历史、收藏、设置和快捷键保留证据填写到
 
 - [ ] 正式 ZIP 由 Developer ID Application 签名并通过 `spctl` 公证检查
 - [ ] `粘易-1.0.1-2.zip.sha256` 与 ZIP 一致
-- [ ] appcast 通过固定 URL、长度、签名、版本、Bundle ID 和公钥校验
+- [ ] appcast 由官方 `generate_appcast` 生成，并通过固定 URL、长度、签名结构、版本、Bundle ID 和公钥校验
 - [ ] V1.0.0 → V1.0.1 手动与自动升级证据完整
 - [ ] 私钥、令牌和凭据未进入参数、日志、文档或 Git
 

@@ -10,6 +10,7 @@ formal_update=0
 explicit_app_path=""
 release_notes_path=""
 output_dir_explicit=0
+formal_stage_dir=""
 
 usage() {
     cat <<'EOF'
@@ -66,11 +67,30 @@ executable_architectures() {
     fi
 }
 
+cleanup_formal_stage() {
+    if [[ -z "$formal_stage_dir" || ! -d "$formal_stage_dir" ]]; then
+        return
+    fi
+    case "$(basename "$formal_stage_dir")" in
+        .formal-update-stage.*) rm -rf "$formal_stage_dir" ;;
+        *) echo "Refusing to remove unexpected formal staging directory" >&2 ;;
+    esac
+}
+
+canonical_path() {
+    /usr/bin/python3 - "$1" <<'PY'
+import os
+import sys
+
+print(os.path.realpath(sys.argv[1]))
+PY
+}
+
 package_formal_update() {
     local info_plist version build_number bundle_id
     local codesign_summary signature authority team_identifier
-    local spctl_output spctl_status archive_name archive_path checksum_path
-    local release_notes_name release_notes_output
+    local spctl_output spctl_status archive_name archive_path checksum_path release_notes_name
+    local release_notes_output canonical_app canonical_output staged_archive staged_checksum staged_notes
 
     [[ -n "$explicit_app_path" ]] || {
         echo "--formal-update requires --app with an explicit application path" >&2
@@ -80,10 +100,30 @@ package_formal_update() {
         echo "--formal-update requires --output-dir" >&2
         exit 2
     }
+    while [[ "$explicit_app_path" != "/" && "$explicit_app_path" == */ ]]; do
+        explicit_app_path="${explicit_app_path%/}"
+    done
     [[ -d "$explicit_app_path" ]] || {
         echo "Formal update app not found: $explicit_app_path" >&2
         exit 1
     }
+    [[ ! -L "$explicit_app_path" ]] || {
+        echo "formal update app path must not be a symbolic link" >&2
+        exit 1
+    }
+
+    canonical_app="$(canonical_path "$explicit_app_path")"
+    canonical_output="$(canonical_path "$OUTPUT_DIR")"
+    [[ -d "$canonical_app" && "$(basename "$canonical_app")" == "粘易.app" ]] || {
+        echo "Formal update app must be a physical bundle named 粘易.app" >&2
+        exit 1
+    }
+    if [[ "$canonical_output" == "$canonical_app" || "$canonical_output" == "$canonical_app/"* ]]; then
+        echo "formal output directory must not be the app bundle or inside it" >&2
+        exit 1
+    fi
+    explicit_app_path="$canonical_app"
+    OUTPUT_DIR="$canonical_output"
 
     info_plist="$explicit_app_path/Contents/Info.plist"
     [[ -f "$info_plist" ]] || {
@@ -144,6 +184,15 @@ package_formal_update() {
     release_notes_name="粘易-1.0.1-2-release-notes.md"
     release_notes_output="$OUTPUT_DIR/$release_notes_name"
     mkdir -p "$OUTPUT_DIR"
+    canonical_output="$(canonical_path "$OUTPUT_DIR")"
+    if [[ "$canonical_output" == "$canonical_app" || "$canonical_output" == "$canonical_app/"* ]]; then
+        echo "formal output directory must not be the app bundle or inside it" >&2
+        exit 1
+    fi
+    OUTPUT_DIR="$canonical_output"
+    archive_path="$OUTPUT_DIR/$archive_name"
+    checksum_path="$archive_path.sha256"
+    release_notes_output="$OUTPUT_DIR/$release_notes_name"
 
     for output_file in "$archive_path" "$checksum_path" "$release_notes_output"; do
         if [[ -e "$output_file" ]]; then
@@ -152,12 +201,34 @@ package_formal_update() {
         fi
     done
 
-    /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$explicit_app_path" "$archive_path"
+    formal_stage_dir="$(mktemp -d "$OUTPUT_DIR/.formal-update-stage.XXXXXX")"
+    case "$formal_stage_dir" in
+        "$OUTPUT_DIR"/.formal-update-stage.*) ;;
+        *)
+            echo "Unexpected formal staging directory" >&2
+            exit 1
+            ;;
+    esac
+    staged_archive="$formal_stage_dir/$archive_name"
+    staged_checksum="$staged_archive.sha256"
+    staged_notes="$formal_stage_dir/$release_notes_name"
+
+    /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$explicit_app_path" "$staged_archive"
     (
-        cd "$OUTPUT_DIR"
+        cd "$formal_stage_dir"
         /usr/bin/shasum -a 256 "$archive_name" >"$archive_name.sha256"
     )
-    cp "$release_notes_path" "$release_notes_output"
+    cp "$release_notes_path" "$staged_notes"
+
+    "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
+        --formal-update \
+        "$staged_archive" >/dev/null
+
+    mv "$staged_archive" "$archive_path"
+    mv "$staged_checksum" "$checksum_path"
+    mv "$staged_notes" "$release_notes_output"
+    rmdir "$formal_stage_dir"
+    formal_stage_dir=""
 
     echo "Formal Sparkle update artifacts created:"
     echo "  Archive:       $archive_path"
@@ -224,7 +295,13 @@ cd "$REPO_ROOT"
 if [[ "$formal_update" -eq 1 ]]; then
     require_command cp
     require_command grep
+    require_command mktemp
+    require_command mv
+    require_command python3
+    require_command rm
+    require_command rmdir
     require_command spctl
+    trap cleanup_formal_stage EXIT
     package_formal_update
     exit 0
 fi
