@@ -58,7 +58,7 @@
 
 ## 10. QA, Independent Review And Merge Gate
 
-- [ ] 10.1 Run file-reference validation, `git diff --check`, Debug build, complete tests with coverage evidence, migration/upgrade tests, privacy/log scan and relevant release-readiness scripts
+- [x] 10.1 Run file-reference validation, `git diff --check`, Debug build, complete tests with coverage evidence, migration/upgrade tests, privacy/log scan and relevant release-readiness scripts
 - [ ] 10.2 Run manual macOS smoke QA for text/image capture, blocked-app race, search typing, restore, Automatic Paste fallback, actions, cleanup/reconciliation, settings, shortcuts and relaunch; record unavailable hardware/credentials as pending decisions
 - [ ] 10.3 Have an independent QA subagent inspect acceptance evidence and an independent reviewer subagent audit correctness, privacy, migration safety, test gaps and documentation consistency
 - [ ] 10.4 Fix all blocking review findings, rerun affected and full verification, and obtain clean follow-up reviews
