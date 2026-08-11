@@ -11,6 +11,7 @@ struct StorageReconciliationService {
     private let thumbnailsDirectory: URL
     private let temporaryDirectory: URL
     private let fileManager: FileManager
+    private let imageStorageService: ImageStorageService
     private let now: () -> Date
 
     init(
@@ -19,6 +20,7 @@ struct StorageReconciliationService {
         thumbnailsDirectory: URL,
         temporaryDirectory: URL,
         fileManager: FileManager = .default,
+        imageStorageService: ImageStorageService? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.repository = repository
@@ -26,6 +28,11 @@ struct StorageReconciliationService {
         self.thumbnailsDirectory = thumbnailsDirectory
         self.temporaryDirectory = temporaryDirectory
         self.fileManager = fileManager
+        self.imageStorageService = imageStorageService ?? ImageStorageService(
+            imagesDirectory: imagesDirectory,
+            thumbnailsDirectory: thumbnailsDirectory,
+            fileManager: fileManager
+        )
         self.now = now
     }
 
@@ -77,11 +84,21 @@ struct StorageReconciliationService {
         return StorageReconciliationPlan(issues: issues, actions: actions)
     }
 
-    /// Report-only until the explicit safe-action phase is enabled.
     func reconcile() -> StorageReconciliationReport {
         do {
             let plan = makePlan(from: try scan())
-            return report(for: plan, completed: 0, failed: 0)
+            var completed = 0
+            var failed = 0
+            for action in plan.actions {
+                do {
+                    if try apply(action) {
+                        completed += 1
+                    }
+                } catch {
+                    failed += 1
+                }
+            }
+            return report(for: plan, completed: completed, failed: failed)
         } catch {
             return StorageReconciliationReport(
                 issueCounts: [.itemFailure: 1],
@@ -90,6 +107,69 @@ struct StorageReconciliationService {
                 failedActionCount: 1
             )
         }
+    }
+
+    private func apply(_ action: StorageReconciliationAction) throws -> Bool {
+        switch action.kind {
+        case .regenerateThumbnail:
+            return try regenerateThumbnail(for: action)
+        case .deleteStaleTemporaryFile:
+            return try deleteStaleTemporaryFile(for: action)
+        }
+    }
+
+    private func regenerateThumbnail(for action: StorageReconciliationAction) throws -> Bool {
+        guard let historyID = action.historyID,
+              let sourceURL = action.sourceURL,
+              let currentRecord = try repository.historyItem(id: historyID),
+              let currentOriginalPath = currentRecord.filePath,
+              let currentThumbnailPath = currentRecord.thumbnailPath else {
+            return false
+        }
+
+        let currentOriginal = canonicalURL(URL(fileURLWithPath: currentOriginalPath))
+        let currentThumbnail = canonicalURL(URL(fileURLWithPath: currentThumbnailPath))
+        guard currentOriginal == canonicalURL(sourceURL),
+              currentThumbnail == canonicalURL(action.fileURL),
+              isContained(currentOriginal, in: imagesDirectory),
+              isContained(currentThumbnail, in: thumbnailsDirectory),
+              fileManager.fileExists(atPath: currentOriginal.path),
+              NSImage(contentsOf: currentOriginal) != nil,
+              fileManager.fileExists(atPath: currentThumbnail.path) == false else {
+            return false
+        }
+
+        try imageStorageService.regenerateThumbnail(from: currentOriginal, to: currentThumbnail)
+        return true
+    }
+
+    private func deleteStaleTemporaryFile(for action: StorageReconciliationAction) throws -> Bool {
+        let candidate = canonicalURL(action.fileURL)
+        guard candidate == action.fileURL,
+              isContained(candidate, in: temporaryDirectory),
+              isOwnedTemporaryFilename(candidate.lastPathComponent),
+              fileManager.fileExists(atPath: candidate.path) else {
+            return false
+        }
+
+        let values = try candidate.resourceValues(
+            forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .contentModificationDateKey]
+        )
+        guard values.isRegularFile == true,
+              values.isSymbolicLink != true,
+              let modificationDate = values.contentModificationDate,
+              modificationDate < now().addingTimeInterval(-Self.temporarySafetyWindow),
+              try isCurrentlyUnreferenced(candidate) else {
+            return false
+        }
+
+        try fileManager.removeItem(at: candidate)
+        return true
+    }
+
+    private func isCurrentlyUnreferenced(_ candidate: URL) throws -> Bool {
+        let references = allReferencedPaths(in: try repository.imageRecordsForReconciliation())
+        return references.contains(candidate) == false
     }
 
     private func planRecord(
@@ -214,8 +294,7 @@ struct StorageReconciliationService {
         for file in files {
             let name = file.url.lastPathComponent
             guard isContained(file.url, in: temporaryDirectory),
-                  name.hasPrefix(Self.temporaryFilePrefix),
-                  name.hasSuffix(Self.temporaryFileSuffix),
+                  isOwnedTemporaryFilename(name),
                   referencedPaths.contains(file.url) == false,
                   let modificationDate = file.modificationDate,
                   modificationDate < cutoff else {
@@ -230,6 +309,10 @@ struct StorageReconciliationService {
                 )
             )
         }
+    }
+
+    private func isOwnedTemporaryFilename(_ name: String) -> Bool {
+        name.hasPrefix(Self.temporaryFilePrefix) && name.hasSuffix(Self.temporaryFileSuffix)
     }
 
     private func allReferencedPaths(in records: [ClipboardHistoryItem]) -> Set<URL> {

@@ -78,6 +78,18 @@ final class ImageStorageService {
         }
     }
 
+    func regenerateThumbnail(from originalURL: URL, to thumbnailURL: URL) throws {
+        let originalData = try Data(contentsOf: originalURL)
+        guard NSImage(data: originalData) != nil else {
+            throw ImageStorageError.invalidImageData
+        }
+        try fileManager.createDirectory(
+            at: thumbnailURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try thumbnailData(from: originalData).write(to: thumbnailURL, options: .atomic)
+    }
+
     private func thumbnailData(from pngData: Data) throws -> Data {
         guard let image = NSImage(data: pngData) else {
             throw ImageStorageError.invalidImageData
