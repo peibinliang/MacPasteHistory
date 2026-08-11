@@ -72,7 +72,10 @@ final class ContentActionPanelViewModel: ObservableObject {
     }
 
     func recommendedActions(for type: DetectedContentType) -> [any ContentAction] {
-        registry.recommended(for: type)
+        registry.sorted.filter { action in
+            suitabilityPolicy.isSuitable(action, for: type)
+                && action.supportedTypes.contains(type)
+        }
     }
 
     func present(for item: ClipboardHistoryItem, sourceText: String? = nil, recommendedOnly: Bool = false) {

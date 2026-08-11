@@ -2,6 +2,13 @@
 
 ## 2026-08-11
 
+### URL action menu consistency fix
+
+- Bug: URL history rows exposed generic text transformations in the inline menu, while opening All Actions showed only URL-specific operations.
+- Root cause: the inline menu treated an action's broad executable `supportedTypes` as its recommendation rule, but the command palette used `ContentActionSuitabilityPolicy`.
+- Fix: both entry points now use the same suitability policy. AI polishing remains available for plain text and is excluded from structured URL recommendations.
+- Regression: targeted tests cover URL menu parity and the plain-text-only AI polishing boundary. No database repair, migration, permission change, or historical-data compatibility work is required.
+
 ### Added
 
 - Pinned the Sparkle dependency to exact version `2.9.2` and committed the resolved package revision.

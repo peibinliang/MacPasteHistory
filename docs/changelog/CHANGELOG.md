@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- Made inline history-row actions use the same content suitability rules as All Actions, so URL records only show URL-specific operations while plain text retains AI polishing.
+
 ## 1.0.2 - 2026-08-11
 
 ### Added

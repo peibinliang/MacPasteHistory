@@ -9,6 +9,7 @@ struct ContentActionSuitabilityPolicy {
         "text.uppercase",
         "text.lowercase",
         "text.markdown-code-block",
+        "ai.polish-text",
         "json.escape",
         "url.encode-query-value",
         "base64.encode",
