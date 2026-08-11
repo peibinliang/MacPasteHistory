@@ -8,6 +8,11 @@ EXPECTED_PUBLIC_KEY="$(
         "$REPO_ROOT/MacPasteHistory/Resources/Info.plist"
 )"
 EXPECTED_URL="https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.1/%E7%B2%98%E6%98%93-1.0.1-2.zip"
+VALID_SIGNATURE_SHAPE="$(
+    /bin/dd if=/dev/zero bs=64 count=1 2>/dev/null \
+        | /usr/bin/base64 \
+        | /usr/bin/tr -d '\r\n'
+)"
 
 case "$TEST_ROOT" in
     /private/tmp/macpastehistory-sparkle-artifacts.*) ;;
@@ -118,13 +123,47 @@ write_appcast \
     "$appcast_path" \
     "$EXPECTED_URL" \
     "$archive_length" \
-    ' sparkle:edSignature="SYNTHETIC_FIXTURE_SIGNATURE"'
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
 expect_success \
-    "isolated valid appcast fixture" \
+    "isolated valid-signature-shape appcast fixture" \
     "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
     --appcast "$appcast_path" \
     --archive "$archive_path" \
     --expected-public-key "$EXPECTED_PUBLIC_KEY"
+
+write_appcast \
+    "$appcast_path" \
+    "$EXPECTED_URL" \
+    "$archive_length" \
+    ' sparkle:edSignature="SYNTHETIC_FIXTURE_SIGNATURE"'
+expect_failure_containing \
+    "synthetic text is not an Ed25519 signature" \
+    "sparkle:edSignature must be strict Base64 for a 64-byte Ed25519 signature" \
+    "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
+    --appcast "$appcast_path" \
+    --archive "$archive_path" \
+    --expected-public-key "$EXPECTED_PUBLIC_KEY"
+
+write_appcast \
+    "$appcast_path" \
+    "$EXPECTED_URL" \
+    "$archive_length" \
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
+perl -pi -e 's#http://www\.andymatuschak\.org/xml-namespaces/sparkle#https://evil.invalid/sparkle#' \
+    "$appcast_path"
+expect_failure_containing \
+    "evil Sparkle namespace" \
+    "latest item must use the Sparkle namespace URI" \
+    "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
+    --appcast "$appcast_path" \
+    --archive "$archive_path" \
+    --expected-public-key "$EXPECTED_PUBLIC_KEY"
+
+write_appcast \
+    "$appcast_path" \
+    "$EXPECTED_URL" \
+    "$archive_length" \
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
 
 perl -pi -e 's/shortVersionString>1\.0\.1/shortVersionString>1.0.0/' "$appcast_path"
 expect_failure_containing \
@@ -149,7 +188,7 @@ write_appcast \
     "$appcast_path" \
     "$wrong_url" \
     "$archive_length" \
-    ' sparkle:edSignature="SYNTHETIC_FIXTURE_SIGNATURE"'
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
 expect_failure_containing \
     "unexpected enclosure URL" \
     "enclosure URL does not match" \
@@ -162,7 +201,7 @@ write_appcast \
     "$appcast_path" \
     "$EXPECTED_URL" \
     "$((archive_length + 1))" \
-    ' sparkle:edSignature="SYNTHETIC_FIXTURE_SIGNATURE"'
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
 expect_failure_containing \
     "unexpected enclosure length" \
     "enclosure length does not match archive" \
@@ -175,7 +214,7 @@ write_appcast \
     "$appcast_path" \
     "$EXPECTED_URL" \
     "$archive_length" \
-    ' sparkle:edSignature="SYNTHETIC_FIXTURE_SIGNATURE"'
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
 cp "$archive_path.sha256" "$TEST_ROOT/original-checksum"
 printf '%064d  %s\n' 0 "$(basename "$archive_path")" >"$archive_path.sha256"
 expect_failure_containing \
@@ -199,7 +238,7 @@ write_appcast \
     "$appcast_path" \
     "$EXPECTED_URL" \
     "$archive_length" \
-    ' sparkle:edSignature="SYNTHETIC_FIXTURE_SIGNATURE"'
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
 expect_failure_containing \
     "archive bundle identifier mismatch" \
     "archive bundle identifier is not com.peibin.MacPasteHistory" \
@@ -220,7 +259,7 @@ write_appcast \
     "$appcast_path" \
     "$EXPECTED_URL" \
     "$archive_length" \
-    ' sparkle:edSignature="SYNTHETIC_FIXTURE_SIGNATURE"'
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
 
 wrong_public_key="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 expect_failure_containing \
@@ -230,6 +269,138 @@ expect_failure_containing \
     --appcast "$appcast_path" \
     --archive "$archive_path" \
     --expected-public-key "$wrong_public_key"
+
+cp "$archive_path" "$TEST_ROOT/normal-archive.zip"
+cp "$archive_path.sha256" "$TEST_ROOT/normal-archive.zip.sha256"
+
+/usr/bin/python3 - "$archive_path" "$archive_app" <<'PY'
+import stat
+import sys
+import zipfile
+
+archive_path, target = sys.argv[1:]
+entry = zipfile.ZipInfo("粘易.app")
+entry.create_system = 3
+entry.external_attr = (stat.S_IFLNK | 0o777) << 16
+with zipfile.ZipFile(archive_path, "w") as archive:
+    archive.writestr(entry, target)
+PY
+(
+    cd "$release_dir"
+    /usr/bin/shasum -a 256 "$(basename "$archive_path")" >"$(basename "$archive_path").sha256"
+)
+archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
+write_appcast \
+    "$appcast_path" \
+    "$EXPECTED_URL" \
+    "$archive_length" \
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
+expect_failure_containing \
+    "appcast verifier rejects symlink-only app archive" \
+    "top-level application path must not be a symbolic link" \
+    "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
+    --appcast "$appcast_path" \
+    --archive "$archive_path" \
+    --expected-public-key "$EXPECTED_PUBLIC_KEY"
+expect_failure_containing \
+    "formal package verifier rejects symlink-only app archive" \
+    "top-level application path must not be a symbolic link" \
+    "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
+    --formal-update \
+    "$archive_path"
+
+/usr/bin/python3 - "$archive_path" <<'PY'
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1], "w") as archive:
+    archive.writestr("../escaped.txt", "must not escape extraction root")
+PY
+(
+    cd "$release_dir"
+    /usr/bin/shasum -a 256 "$(basename "$archive_path")" >"$(basename "$archive_path").sha256"
+)
+archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
+write_appcast \
+    "$appcast_path" \
+    "$EXPECTED_URL" \
+    "$archive_length" \
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
+expect_failure_containing \
+    "appcast verifier rejects zip-slip entry" \
+    "unsafe archive entry path" \
+    "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
+    --appcast "$appcast_path" \
+    --archive "$archive_path" \
+    --expected-public-key "$EXPECTED_PUBLIC_KEY"
+expect_failure_containing \
+    "formal package verifier rejects zip-slip entry" \
+    "unsafe archive entry path" \
+    "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
+    --formal-update \
+    "$archive_path"
+
+cp "$TEST_ROOT/normal-archive.zip" "$archive_path"
+cp "$TEST_ROOT/normal-archive.zip.sha256" "$archive_path.sha256"
+outside_target="$TEST_ROOT/outside-target"
+echo "outside extraction root" >"$outside_target"
+ln -s "$outside_target" "$archive_app/Contents/EscapeLink"
+rm -f "$archive_path"
+/usr/bin/ditto -c -k --sequesterRsrc --keepParent "$archive_app" "$archive_path"
+(
+    cd "$release_dir"
+    /usr/bin/shasum -a 256 "$(basename "$archive_path")" >"$(basename "$archive_path").sha256"
+)
+archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
+write_appcast \
+    "$appcast_path" \
+    "$EXPECTED_URL" \
+    "$archive_length" \
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
+expect_failure_containing \
+    "appcast verifier rejects escaping bundle symlink" \
+    "bundle symlink escapes extraction root" \
+    "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
+    --appcast "$appcast_path" \
+    --archive "$archive_path" \
+    --expected-public-key "$EXPECTED_PUBLIC_KEY"
+expect_failure_containing \
+    "formal package verifier rejects escaping bundle symlink" \
+    "bundle symlink escapes extraction root" \
+    "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
+    --formal-update \
+    "$archive_path"
+
+rm "$archive_app/Contents/EscapeLink"
+ln -s "Info.plist" "$archive_app/Contents/InternalInfoLink"
+rm -f "$archive_path"
+/usr/bin/ditto -c -k --sequesterRsrc --keepParent "$archive_app" "$archive_path"
+(
+    cd "$release_dir"
+    /usr/bin/shasum -a 256 "$(basename "$archive_path")" >"$(basename "$archive_path").sha256"
+)
+archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
+write_appcast \
+    "$appcast_path" \
+    "$EXPECTED_URL" \
+    "$archive_length" \
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
+expect_success \
+    "appcast verifier allows internal bundle symlink" \
+    "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
+    --appcast "$appcast_path" \
+    --archive "$archive_path" \
+    --expected-public-key "$EXPECTED_PUBLIC_KEY"
+rm "$archive_app/Contents/InternalInfoLink"
+
+cp "$TEST_ROOT/normal-archive.zip" "$archive_path"
+cp "$TEST_ROOT/normal-archive.zip.sha256" "$archive_path.sha256"
+archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
+write_appcast \
+    "$appcast_path" \
+    "$EXPECTED_URL" \
+    "$archive_length" \
+    " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
 
 sparkle_bin="$TEST_ROOT/fake-sparkle-bin"
 sparkle_args_record="$TEST_ROOT/generate-appcast-args.txt"
@@ -256,7 +427,12 @@ for argument in "$@"; do
 done
 archive_path="$release_directory/粘易-1.0.1-2.zip"
 archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
-signature_attribute=' sparkle:edSignature="SYNTHETIC_FIXTURE_SIGNATURE"'
+valid_signature_shape="$(
+    /bin/dd if=/dev/zero bs=64 count=1 2>/dev/null \
+        | /usr/bin/base64 \
+        | /usr/bin/tr -d '\r\n'
+)"
+signature_attribute=" sparkle:edSignature=\"$valid_signature_shape\""
 if [[ "${SPARKLE_UNSIGNED_FIXTURE:-0}" == "1" ]]; then
     signature_attribute=""
 fi
@@ -318,6 +494,93 @@ expect_failure_containing \
 unset SPARKLE_ARGS_RECORD FORMAL_GATE_RECORD SPARKLE_UNSIGNED_FIXTURE
 if ! cmp -s "$fixture_repo/docs/appcast.xml" "$TEST_ROOT/verified-docs-appcast.xml"; then
     add_failure "generator changed docs/appcast.xml after unsigned verification failed."
+fi
+
+package_fixture="$TEST_ROOT/package-fixture"
+package_fake_bin="$package_fixture/fake-bin"
+package_app="$package_fixture/input/粘易.app"
+package_output="$package_fixture/output"
+package_verify_record="$package_fixture/package-verify-args.txt"
+package_release_notes="$package_fixture/release-notes.md"
+mkdir -p "$package_fixture/scripts" "$package_fake_bin" "$package_fixture/input"
+cp "$REPO_ROOT/scripts/package-release-qa-build.sh" "$package_fixture/scripts/package-release-qa-build.sh"
+/usr/bin/ditto "$archive_app" "$package_app"
+echo "Synthetic fixture release notes." >"$package_release_notes"
+
+cat >"$package_fake_bin/codesign" <<'FAKE_CODESIGN'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "-dvvv" ]]; then
+    {
+        echo "Signature size=9000"
+        echo "Authority=Developer ID Application: Synthetic Fixture (TESTTEAM01)"
+        echo "TeamIdentifier=TESTTEAM01"
+    } >&2
+fi
+exit 0
+FAKE_CODESIGN
+cat >"$package_fake_bin/spctl" <<'FAKE_SPCTL'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "synthetic fixture: accepted"
+echo "source=Notarized Developer ID"
+FAKE_SPCTL
+cat >"$package_fixture/scripts/verify-sparkle-release-bundle.sh" <<'FAKE_BUNDLE_VERIFY'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "$#" -eq 1 && -d "$1" ]]
+FAKE_BUNDLE_VERIFY
+cat >"$package_fixture/scripts/verify-release-qa-package.sh" <<'FAKE_PACKAGE_VERIFY'
+#!/usr/bin/env bash
+set -euo pipefail
+: "${PACKAGE_VERIFY_RECORD:?}"
+[[ "$#" -eq 2 && "$1" == "--formal-update" && -f "$2" && -f "$2.sha256" ]]
+printf '%s\n' "$@" >"$PACKAGE_VERIFY_RECORD"
+FAKE_PACKAGE_VERIFY
+chmod +x \
+    "$package_fake_bin/codesign" \
+    "$package_fake_bin/spctl" \
+    "$package_fixture/scripts/verify-sparkle-release-bundle.sh" \
+    "$package_fixture/scripts/verify-release-qa-package.sh"
+
+expect_failure_containing \
+    "formal packaging rejects output inside app" \
+    "formal output directory must not be the app bundle or inside it" \
+    env PATH="$package_fake_bin:$PATH" \
+    "$package_fixture/scripts/package-release-qa-build.sh" \
+    --formal-update \
+    --app "$package_app" \
+    --output-dir "$package_app/Contents/ReleaseOutput"
+
+package_app_link="$package_fixture/input/AppLink.app"
+ln -s "$package_app" "$package_app_link"
+expect_failure_containing \
+    "formal packaging rejects symlink app input" \
+    "formal update app path must not be a symbolic link" \
+    env PATH="$package_fake_bin:$PATH" \
+    "$package_fixture/scripts/package-release-qa-build.sh" \
+    --formal-update \
+    --app "$package_app_link" \
+    --output-dir "$package_output"
+
+export PACKAGE_VERIFY_RECORD="$package_verify_record"
+expect_success \
+    "formal packaging verifies staged archive before success" \
+    env PATH="$package_fake_bin:$PATH" \
+    "$package_fixture/scripts/package-release-qa-build.sh" \
+    --formal-update \
+    --app "$package_app" \
+    --output-dir "$package_output" \
+    --release-notes "$package_release_notes"
+unset PACKAGE_VERIFY_RECORD
+if [[ ! -f "$package_output/粘易-1.0.1-2.zip" \
+    || ! -f "$package_output/粘易-1.0.1-2.zip.sha256" \
+    || ! -f "$package_output/粘易-1.0.1-2-release-notes.md" ]]; then
+    add_failure "formal packaging did not produce all three expected artifacts."
+fi
+if [[ ! -f "$package_verify_record" \
+    || "$(sed -n '1p' "$package_verify_record")" != "--formal-update" ]]; then
+    add_failure "formal packaging did not verify the staged archive before success."
 fi
 
 formal_app="$TEST_ROOT/formal/粘易.app"
