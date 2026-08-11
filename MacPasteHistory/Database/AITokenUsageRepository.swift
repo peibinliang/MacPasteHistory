@@ -7,7 +7,7 @@ enum AITokenUsageRepositoryError: Error, Equatable {
 
 final class AITokenUsageRepository {
     private let database: DatabaseConnection
-    private let dateFormatter = DateFormatter.sqliteDateFormatter
+    private let dateFormatter = SQLiteDateCodec()
 
     init(database: DatabaseConnection) {
         self.database = database

@@ -4,12 +4,12 @@ import SQLite3
 final class ClipboardHistoryRepository {
     private let database: DatabaseConnection
     private let hashService: TextHashService
-    private let dateFormatter: DateFormatter
+    private let dateFormatter: SQLiteDateCodec
 
     init(database: DatabaseConnection, hashService: TextHashService = TextHashService()) {
         self.database = database
         self.hashService = hashService
-        self.dateFormatter = DateFormatter.sqliteDateFormatter
+        self.dateFormatter = SQLiteDateCodec()
     }
 
     func saveText(
@@ -102,8 +102,8 @@ final class ClipboardHistoryRepository {
             """
             SELECT id, history_id, source_app, source_bundle_id, captured_at
             FROM clipboard_capture_events
-            WHERE history_id = ? AND datetime(captured_at) >= datetime(?)
-            ORDER BY datetime(captured_at) DESC, id DESC;
+            WHERE history_id = ? AND julianday(captured_at) >= julianday(?)
+            ORDER BY captured_at DESC, id DESC;
             """
         )
         defer { sqlite3_finalize(statement) }
@@ -137,7 +137,7 @@ final class ClipboardHistoryRepository {
                    capture_count, first_captured_at, last_captured_at
             FROM clipboard_capture_event_summaries
             WHERE history_id = ?
-            ORDER BY datetime(last_captured_at) DESC, id DESC;
+            ORDER BY last_captured_at DESC, id DESC;
             """
         )
         defer { sqlite3_finalize(statement) }
@@ -734,7 +734,7 @@ final class ClipboardHistoryRepository {
             conditions.append("is_favorite = 1")
         }
         if query.timeRange.startDate != nil {
-            conditions.append("datetime(COALESCE(last_captured_at, created_at)) >= datetime(?)")
+            conditions.append("julianday(COALESCE(last_captured_at, created_at)) >= julianday(?)")
         }
         if query.sourceFilter.isAll == false {
             if query.sourceFilter.bundleID != nil {
@@ -748,7 +748,7 @@ final class ClipboardHistoryRepository {
         return """
         \(Self.selectHistorySQL)
         \(whereClause)
-        ORDER BY datetime(COALESCE(last_captured_at, created_at)) DESC, id DESC
+        ORDER BY COALESCE(last_captured_at, created_at) DESC, id DESC
         LIMIT ? OFFSET ?;
         """
     }
@@ -880,7 +880,7 @@ final class ClipboardHistoryRepository {
             """
             SELECT history_id, source_app, source_bundle_id, captured_at
             FROM clipboard_capture_events
-            WHERE datetime(captured_at) < datetime(?);
+            WHERE julianday(captured_at) < julianday(?);
             """
         )
         defer { sqlite3_finalize(statement) }
@@ -947,7 +947,7 @@ final class ClipboardHistoryRepository {
 
     private func deleteCaptureEvents(before cutoff: Date) throws {
         let statement = try database.prepare(
-            "DELETE FROM clipboard_capture_events WHERE datetime(captured_at) < datetime(?);"
+            "DELETE FROM clipboard_capture_events WHERE julianday(captured_at) < julianday(?);"
         )
         defer { sqlite3_finalize(statement) }
 
@@ -1259,12 +1259,28 @@ final class ClipboardHistoryRepository {
     }
 }
 
-extension DateFormatter {
-    static var sqliteDateFormatter: DateFormatter {
+struct SQLiteDateCodec {
+    private let fractionalFormatter: DateFormatter
+    private let legacyFormatter: DateFormatter
+
+    init() {
+        fractionalFormatter = Self.makeFormatter(format: "yyyy-MM-dd HH:mm:ss.SSSSSS")
+        legacyFormatter = Self.makeFormatter(format: "yyyy-MM-dd HH:mm:ss")
+    }
+
+    func string(from date: Date) -> String {
+        fractionalFormatter.string(from: date)
+    }
+
+    func date(from value: String) -> Date? {
+        fractionalFormatter.date(from: value) ?? legacyFormatter.date(from: value)
+    }
+
+    private static func makeFormatter(format: String) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.dateFormat = format
         return formatter
     }
 }
