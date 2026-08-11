@@ -12,6 +12,9 @@ flowchart LR
     VM --> PANEL[History panel]
     PANEL --> ACTION[Content action session]
     ACTION --> REP
+    ACTION -->|explicit AI polishing only| AI[DeepSeek HTTPS]
+    AI --> TOKEN[(Token usage only)]
+    ACTION --> KEY[macOS Keychain]
     PANEL --> OCR[Manual Vision OCR]
     OCR --> REP
 ```
@@ -25,13 +28,16 @@ flowchart LR
 | `Database` | Schema migration, transactional writes, local history metadata and capture events. |
 | `Search` | Parse structured input, merge controls, issue read-only candidate queries and rank results. |
 | `ContentActions` | Classification, deterministic local transforms, session history and syntax tokens. |
+| `Services` | Automatic-paste policy, Keychain credential boundary, and explicit DeepSeek polishing client. |
 | `OCR` | Explicit user-triggered Vision request for one managed image at a time. |
 | `Services` | Shared application services, including the testable Sparkle update boundary. |
 | `ViewModels` / `Views` | Main-actor state and SwiftUI/AppKit presentation. |
 
 ## Data and concurrency
 
-`DatabaseInitializer` opens the writer connection. `SearchCandidateProvider` is an actor that opens, uses and closes a read-only connection per request. Clipboard text, decoded action output and OCR output are never sent to a network service.
+`DatabaseInitializer` opens the writer connection. `SearchCandidateProvider` is an actor that opens, uses and closes a read-only connection per request. Clipboard capture, search, deterministic actions, and OCR remain local. The sole network path is an explicitly selected AI Polishing action: after first-use disclosure, the current action text is sent over HTTPS to DeepSeek. The API key stays in macOS Keychain. SQLite stores provider/model/token counts only, never prompts, source text, responses, or credentials.
+
+Automatic paste is controlled by a persisted default-off preference and live Accessibility trust. The shared policy returns clipboard-only, permission-required, or ready; every paste path restores/copies first and dispatches `Command-V` only in the ready state.
 
 ## Search, action and OCR lifecycle
 

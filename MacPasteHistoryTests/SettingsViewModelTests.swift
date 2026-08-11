@@ -98,6 +98,55 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testUpdateAutomaticPaste_withoutPermission_shouldPersistEnabledPendingState() {
+        let accessibilityService = SettingsFakeAccessibilityPermissionService(hasPermission: false)
+        let viewModel = makeViewModel(accessibilityPermissionService: accessibilityService)
+
+        viewModel.updateAutomaticPasteEnabled(true)
+
+        XCTAssertTrue(config.automaticPasteEnabled)
+        XCTAssertTrue(viewModel.automaticPasteEnabled)
+        XCTAssertTrue(viewModel.isAutomaticPastePermissionRequired)
+    }
+
+    @MainActor
+    func testUpdateAutomaticPaste_withPermission_shouldBecomeReady() {
+        let accessibilityService = SettingsFakeAccessibilityPermissionService(hasPermission: true)
+        let viewModel = makeViewModel(accessibilityPermissionService: accessibilityService)
+
+        viewModel.updateAutomaticPasteEnabled(true)
+
+        XCTAssertFalse(viewModel.isAutomaticPastePermissionRequired)
+    }
+
+    @MainActor
+    func testUpdateAutomaticPaste_whenDisabled_shouldStopRequiringPermission() {
+        config.automaticPasteEnabled = true
+        let accessibilityService = SettingsFakeAccessibilityPermissionService(hasPermission: false)
+        let viewModel = makeViewModel(accessibilityPermissionService: accessibilityService)
+
+        viewModel.updateAutomaticPasteEnabled(false)
+
+        XCTAssertFalse(config.automaticPasteEnabled)
+        XCTAssertFalse(viewModel.automaticPasteEnabled)
+        XCTAssertFalse(viewModel.isAutomaticPastePermissionRequired)
+    }
+
+    @MainActor
+    func testRefreshAutomaticPastePermissionState_afterReturningFromSystemSettings_shouldUseCurrentPermission() {
+        config.automaticPasteEnabled = true
+        let accessibilityService = SettingsFakeAccessibilityPermissionService(hasPermission: false)
+        let viewModel = makeViewModel(accessibilityPermissionService: accessibilityService)
+        viewModel.loadSettings()
+        XCTAssertTrue(viewModel.isAutomaticPastePermissionRequired)
+
+        accessibilityService.hasAccessibilityPermission = true
+        viewModel.refreshAutomaticPastePermissionState()
+
+        XCTAssertFalse(viewModel.isAutomaticPastePermissionRequired)
+    }
+
+    @MainActor
     func testLoadAndUpdateAppearance_shouldPersistAndApplyImmediately() {
         config.appAppearance = .dark
         var appliedAppearances: [AppAppearance] = []
@@ -114,6 +163,53 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertEqual(config.appAppearance, .light)
         XCTAssertEqual(viewModel.selectedAppearance, .light)
         XCTAssertEqual(appliedAppearances, [.light])
+    }
+
+    @MainActor
+    func testAISettings_shouldPersistModelAndKeepCredentialEntryTransient() {
+        let credentialStore = SettingsFakeAICredentialStore()
+        let viewModel = makeViewModel(aiCredentialStore: credentialStore)
+
+        viewModel.updateAIModelIdentifier(" custom-model ")
+        viewModel.aiAPIKeyEntry = "synthetic-key"
+        viewModel.saveAIAPIKey()
+
+        XCTAssertEqual(config.aiModelIdentifier, "custom-model")
+        XCTAssertEqual(viewModel.aiModelIdentifier, "custom-model")
+        XCTAssertEqual(viewModel.aiAPIKeyEntry, "")
+        XCTAssertTrue(viewModel.hasStoredAIAPIKey)
+        XCTAssertEqual(credentialStore.apiKey, "synthetic-key")
+    }
+
+    @MainActor
+    func testAIModelEditing_shouldPersistWithoutSubmittingTheTextField() {
+        let viewModel = makeViewModel()
+
+        viewModel.aiModelIdentifier = "custom-model-without-submit"
+
+        XCTAssertEqual(config.aiModelIdentifier, "custom-model-without-submit")
+    }
+
+    @MainActor
+    func testAISettings_shouldLoadProviderReportedAllAndCurrentModelTotals() throws {
+        let temporary = try TemporaryDatabase()
+        defer { temporary.remove() }
+        try MigrationManager(database: temporary.connection).migrate()
+        let repository = AITokenUsageRepository(database: temporary.connection)
+        try repository.insert(AITokenUsageRecord(
+            requestID: "usage-1", provider: "deepseek", modelIdentifier: DefaultSettings.aiModelIdentifier,
+            inputTokens: 7, outputTokens: 3, totalTokens: 10, cachedInputTokens: nil, createdAt: Date()
+        ))
+        try repository.insert(AITokenUsageRecord(
+            requestID: "usage-2", provider: "deepseek", modelIdentifier: "another-model",
+            inputTokens: 4, outputTokens: 2, totalTokens: 6, cachedInputTokens: nil, createdAt: Date()
+        ))
+        let viewModel = makeViewModel(aiTokenUsageRepository: repository)
+
+        viewModel.loadSettings()
+
+        XCTAssertEqual(viewModel.selectedModelAIUsage.totalTokens, 10)
+        XCTAssertEqual(viewModel.allModelsAIUsage.totalTokens, 16)
     }
 
     @MainActor
@@ -154,7 +250,10 @@ final class SettingsViewModelTests: XCTestCase {
     private func makeViewModel(
         shortcutService: ShortcutService? = nil,
         appearanceService: AppearanceService? = nil,
-        sourceApplicationProvider: SourceApplicationProviding = SourceApplicationProvider()
+        sourceApplicationProvider: SourceApplicationProviding = SourceApplicationProvider(),
+        accessibilityPermissionService: AccessibilityPermissionServing = AccessibilityPermissionService(),
+        aiCredentialStore: AICredentialStoring = SettingsFakeAICredentialStore(),
+        aiTokenUsageRepository: AITokenUsageRepository? = nil
     ) -> SettingsViewModel {
         let service = LoginItemService(manager: manager, config: config)
         let appPreferencesService = AppPreferencesService(config: config) { _ in true }
@@ -164,8 +263,32 @@ final class SettingsViewModelTests: XCTestCase {
             appPreferencesService: appPreferencesService,
             appearanceService: appearanceService,
             shortcutService: shortcutService,
-            sourceApplicationProvider: sourceApplicationProvider
+            sourceApplicationProvider: sourceApplicationProvider,
+            accessibilityPermissionService: accessibilityPermissionService,
+            aiCredentialStore: aiCredentialStore,
+            aiTokenUsageRepository: aiTokenUsageRepository
         )
+    }
+}
+
+private final class SettingsFakeAICredentialStore: AICredentialStoring, @unchecked Sendable {
+    var apiKey: String?
+    func readAPIKey() throws -> String? { apiKey }
+    func hasAPIKey() throws -> Bool { apiKey != nil }
+    func saveAPIKey(_ apiKey: String) throws { self.apiKey = apiKey }
+    func deleteAPIKey() throws { apiKey = nil }
+}
+
+private final class SettingsFakeAccessibilityPermissionService: AccessibilityPermissionServing {
+    var hasAccessibilityPermission: Bool
+    private(set) var openSettingsCallCount = 0
+
+    init(hasPermission: Bool) {
+        hasAccessibilityPermission = hasPermission
+    }
+
+    func openSystemSettings() {
+        openSettingsCallCount += 1
     }
 }
 

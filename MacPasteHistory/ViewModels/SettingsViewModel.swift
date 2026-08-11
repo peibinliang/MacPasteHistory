@@ -26,6 +26,22 @@ final class SettingsViewModel: ObservableObject {
     @Published var blockedAppErrorMessage: String?
     @Published var shortcutConfiguration: ShortcutConfiguration
     @Published var shortcutMessage: String?
+    @Published var automaticPasteEnabled = DefaultSettings.automaticPasteEnabled
+    @Published private(set) var isAutomaticPastePermissionRequired = false
+    @Published var aiModelIdentifier = DefaultSettings.aiModelIdentifier {
+        didSet {
+            let normalizedValue = aiModelIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard normalizedValue.isEmpty == false,
+                  normalizedValue != config.aiModelIdentifier else { return }
+            config.aiModelIdentifier = normalizedValue
+            refreshAITokenUsage()
+        }
+    }
+    @Published var aiAPIKeyEntry = ""
+    @Published private(set) var hasStoredAIAPIKey = false
+    @Published var aiCredentialMessage: String?
+    @Published private(set) var allModelsAIUsage = AITokenUsageSummary.zero
+    @Published private(set) var selectedModelAIUsage = AITokenUsageSummary.zero
 
     private var config: UserDefaultsConfig
     private let loginItemService: LoginItemService
@@ -34,6 +50,9 @@ final class SettingsViewModel: ObservableObject {
     private let appearanceService: AppearanceService
     let shortcutService: ShortcutService
     private let sourceApplicationProvider: SourceApplicationProviding
+    private let accessibilityPermissionService: any AccessibilityPermissionServing
+    private let aiCredentialStore: any AICredentialStoring
+    private let aiTokenUsageRepository: AITokenUsageRepository?
 
     init(
         config: UserDefaultsConfig = UserDefaultsConfig(),
@@ -42,7 +61,10 @@ final class SettingsViewModel: ObservableObject {
         appPreferencesService: AppPreferencesService? = nil,
         appearanceService: AppearanceService? = nil,
         shortcutService: ShortcutService? = nil,
-        sourceApplicationProvider: SourceApplicationProviding = SourceApplicationProvider()
+        sourceApplicationProvider: SourceApplicationProviding = SourceApplicationProvider(),
+        accessibilityPermissionService: any AccessibilityPermissionServing = AccessibilityPermissionService(),
+        aiCredentialStore: any AICredentialStoring = KeychainAICredentialStore(),
+        aiTokenUsageRepository: AITokenUsageRepository? = nil
     ) {
         self.config = config
         self.loginItemService = loginItemService ?? LoginItemService(config: config)
@@ -51,6 +73,9 @@ final class SettingsViewModel: ObservableObject {
         self.appearanceService = appearanceService ?? AppearanceService(config: config)
         self.shortcutService = shortcutService ?? ShortcutService(config: config)
         self.sourceApplicationProvider = sourceApplicationProvider
+        self.accessibilityPermissionService = accessibilityPermissionService
+        self.aiCredentialStore = aiCredentialStore
+        self.aiTokenUsageRepository = aiTokenUsageRepository
         self.selectedLanguage = languageManager.currentLanguage
         self.selectedAppearance = config.appAppearance
         self.shortcutConfiguration = config.shortcutConfiguration
@@ -71,6 +96,10 @@ final class SettingsViewModel: ObservableObject {
         blockedApps = config.blockedApps
         shortcutConfiguration = config.shortcutConfiguration
         selectedAppearance = config.appAppearance
+        automaticPasteEnabled = config.automaticPasteEnabled
+        aiModelIdentifier = config.aiModelIdentifier
+        refreshAutomaticPastePermissionState()
+        refreshAISettingsState()
     }
 
     func updateShouldRecordText(_ value: Bool) {
@@ -169,6 +198,50 @@ final class SettingsViewModel: ObservableObject {
         recordingPaused = value
     }
 
+    func updateAutomaticPasteEnabled(_ value: Bool) {
+        config.automaticPasteEnabled = value
+        automaticPasteEnabled = value
+        refreshAutomaticPastePermissionState()
+    }
+
+    func openAccessibilitySettings() {
+        accessibilityPermissionService.openSystemSettings()
+    }
+
+    func updateAIModelIdentifier(_ value: String) {
+        config.aiModelIdentifier = value
+        aiModelIdentifier = config.aiModelIdentifier
+        refreshAITokenUsage()
+    }
+
+    func resetAIModelIdentifier() {
+        config.removeValue(forKey: .aiModelIdentifier)
+        aiModelIdentifier = config.aiModelIdentifier
+        refreshAITokenUsage()
+    }
+
+    func saveAIAPIKey() {
+        do {
+            try aiCredentialStore.saveAPIKey(aiAPIKeyEntry)
+            aiAPIKeyEntry = ""
+            hasStoredAIAPIKey = true
+            aiCredentialMessage = L10n.string("ai.settings.key-saved")
+        } catch {
+            aiCredentialMessage = L10n.string("ai.settings.key-save-failed")
+        }
+    }
+
+    func removeAIAPIKey() {
+        do {
+            try aiCredentialStore.deleteAPIKey()
+            aiAPIKeyEntry = ""
+            hasStoredAIAPIKey = false
+            aiCredentialMessage = L10n.string("ai.settings.key-removed")
+        } catch {
+            aiCredentialMessage = L10n.string("ai.settings.key-remove-failed")
+        }
+    }
+
     func addBlockedAppFromFields() {
         let bundleID = blockedAppBundleID.trimmingCharacters(in: .whitespacesAndNewlines)
         let displayName = blockedAppDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -238,6 +311,36 @@ final class SettingsViewModel: ObservableObject {
         blockedAppBundleID = ""
         blockedAppDisplayName = ""
         blockedAppErrorMessage = nil
+    }
+
+    func refreshAutomaticPastePermissionState() {
+        isAutomaticPastePermissionRequired = automaticPasteEnabled
+            && accessibilityPermissionService.hasAccessibilityPermission == false
+    }
+
+    private func refreshAISettingsState() {
+        do {
+            hasStoredAIAPIKey = try aiCredentialStore.hasAPIKey()
+        } catch {
+            hasStoredAIAPIKey = false
+            aiCredentialMessage = L10n.string("ai.settings.key-status-failed")
+        }
+        refreshAITokenUsage()
+    }
+
+    private func refreshAITokenUsage() {
+        guard let aiTokenUsageRepository else {
+            allModelsAIUsage = .zero
+            selectedModelAIUsage = .zero
+            return
+        }
+        do {
+            allModelsAIUsage = try aiTokenUsageRepository.summary()
+            selectedModelAIUsage = try aiTokenUsageRepository.summary(modelIdentifier: aiModelIdentifier)
+        } catch {
+            allModelsAIUsage = .zero
+            selectedModelAIUsage = .zero
+        }
     }
 }
 

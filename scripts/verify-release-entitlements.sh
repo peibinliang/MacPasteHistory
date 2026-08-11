@@ -51,6 +51,15 @@ require_single_mach_lookup() {
     fi
 }
 
+require_true() {
+    local key="$1"
+    local value
+    value="$(plist_value "$key")"
+    if [[ "$value" != "true" ]]; then
+        add_violation "$key is '$value', expected 'true'."
+    fi
+}
+
 violations=()
 
 if [[ ! -f "$ENTITLEMENTS_PLIST" ]]; then
@@ -64,7 +73,7 @@ fi
 
 app_sandbox="$(plist_value "com.apple.security.app-sandbox")"
 require_boolean "com.apple.security.app-sandbox" "true"
-require_boolean "com.apple.security.network.client" "false"
+require_boolean "com.apple.security.network.client" "true"
 require_boolean "com.apple.security.network.server" "false"
 require_boolean "com.apple.security.files.user-selected.read-write" "false"
 require_boolean "com.apple.security.device.usb" "false"

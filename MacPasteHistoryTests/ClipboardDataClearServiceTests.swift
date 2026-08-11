@@ -48,8 +48,21 @@ final class ClipboardDataClearServiceTests: XCTestCase {
         let thumbnailPath = try XCTUnwrap(imageItem.thumbnailPath)
         let service = ClipboardDataClearService(
             repository: repository,
-            imageStorageService: imageStorageService
+            imageStorageService: imageStorageService,
+            aiTokenUsageRepository: AITokenUsageRepository(database: database)
         )
+
+        let usageRepository = AITokenUsageRepository(database: database)
+        try usageRepository.insert(AITokenUsageRecord(
+            requestID: "clear-usage",
+            provider: "deepseek",
+            modelIdentifier: "deepseek-v4-flash",
+            inputTokens: 4,
+            outputTokens: 2,
+            totalTokens: 6,
+            cachedInputTokens: nil,
+            createdAt: Date()
+        ))
 
         try service.clearAllData()
 
@@ -58,6 +71,23 @@ final class ClipboardDataClearServiceTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: thumbnailPath))
         XCTAssertTrue((try FileManager.default.contentsOfDirectory(atPath: imagesURL.path)).isEmpty)
         XCTAssertTrue((try FileManager.default.contentsOfDirectory(atPath: thumbnailsURL.path)).isEmpty)
+        XCTAssertEqual(try usageRepository.summary(), .zero)
+    }
+
+    func testClearAllData_whenTokenDeletionFails_shouldStillDeleteImageFiles() throws {
+        let imageItem = try saveImageRecord()
+        let filePath = try XCTUnwrap(imageItem.filePath)
+        let thumbnailPath = try XCTUnwrap(imageItem.thumbnailPath)
+        let service = ClipboardDataClearService(
+            repository: repository,
+            imageStorageService: imageStorageService,
+            aiTokenUsageRepository: FailingAITokenUsageDeleter()
+        )
+
+        XCTAssertThrowsError(try service.clearAllData())
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: filePath))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: thumbnailPath))
     }
 
     private func saveImageRecord() throws -> ClipboardHistoryItem {
@@ -84,4 +114,14 @@ final class ClipboardDataClearServiceTests: XCTestCase {
 
 private enum TestImageEncodingError: Error {
     case encodingFailed
+}
+
+private struct FailingAITokenUsageDeleter: AITokenUsageDeleting {
+    func deleteAll() throws {
+        throw FailingAITokenUsageDeletionError.failed
+    }
+}
+
+private enum FailingAITokenUsageDeletionError: Error {
+    case failed
 }

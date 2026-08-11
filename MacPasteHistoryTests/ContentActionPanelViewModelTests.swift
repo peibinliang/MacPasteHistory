@@ -155,6 +155,49 @@ final class ContentActionPanelViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.hasUsableResult)
     }
 
+    func testMoveBack_restoresPresentationMetadataFromTheCurrentStep() {
+        let firstID = ContentActionID(rawValue: "test.first-metadata")
+        let secondID = ContentActionID(rawValue: "test.second-metadata")
+        let firstUsage = DeepSeekTokenUsage(inputTokens: 8, outputTokens: 3, totalTokens: 11, cachedInputTokens: 2)
+        let firstVariant = ContentActionCopyVariant(id: "first", titleKey: "first", value: "first variant")
+        let firstNotice = ContentActionNotice(messageKey: "first.notice")
+        let registry = ContentActionRegistry(actions: [
+            MetadataContentAction(
+                id: firstID,
+                result: ContentActionResult(
+                    output: "first output",
+                    syntax: .plainText,
+                    notices: [firstNotice],
+                    copyVariants: [firstVariant],
+                    aiTokenUsage: firstUsage
+                )
+            ),
+            MetadataContentAction(
+                id: secondID,
+                result: ContentActionResult(
+                    output: "second output",
+                    syntax: .plainText,
+                    notices: [],
+                    copyVariants: [],
+                    isAIUsageUnavailable: true
+                )
+            )
+        ])
+        let viewModel = ContentActionPanelViewModel(registry: registry)
+        viewModel.present(for: makeItem(text: "source"))
+        viewModel.execute(actionID: firstID)
+        viewModel.execute(actionID: secondID)
+
+        viewModel.moveBack()
+
+        XCTAssertEqual(viewModel.selectedAction, firstID)
+        XCTAssertEqual(viewModel.copyVariants, [firstVariant])
+        XCTAssertEqual(viewModel.notices, [firstNotice])
+        XCTAssertEqual(viewModel.aiTokenUsage, firstUsage)
+        XCTAssertFalse(viewModel.isAIUsageUnavailable)
+        XCTAssertEqual(viewModel.editedOutput, "first output")
+    }
+
     private func makeItem(text: String, detectedType: DetectedContentType? = nil) -> ClipboardHistoryItem {
         ClipboardHistoryItem(id: 1, contentType: .text, textContent: text, filePath: nil, thumbnailPath: nil, sourceApp: nil, sourceBundleID: nil, contentHash: "hash", textLength: text.count, fileSize: nil, imageWidth: nil, imageHeight: nil, imageFormat: nil, isFavorite: false, isSensitive: false, createdAt: .distantPast, updatedAt: .distantPast, detectedType: detectedType)
     }
@@ -168,4 +211,15 @@ final class ContentActionPanelViewModelTests: XCTestCase {
             try? await Task.sleep(for: .milliseconds(10))
         }
     }
+}
+
+private struct MetadataContentAction: ContentAction {
+    let id: ContentActionID
+    let result: ContentActionResult
+    let titleKey = "test.metadata"
+    let category = ContentActionCategory.text
+    let supportedTypes: Set<DetectedContentType> = [.plainText]
+
+    func validate(input: String) -> ActionValidationResult { .valid }
+    func execute(input: String) throws -> ContentActionResult { result }
 }

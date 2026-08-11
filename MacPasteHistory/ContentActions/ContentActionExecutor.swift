@@ -15,6 +15,14 @@ struct ContentActionExecutor {
         return try action.execute(input: input)
     }
 
+    func executeAsync(id: ContentActionID, input: String) async throws -> ContentActionResult {
+        guard let action = registry.action(id: id) as? any AsyncContentAction else {
+            throw ContentActionError.unsupportedInput(messageKey: "content-action.unsupported")
+        }
+        if case let .invalid(error) = action.validate(input: input) { throw error }
+        return try await action.executeAsync(input: input)
+    }
+
     func execute(id: ContentActionID, fileURL: URL) async throws -> ContentActionResult {
         guard let action = registry.action(id: id) as? any BinaryContentAction else {
             throw ContentActionError.unsupportedInput(messageKey: "content-action.unsupported")

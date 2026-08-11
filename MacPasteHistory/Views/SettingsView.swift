@@ -6,6 +6,7 @@ struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @ObservedObject private var updateService: UpdateService
     @State private var showClearConfirmation = false
+    @State private var showRemoveAIKeyConfirmation = false
     @State private var selectedCategory: SettingsCategory? = .general
     private let appVersion: any AppVersionProviding
 
@@ -32,6 +33,9 @@ struct SettingsView: View {
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 720, minHeight: 560)
         .onAppear { viewModel.loadSettings() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            viewModel.refreshAutomaticPastePermissionState()
+        }
         .alert(L10n.string("Clear All Data?"), isPresented: $showClearConfirmation) {
             Button(L10n.string("Cancel"), role: .cancel) {}
             Button(L10n.string("Clear"), role: .destructive) {
@@ -80,6 +84,12 @@ struct SettingsView: View {
         } message: {
             Text(L10n.string("Detected passwords, tokens, identity numbers, and payment card numbers may be stored in the local unencrypted history database."))
         }
+        .alert(L10n.string("ai.settings.remove-key-title"), isPresented: $showRemoveAIKeyConfirmation) {
+            Button(L10n.string("Cancel"), role: .cancel) {}
+            Button(L10n.string("Remove"), role: .destructive) { viewModel.removeAIAPIKey() }
+        } message: {
+            Text(L10n.string("ai.settings.remove-key-message"))
+        }
     }
 
     @ViewBuilder
@@ -116,6 +126,9 @@ struct SettingsView: View {
                     languageSection
                 case .privacy:
                     privacySection
+                case .ai:
+                    aiConfigurationSection
+                    aiUsageSection
                 case .storage:
                     retentionSection
                     limitsSection
@@ -151,6 +164,24 @@ struct SettingsView: View {
                 .onChange(of: viewModel.showDockIcon) { _, newValue in
                     viewModel.updateShowDockIcon(newValue)
                 }
+            Toggle(L10n.string("Automatic Paste"), isOn: $viewModel.automaticPasteEnabled)
+                .onChange(of: viewModel.automaticPasteEnabled) { _, newValue in
+                    viewModel.updateAutomaticPasteEnabled(newValue)
+                }
+            Text(L10n.string("When disabled, selected content is copied and you can paste it manually."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            if viewModel.isAutomaticPastePermissionRequired {
+                HStack {
+                    Text(L10n.string("Accessibility permission is required for Automatic Paste."))
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    Spacer()
+                    Button(L10n.string("Open System Settings")) {
+                        viewModel.openAccessibilitySettings()
+                    }
+                }
+            }
         }
     }
 
@@ -221,6 +252,58 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var aiConfigurationSection: some View {
+        Section(L10n.string("ai.settings.configuration")) {
+            Text(L10n.string("ai.settings.remote-processing-note"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            HStack {
+                TextField(L10n.string("ai.settings.model"), text: $viewModel.aiModelIdentifier)
+                    .onSubmit { viewModel.updateAIModelIdentifier(viewModel.aiModelIdentifier) }
+                Button(L10n.string("Reset")) { viewModel.resetAIModelIdentifier() }
+            }
+            SecureField(L10n.string("ai.settings.api-key-placeholder"), text: $viewModel.aiAPIKeyEntry)
+            HStack {
+                Button(L10n.string(viewModel.hasStoredAIAPIKey ? "ai.settings.replace-key" : "ai.settings.save-key")) {
+                    viewModel.saveAIAPIKey()
+                }
+                .disabled(viewModel.aiAPIKeyEntry.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                if viewModel.hasStoredAIAPIKey {
+                    Label(L10n.string("ai.settings.key-stored"), systemImage: "checkmark.shield")
+                        .foregroundStyle(.secondary)
+                    Button(L10n.string("Remove"), role: .destructive) {
+                        showRemoveAIKeyConfirmation = true
+                    }
+                }
+            }
+            if let message = viewModel.aiCredentialMessage {
+                Text(message).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var aiUsageSection: some View {
+        Section(L10n.string("ai.settings.token-usage")) {
+            Text(L10n.string("ai.settings.provider-reported"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            usageSummary(title: L10n.string("ai.settings.current-model"), summary: viewModel.selectedModelAIUsage)
+            usageSummary(title: L10n.string("ai.settings.all-models"), summary: viewModel.allModelsAIUsage)
+        }
+    }
+
+    private func usageSummary(title: String, summary: AITokenUsageSummary) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.callout.weight(.semibold))
+            Text(String(
+                format: L10n.string("ai.settings.token-summary"),
+                Int64(summary.inputTokens), Int64(summary.outputTokens), Int64(summary.totalTokens)
+            ))
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(.secondary)
         }
     }
 
@@ -392,6 +475,7 @@ struct SettingsView: View {
 private enum SettingsCategory: String, CaseIterable, Identifiable {
     case general
     case privacy
+    case ai
     case storage
     case about
 
@@ -401,6 +485,7 @@ private enum SettingsCategory: String, CaseIterable, Identifiable {
         switch self {
         case .general: return L10n.string("General")
         case .privacy: return L10n.string("Privacy")
+        case .ai: return L10n.string("ai.settings.title")
         case .storage: return L10n.string("Storage and Data")
         case .about: return L10n.string("About & Updates")
         }
@@ -412,6 +497,8 @@ private enum SettingsCategory: String, CaseIterable, Identifiable {
             return L10n.string("Recording, startup, shortcuts, and language")
         case .privacy:
             return L10n.string("Control where clipboard history is recorded")
+        case .ai:
+            return L10n.string("ai.settings.subtitle")
         case .storage:
             return L10n.string("Retention, limits, and local data")
         case .about:
@@ -423,6 +510,7 @@ private enum SettingsCategory: String, CaseIterable, Identifiable {
         switch self {
         case .general: return "gearshape"
         case .privacy: return "hand.raised"
+        case .ai: return "sparkles"
         case .storage: return "internaldrive"
         case .about: return "info.circle"
         }

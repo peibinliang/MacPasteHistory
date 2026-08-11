@@ -3,16 +3,6 @@ import ApplicationServices
 @testable import MacPasteHistory
 
 final class AccessibilityPermissionServiceTests: XCTestCase {
-    func testReminderIfNeeded_onFirstLaunchWithoutPermission_shouldReturnReminderOnce() {
-        let service = AccessibilityPermissionService(
-            permissionChecker: FakeAccessibilityPermissionChecker(isTrusted: false),
-            settingsOpener: FakeAccessibilitySettingsOpener()
-        )
-
-        XCTAssertTrue(service.reminderIfNeeded(for: .launch))
-        XCTAssertFalse(service.reminderIfNeeded(for: .launch))
-    }
-
     func testReminderIfNeeded_onAutomaticPasteWithoutPermission_shouldReturnReminderOnce() {
         let service = AccessibilityPermissionService(
             permissionChecker: FakeAccessibilityPermissionChecker(isTrusted: false),
@@ -29,7 +19,6 @@ final class AccessibilityPermissionServiceTests: XCTestCase {
             settingsOpener: FakeAccessibilitySettingsOpener()
         )
 
-        XCTAssertFalse(service.reminderIfNeeded(for: .launch))
         XCTAssertFalse(service.reminderIfNeeded(for: .automaticPaste))
         XCTAssertTrue(service.hasAccessibilityPermission)
     }

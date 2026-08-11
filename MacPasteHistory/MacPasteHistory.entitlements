@@ -15,9 +15,9 @@
         <string>$(PRODUCT_BUNDLE_IDENTIFIER)-spki</string>
     </array>
 
-    <!-- 网络由 Sparkle Downloader XPC 隔离处理，主应用保持关闭 -->
+    <!-- 网络：主应用仅用于用户主动触发的 DeepSeek 文本润色；Sparkle 下载由其 XPC 服务处理 -->
     <key>com.apple.security.network.client</key>
-    <false/>
+    <true/>
     <key>com.apple.security.network.server</key>
     <false/>
 

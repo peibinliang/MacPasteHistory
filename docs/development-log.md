@@ -345,6 +345,13 @@
 - Targeted `ClipboardReaderTests` passed with 7 tests and 0 failures after adding Finder image file URL coverage.
 - Targeted `ClipboardReaderTests`, `ClipboardMonitorTests`, and `UserDefaultsConfigTests` passed with 14 tests and 0 failures after fixing image fixture dimensions and storage cap persistence.
 
+## 2026-08-11 — Opt-in Automatic Paste and AI Polishing
+
+- Made Automatic Paste a persisted default-off setting and removed launch-time Accessibility guidance. History, keyboard, and action-output paste paths share the same live permission policy and clipboard-only fallback.
+- Added Keychain-backed DeepSeek credentials, configurable `deepseek-v4-flash` model, first-use remote-processing disclosure, cancellable asynchronous polishing in the existing action preview, and localized error/usage presentation.
+- Added migration 4 and exact-once provider token accounting without persisting prompts, source text, responses, history links, or credentials. Clear All Data removes token rows while leaving credential deletion explicit.
+- Added focused policy, migration, repository, Keychain, mock-network, service, stale-result, settings, localization, and privacy-log coverage. Full device QA with a real synthetic DeepSeek request remains manual.
+
 ### Risks
 
 - Text history still needs manual GUI verification for real app copy, restart, restore, delete, and clear workflows.

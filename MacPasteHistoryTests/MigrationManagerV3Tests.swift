@@ -11,7 +11,7 @@ final class MigrationManagerV3Tests: XCTestCase {
 
         try MigrationManager(database: temporary.connection).migrate()
 
-        XCTAssertEqual(try migrationVersions(in: temporary.connection), [1, 2, 3])
+        XCTAssertEqual(try migrationVersions(in: temporary.connection), [1, 2, 3, 4])
         XCTAssertTrue(try tableExists("clipboard_capture_events", in: temporary.connection))
         XCTAssertTrue(try tableExists("clipboard_capture_event_summaries", in: temporary.connection))
         XCTAssertTrue(requiredHistoryColumns.isSubset(of: try columnNames(
@@ -47,7 +47,7 @@ final class MigrationManagerV3Tests: XCTestCase {
         try migrator.migrate()
         try migrator.migrate()
 
-        XCTAssertEqual(try migrationVersions(in: temporary.connection), [1, 2, 3])
+        XCTAssertEqual(try migrationVersions(in: temporary.connection), [1, 2, 3, 4])
         XCTAssertEqual(try versionRowCount(3, in: temporary.connection), 1)
     }
 

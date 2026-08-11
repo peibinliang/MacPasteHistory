@@ -27,6 +27,7 @@ targets:
     dependencies:
       - sdk: libsqlite3.tbd
       - package: Sparkle
+      - sdk: Security.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.peibin.MacPasteHistory

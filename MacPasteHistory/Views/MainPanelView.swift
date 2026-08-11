@@ -6,6 +6,7 @@ struct MainPanelView: View {
     @StateObject private var actionViewModel: ContentActionPanelViewModel
     private let pasteCommandService: PasteCommandService
     private let accessibilityPermissionService: AccessibilityPermissionService
+    private let automaticPastePolicy: AutomaticPastePolicy
     private let pasteTargetApplication: NSRunningApplication?
     private let dismissAction: (() -> Void)?
 
@@ -25,13 +26,18 @@ struct MainPanelView: View {
         viewModel: ClipboardHistoryViewModel,
         pasteCommandService: PasteCommandService = PasteCommandService(),
         accessibilityPermissionService: AccessibilityPermissionService = AccessibilityPermissionService(),
+        automaticPastePolicy: AutomaticPastePolicy? = nil,
+        actionViewModel: ContentActionPanelViewModel? = nil,
         pasteTargetApplication: NSRunningApplication? = nil,
         dismissAction: (() -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
-        _actionViewModel = StateObject(wrappedValue: ContentActionPanelViewModel())
+        _actionViewModel = StateObject(wrappedValue: actionViewModel ?? ContentActionPanelViewModel())
         self.pasteCommandService = pasteCommandService
         self.accessibilityPermissionService = accessibilityPermissionService
+        self.automaticPastePolicy = automaticPastePolicy ?? AutomaticPastePolicy(
+            accessibilityPermissionService: accessibilityPermissionService
+        )
         self.pasteTargetApplication = pasteTargetApplication
         self.dismissAction = dismissAction
     }
@@ -86,6 +92,22 @@ struct MainPanelView: View {
                     "Allow 粘易 in System Settings → Privacy & Security → Accessibility, then try pasting again."
                 )
             )
+        }
+        .alert(
+            L10n.string("ai.consent.title"),
+            isPresented: Binding(
+                get: { actionViewModel.isAIRemoteProcessingConsentRequired },
+                set: { if $0 == false { actionViewModel.declineAIRemoteProcessing() } }
+            )
+        ) {
+            Button(L10n.string("ai.consent.continue")) {
+                actionViewModel.acceptAIRemoteProcessing()
+            }
+            Button(L10n.string("Cancel"), role: .cancel) {
+                actionViewModel.declineAIRemoteProcessing()
+            }
+        } message: {
+            Text(L10n.string("ai.consent.message"))
         }
         .overlay(alignment: .bottom) {
             if showToast {
@@ -276,18 +298,7 @@ struct MainPanelView: View {
                     if viewModel.copyActionOutput(output, sourceItem: source) { showCopyToast() }
                 },
                 pasteAction: { output, source in
-                    guard accessibilityPermissionService.hasAccessibilityPermission else {
-                        _ = accessibilityPermissionService.reminderIfNeeded(for: .automaticPaste)
-                        showAccessibilityPermissionReminder = true
-                        return
-                    }
-                    actionViewModel.close()
-                    closePanel()
-                    pasteTargetApplication?.activate(options: PasteActivationPolicy.options)
-                    Task {
-                        try? await Task.sleep(nanoseconds: 250_000_000)
-                        _ = viewModel.pasteActionOutput(output, sourceItem: source, pasteCommandService: pasteCommandService)
-                    }
+                    pasteActionOutput(output, source: source)
                 },
                 saveAction: { session in
                     if let saved = viewModel.saveDerivedActionOutput(from: session) {
@@ -327,7 +338,7 @@ struct MainPanelView: View {
                         pasteAction: { pasteIntoPreviousApplication($0) },
                         deleteAction: { viewModel.delete($0) },
                         recommendedActions: { item in
-                            ContentActionRegistry().recommended(for: item.effectiveDetectedType)
+                            actionViewModel.recommendedActions(for: item.effectiveDetectedType)
                         },
                         contentAction: { item, actionID in
                             openRecommendedActions(for: item)
@@ -484,17 +495,59 @@ struct MainPanelView: View {
     }
 
     private func pasteIntoPreviousApplication(_ item: ClipboardHistoryItem) {
-        guard accessibilityPermissionService.hasAccessibilityPermission else {
+        guard viewModel.restore(item) else { return }
+        switch automaticPastePolicy.readiness {
+        case .clipboardOnly:
+            _ = viewModel.recordClipboardOnlyUsage(for: item)
+            showManualPasteToast()
+        case .permissionRequired:
+            _ = viewModel.recordClipboardOnlyUsage(for: item)
             _ = accessibilityPermissionService.reminderIfNeeded(for: .automaticPaste)
             showAccessibilityPermissionReminder = true
-            return
+            showManualPasteToast()
+        case .ready:
+            closePanel()
+            pasteTargetApplication?.activate(options: PasteActivationPolicy.options)
+            Task {
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                _ = viewModel.sendPasteForRestoredItem(item, pasteCommandService: pasteCommandService)
+            }
         }
-        guard viewModel.restore(item) else { return }
-        closePanel()
-        pasteTargetApplication?.activate(options: PasteActivationPolicy.options)
+    }
+
+    private func pasteActionOutput(_ output: String, source: ClipboardHistoryItem) {
+        switch automaticPastePolicy.readiness {
+        case .clipboardOnly:
+            if viewModel.copyActionOutput(output, sourceItem: source) {
+                showManualPasteToast()
+            }
+        case .permissionRequired:
+            if viewModel.copyActionOutput(output, sourceItem: source) {
+                showManualPasteToast()
+            }
+            _ = accessibilityPermissionService.reminderIfNeeded(for: .automaticPaste)
+            showAccessibilityPermissionReminder = true
+        case .ready:
+            actionViewModel.close()
+            closePanel()
+            pasteTargetApplication?.activate(options: PasteActivationPolicy.options)
+            Task {
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                _ = viewModel.pasteActionOutput(
+                    output,
+                    sourceItem: source,
+                    pasteCommandService: pasteCommandService
+                )
+            }
+        }
+    }
+
+    private func showManualPasteToast() {
+        toastMessage = L10n.string("Copied. Press Command-V to paste manually.")
+        withAnimation(.easeOut(duration: 0.18)) { showToast = true }
         Task {
-            try? await Task.sleep(nanoseconds: 250_000_000)
-            _ = pasteCommandService.sendPasteCommand()
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            withAnimation(.easeIn(duration: 0.18)) { showToast = false }
         }
     }
 

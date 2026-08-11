@@ -34,11 +34,17 @@ JWT inspection only decodes visible fields. The signature warning means the app 
 
 For image records, open details and select **Recognize Text**. OCR is manual and local. Edit the recognized text, then select **Save** to make it searchable and usable with content actions.
 
+## AI Polishing
+
+Open actions for any text record and choose **AI Polishing**. On first use, review the remote-processing disclosure: continuing sends only the current action text to DeepSeek; cancelling sends no request. Configure the model (default `deepseek-v4-flash`) and save or replace the API key under **Settings → AI Polishing**. The key is stored in macOS Keychain and its full value is never displayed again.
+
+The returned text opens in the normal editable result preview and can be copied, saved as a derived record, or pasted. The preview shows provider-reported input/output/total tokens when available, otherwise it explicitly says usage is unavailable. Settings shows cumulative totals for the current model and all models.
+
 ## Restore Items
 
-Single-click a history row to restore that item, close the history panel, return focus to the app that was active before opening history, and send `Command + V`. Use the row's **More Actions** menu to preview long text or images without pasting. Arrow keys move the inline selection, and `Enter` directly pastes the selected item.
+Selecting a history row always restores it to the clipboard. **Automatic Paste** is off by default; while it is off, use `Command-V` manually. If enabled and Accessibility permission is available, 粘易 returns focus to the previous app and sends `Command-V`. Use the row's **More Actions** menu to preview long text or images without pasting. Arrow keys move the inline selection, and `Enter` uses the same policy.
 
-On first launch, 粘易 checks whether macOS Accessibility permission is available. If it is missing, the app shows a reminder with an **Open System Settings** button. If permission is still unavailable when you select an item for direct paste, the history panel stays open and shows the reminder again. Grant access under **System Settings → Privacy & Security → Accessibility**, then click the item again.
+No Accessibility prompt appears at launch. Enable **Settings → General → Automatic Paste** when desired. If access is missing, use **Open System Settings**, grant access under **Privacy & Security → Accessibility**, and try again. Disabling the setting immediately returns to clipboard-only behavior.
 
 ## Manage Data
 
@@ -46,7 +52,7 @@ Use row actions to favorite, restore, or delete individual records. **Clear Text
 
 ## Settings
 
-Settings are organized into **General**, **Privacy**, **Storage and Data**, and **About & Updates**. They include text/image recording toggles, sensitive-content filtering, launch-at-login preference backed by macOS Login Items, Dock icon preference, history retention days, text/image count limits, single-image size limit, and total storage cap. The single-image size limit applies to new image captures, while cleanup runs on startup and uses the count and storage limits to bound local data growth.
+Settings are organized into **General**, **Privacy**, **AI Polishing**, **Storage and Data**, and **About & Updates**. They include text/image recording toggles, sensitive-content filtering, launch-at-login preference backed by macOS Login Items, Dock icon preference, history retention days, text/image count limits, single-image size limit, total storage cap, DeepSeek model and credential controls, token statistics, and software update controls. The single-image size limit applies to new image captures, while cleanup runs on startup and uses the count and storage limits to bound local data growth.
 
 General settings also include **Appearance** with **Follow System**, **Light**, and **Dark** options. Appearance changes apply immediately and persist across launches; following the system remains the default.
 
@@ -58,6 +64,6 @@ Automatic and manual checks request the fixed GitHub Pages appcast and may downl
 
 ## Privacy Notes
 
-Clipboard content stays on this Mac and is not uploaded by update checks. Keep sensitive-content filtering enabled if you do not want recognized sensitive patterns stored locally, and use blocked-app controls for applications whose clipboard changes should always be skipped. Sensitive detection is best-effort, so release behavior should still be verified against your actual workflow before distribution.
+Clipboard content stays on this Mac and is not uploaded by update checks, except for text you explicitly submit through AI Polishing, which is sent to DeepSeek after disclosure. Keep sensitive-content filtering enabled if you do not want recognized sensitive patterns stored locally, use blocked-app controls for applications whose clipboard changes should always be skipped, and do not submit sensitive data remotely if you do not want it processed. Sensitive detection is best-effort, so release behavior should still be verified against your actual workflow before distribution.
 
 The current release does not encrypt the local history database or app-managed image files. Use macOS account security and disk encryption such as FileVault if you need device-level protection for local files.

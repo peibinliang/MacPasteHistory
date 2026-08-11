@@ -1199,7 +1199,7 @@ final class ClipboardHistoryRepository {
     }
 }
 
-private extension DateFormatter {
+extension DateFormatter {
     static var sqliteDateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")

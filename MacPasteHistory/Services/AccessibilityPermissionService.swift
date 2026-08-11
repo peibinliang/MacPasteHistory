@@ -3,7 +3,6 @@ import ApplicationServices
 import Foundation
 
 enum AccessibilityPermissionReminderTrigger {
-    case launch
     case automaticPaste
 }
 
@@ -15,14 +14,18 @@ protocol AccessibilitySettingsOpening: AnyObject {
     func open(_ url: URL)
 }
 
-final class AccessibilityPermissionService {
+protocol AccessibilityPermissionServing: AnyObject {
+    var hasAccessibilityPermission: Bool { get }
+    func openSystemSettings()
+}
+
+final class AccessibilityPermissionService: AccessibilityPermissionServing {
     static let systemSettingsURL = URL(
         string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
     )
 
     private let permissionChecker: AccessibilityPermissionChecking
     private let settingsOpener: AccessibilitySettingsOpening
-    private var didRemindOnLaunch = false
     private var didRemindForAutomaticPaste = false
 
     init(
@@ -39,12 +42,6 @@ final class AccessibilityPermissionService {
         }
 
         switch trigger {
-        case .launch:
-            guard didRemindOnLaunch == false else {
-                return false
-            }
-            didRemindOnLaunch = true
-            return true
         case .automaticPaste:
             guard didRemindForAutomaticPaste == false else {
                 return false

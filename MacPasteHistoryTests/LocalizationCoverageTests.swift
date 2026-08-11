@@ -21,7 +21,19 @@ final class LocalizationCoverageTests: XCTestCase {
             "When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved.",
             "About & Updates", "Version information and software updates", "Version %@ (Build %@)", "View on GitHub",
             "Automatically check for updates", "Check for Updates…", "Checking for updates…",
-            "You're up to date.", "Update %@ is available.", "Update check failed: %@"
+            "You're up to date.", "Update %@ is available.", "Update check failed: %@",
+            "Automatic Paste", "When disabled, selected content is copied and you can paste it manually.",
+            "Accessibility permission is required for Automatic Paste.", "Copied. Press Command-V to paste manually.",
+            "ai.action.polish", "ai.polishing.progress", "ai.consent.title", "ai.consent.message", "ai.consent.continue",
+            "ai.error.missing-api-key", "ai.error.authentication", "ai.error.rate-limited", "ai.error.offline",
+            "ai.error.timeout", "ai.error.response-too-large", "ai.error.empty-result", "ai.error.invalid-input",
+            "ai.error.service-unavailable", "ai.usage.persistence-failed", "ai.usage.request-summary", "ai.usage.unavailable",
+            "ai.settings.title", "ai.settings.subtitle", "ai.settings.configuration", "ai.settings.remote-processing-note",
+            "ai.settings.model", "ai.settings.api-key-placeholder", "ai.settings.save-key", "ai.settings.replace-key",
+            "ai.settings.key-stored", "ai.settings.key-saved", "ai.settings.key-save-failed", "ai.settings.key-removed",
+            "ai.settings.key-remove-failed", "ai.settings.key-status-failed", "ai.settings.remove-key-title",
+            "ai.settings.remove-key-message", "ai.settings.token-usage", "ai.settings.provider-reported",
+            "ai.settings.current-model", "ai.settings.all-models", "ai.settings.token-summary"
         ]
         let localizations = ["en", "zh-Hans", "zh-Hant"]
 

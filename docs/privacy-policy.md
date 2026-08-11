@@ -18,7 +18,13 @@ Clipboard history is stored locally under the user's Application Support directo
 
 The internal storage directory retains the legacy `MacPasteHistory` name so an app update preserves existing clipboard history.
 
-Text and metadata are stored in SQLite. Image originals and thumbnails are stored as local files. The app does not intentionally upload clipboard history, images, hashes, or settings to a cloud service. Structured search, content actions, JWT parsing and manual OCR are also processed locally. OCR runs only after a user explicitly selects it for one image; the app does not automatically scan historical images. JWT parsing is a format inspection aid and never verifies a signature or trust claim.
+Text and metadata are stored in SQLite. Image originals and thumbnails are stored as local files. Clipboard capture, structured search, deterministic content actions, JWT parsing, and manual OCR are processed locally. OCR runs only after a user explicitly selects it for one image; the app does not automatically scan historical images. JWT parsing is a format inspection aid and never verifies a signature or trust claim.
+
+## Optional AI Polishing
+
+AI Polishing is an explicit, user-initiated network feature. Before its first request, the app discloses that the currently selected text will be sent over HTTPS to DeepSeek and may be subject to DeepSeek's terms and charges. Declining sends nothing and does not affect local clipboard features. The app never invokes AI during clipboard monitoring and does not send images or bulk history.
+
+The DeepSeek API key is stored in macOS Keychain and is not saved in UserDefaults or SQLite. For successful responses, SQLite may store only provider, model, request identifier, and provider-reported token counts. It does not store the request text, fixed polishing instruction, response text, or API key in the usage table. Users can remove the credential separately in AI Settings. Clear All Data removes local token-usage records but does not silently remove the Keychain credential.
 
 The current release does not encrypt the local SQLite database or app-managed image files. Local database encryption is planned as a future P2 capability and should not be treated as available until a dedicated encrypted-storage release is implemented and verified.
 
@@ -38,7 +44,7 @@ Users can disable text recording, disable image recording, delete individual rec
 
 ## System Permissions
 
-Direct paste uses macOS Accessibility permission to send `Command + V` to the application that was active before opening history. 粘易 checks this permission locally and does not transmit the result. When permission is missing, the app shows guidance on first launch and again before a blocked direct-paste attempt; users can open the macOS Accessibility settings pane from the reminder. Clipboard history remains unchanged until permission is available and the paste action is retried.
+Automatic Paste is off by default. The app does not ask for Accessibility access on launch. When a user enables Automatic Paste, settings explains the permission and links to the correct macOS pane. Without permission—or while the setting is off—the app still restores content to the clipboard and asks the user to press `Command-V` manually. Permission state is checked locally and is never transmitted.
 
 ## Logs
 
@@ -52,7 +58,7 @@ Users can change the automatic-check preference under **About & Updates** and ca
 
 ## Third Parties
 
-The app does not use third-party analytics, advertising SDKs, cloud sync, or remote clipboard storage. GitHub hosts update metadata and artifacts, and Sparkle performs the update workflow described above.
+The app does not use third-party analytics, advertising SDKs, cloud sync, or remote clipboard storage. GitHub hosts update metadata and artifacts, Sparkle performs the update workflow described above, and DeepSeek is contacted only for an explicit AI Polishing request.
 
 ## Contact And Review
 

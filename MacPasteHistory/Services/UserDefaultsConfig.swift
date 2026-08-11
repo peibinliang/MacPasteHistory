@@ -29,6 +29,9 @@ struct UserDefaultsConfig {
         case blockedApps = "config.blockedApps"
         case shortcutKeyCode = "config.shortcutKeyCode"
         case shortcutModifiers = "config.shortcutModifiers"
+        case automaticPasteEnabled = "config.automaticPasteEnabled"
+        case aiModelIdentifier = "config.aiModelIdentifier"
+        case hasAcknowledgedAIRemoteProcessing = "config.hasAcknowledgedAIRemoteProcessing"
     }
 
     // MARK: - Generic accessors
@@ -182,6 +185,30 @@ struct UserDefaultsConfig {
             setInteger(Int(newValue.keyCode), forKey: .shortcutKeyCode)
             setInteger(Int(newValue.modifiers), forKey: .shortcutModifiers)
         }
+    }
+
+    var automaticPasteEnabled: Bool {
+        get { bool(forKey: .automaticPasteEnabled, defaultValue: DefaultSettings.automaticPasteEnabled) }
+        set { setBool(newValue, forKey: .automaticPasteEnabled) }
+    }
+
+    var aiModelIdentifier: String {
+        get {
+            guard let value = string(forKey: .aiModelIdentifier)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  value.isEmpty == false else {
+                return DefaultSettings.aiModelIdentifier
+            }
+            return value
+        }
+        set {
+            let value = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            setString(value.isEmpty ? nil : value, forKey: .aiModelIdentifier)
+        }
+    }
+
+    var hasAcknowledgedAIRemoteProcessing: Bool {
+        get { bool(forKey: .hasAcknowledgedAIRemoteProcessing, defaultValue: false) }
+        set { setBool(newValue, forKey: .hasAcknowledgedAIRemoteProcessing) }
     }
 
     private func positiveInteger(forKey key: Key, defaultValue: Int) -> Int {

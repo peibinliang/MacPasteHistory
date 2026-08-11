@@ -34,3 +34,9 @@ protocol ContentAction: Sendable {
 protocol BinaryContentAction: ContentAction {
     func execute(data: Data) throws -> ContentActionResult
 }
+
+/// Opt-in capability for actions that perform cancellable asynchronous work.
+/// Existing local actions intentionally remain synchronous.
+protocol AsyncContentAction: ContentAction {
+    func executeAsync(input: String) async throws -> ContentActionResult
+}

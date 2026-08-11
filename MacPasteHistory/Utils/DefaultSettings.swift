@@ -11,4 +11,6 @@ enum DefaultSettings {
     static let shouldRecordText = true
     static let shouldRecordImage = true
     static let filterSensitiveContent = true
+    static let automaticPasteEnabled = false
+    static let aiModelIdentifier = "deepseek-v4-flash"
 }

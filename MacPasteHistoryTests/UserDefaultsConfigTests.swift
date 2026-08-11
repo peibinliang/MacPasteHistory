@@ -111,4 +111,44 @@ final class UserDefaultsConfigTests: XCTestCase {
         XCTAssertEqual(AppAppearance.allCases.map(\.id), ["system", "light", "dark"])
         XCTAssertEqual(AppAppearance.allCases.map(\.titleKey), ["Follow System", "Light", "Dark"])
     }
+
+    func testAutomaticPasteEnabled_whenUnset_shouldDefaultToFalse() {
+        let config = UserDefaultsConfig(defaults: defaults)
+
+        XCTAssertFalse(config.automaticPasteEnabled)
+    }
+
+    func testAutomaticPasteEnabled_shouldPersistExplicitChoice() {
+        var config = UserDefaultsConfig(defaults: defaults)
+
+        config.automaticPasteEnabled = true
+
+        XCTAssertTrue(UserDefaultsConfig(defaults: defaults).automaticPasteEnabled)
+    }
+
+    func testAISettings_whenUnset_shouldUseSafeDefaults() {
+        let config = UserDefaultsConfig(defaults: defaults)
+
+        XCTAssertEqual(config.aiModelIdentifier, DefaultSettings.aiModelIdentifier)
+        XCTAssertFalse(config.hasAcknowledgedAIRemoteProcessing)
+    }
+
+    func testAISettings_shouldPersistValidatedModelAndAcknowledgment() {
+        var config = UserDefaultsConfig(defaults: defaults)
+
+        config.aiModelIdentifier = "deepseek-v4-pro"
+        config.hasAcknowledgedAIRemoteProcessing = true
+
+        let reloaded = UserDefaultsConfig(defaults: defaults)
+        XCTAssertEqual(reloaded.aiModelIdentifier, "deepseek-v4-pro")
+        XCTAssertTrue(reloaded.hasAcknowledgedAIRemoteProcessing)
+    }
+
+    func testAIModelIdentifier_whenPersistedValueIsBlank_shouldUseDefault() {
+        var config = UserDefaultsConfig(defaults: defaults)
+
+        config.aiModelIdentifier = "  \n"
+
+        XCTAssertEqual(config.aiModelIdentifier, DefaultSettings.aiModelIdentifier)
+    }
 }

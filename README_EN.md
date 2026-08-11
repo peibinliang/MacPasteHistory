@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | [English](README_EN.md)
 
-粘易 is a local-first clipboard history app for macOS. It lives in the menu bar and presents text and image history in a lightweight overlay that stays out of your way. Select an item to return to the previous app and paste it immediately.
+粘易 is a local-first clipboard history app for macOS. It presents text and image history in a lightweight menu-bar overlay, supports opt-in automatic paste, and can explicitly send selected text to DeepSeek for polishing.
 
 > The screenshots below come from the current Release build and use synthetic sample data. They do not contain real clipboard records.
 
@@ -32,7 +32,7 @@
 - Automatically records text and common image formats, including PNG, TIFF, and JPEG
 - Captures supported local image files copied from Finder and creates local thumbnails for previews
 - Deduplicates content by hash while retaining the latest copy time and source application
-- Stores history, images, and preferences locally on the current Mac by default
+- Stores history, images, and non-secret preferences locally; only text explicitly submitted to AI Polishing is sent to DeepSeek
 
 ### Timeline, search, and filters
 
@@ -55,9 +55,17 @@
 
 - Opens history with a customizable global shortcut; the default is `Command + Shift + V`
 - Displays the history overlay above full-screen apps without switching to a standard window
-- Restores and pastes an item into the previous app with one click, or with the arrow keys followed by `Enter`
+- Keeps Automatic Paste off by default; selecting an item restores it first and prompts for manual `Command-V` while disabled
+- Returns to the previous app and sends `Command-V` only after the user enables Automatic Paste and grants Accessibility access
 - Supports clipboard-only restore plus favorite, paste, and delete actions from details or the More Actions menu
-- Guides the user to grant Accessibility permission on first launch or when macOS blocks automatic paste
+- Does not request Accessibility access at launch; guidance appears only after Automatic Paste is enabled
+
+### AI text polishing
+
+- Adds an explicitly initiated AI Polishing action with configurable model and `deepseek-v4-flash` as the default
+- Discloses DeepSeek remote processing before the first request; declining leaves all local features available
+- Stores the API key in macOS Keychain and reuses the editable copy/save/paste result flow
+- Displays and aggregates provider-reported input, output, and total tokens without storing source or response text in usage records
 
 ### Privacy and security controls
 
@@ -113,7 +121,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 ## Privacy
 
-Clipboard history, images, and preferences stay on the device by default and are not uploaded to the cloud. Update checks request GitHub-hosted appcast, release-note, and update-package resources, but those requests do not contain clipboard history. The current release does not encrypt its local history database or app-managed image files; disabling sensitive-content filtering may store password- or token-like text in that database. Enable macOS account security and FileVault if you require device-level protection. See the [Privacy Policy](docs/privacy-policy.md) and [User Guide](docs/user-guide.md) for details.
+Clipboard history, images, and preferences stay on the device by default. Update checks request GitHub-hosted appcast, release-note, and update-package resources, but those requests do not contain clipboard history. AI Polishing is an explicit remote feature that sends only the current selected text to DeepSeek after first-use disclosure. The current release does not encrypt its local history database or app-managed image files; disabling sensitive-content filtering may store password- or token-like text in that database. Enable macOS account security and FileVault if you require device-level protection. See the [Privacy Policy](docs/privacy-policy.md) and [User Guide](docs/user-guide.md) for details.
 
 ## Documentation
 

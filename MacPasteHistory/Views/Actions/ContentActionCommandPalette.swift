@@ -13,6 +13,10 @@ struct ContentActionCommandPalette: View {
                 Spacer()
                 Text("⌘K").font(.caption.monospaced()).foregroundStyle(.secondary)
             }
+            if case .executing = viewModel.state {
+                ProgressView(L10n.string("ai.polishing.progress"))
+                    .controlSize(.small)
+            }
             TextField(L10n.string("Search actions"), text: $viewModel.commandSearchText)
                 .textFieldStyle(.roundedBorder)
                 .focused($isSearchFocused)

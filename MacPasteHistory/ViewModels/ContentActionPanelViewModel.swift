@@ -20,23 +20,31 @@ final class ContentActionPanelViewModel: ObservableObject {
     @Published private(set) var editedOutput = ""
     @Published private(set) var showsRecommendedActions = false
     @Published private(set) var activeContentType: DetectedContentType = .plainText
+    @Published private(set) var aiTokenUsage: DeepSeekTokenUsage?
+    @Published private(set) var isAIUsageUnavailable = false
+    @Published private(set) var isAIRemoteProcessingConsentRequired = false
 
     private let registry: ContentActionRegistry
     private let executor: ContentActionExecutor
     private let classifier: ContentClassifier
     private let suitabilityPolicy: ContentActionSuitabilityPolicy
+    private var config: UserDefaultsConfig
     private var executionTask: Task<Void, Never>?
+    private var executionID = UUID()
+    private var pendingAIActionID: ContentActionID?
 
     init(
         registry: ContentActionRegistry = ContentActionRegistry(),
         executor: ContentActionExecutor? = nil,
         classifier: ContentClassifier = ContentClassifier(),
-        suitabilityPolicy: ContentActionSuitabilityPolicy = ContentActionSuitabilityPolicy()
+        suitabilityPolicy: ContentActionSuitabilityPolicy = ContentActionSuitabilityPolicy(),
+        config: UserDefaultsConfig = UserDefaultsConfig()
     ) {
         self.registry = registry
         self.executor = executor ?? ContentActionExecutor(registry: registry)
         self.classifier = classifier
         self.suitabilityPolicy = suitabilityPolicy
+        self.config = config
     }
 
     var allActions: [any ContentAction] {
@@ -63,6 +71,10 @@ final class ContentActionPanelViewModel: ObservableObject {
         state == .previewing && session?.steps.isEmpty == false
     }
 
+    func recommendedActions(for type: DetectedContentType) -> [any ContentAction] {
+        registry.recommended(for: type)
+    }
+
     func present(for item: ClipboardHistoryItem, sourceText: String? = nil, recommendedOnly: Bool = false) {
         commandSearchText = ""
         let resolvedSourceText = sourceText ?? item.textContent
@@ -71,6 +83,10 @@ final class ContentActionPanelViewModel: ObservableObject {
         selectedAction = nil
         copyVariants = []
         notices = []
+        aiTokenUsage = nil
+        isAIUsageUnavailable = false
+        isAIRemoteProcessingConsentRequired = false
+        pendingAIActionID = nil
         editedOutput = sourceText ?? item.textContent
         showsRecommendedActions = recommendedOnly
         state = .choosing
@@ -82,7 +98,19 @@ final class ContentActionPanelViewModel: ObservableObject {
             publishFailure(.unsupportedInput(messageKey: "content-action.unsupported"), actionID: actionID)
             return
         }
+        if actionID == AITextPolishingAction.actionID,
+           config.hasAcknowledgedAIRemoteProcessing == false {
+            pendingAIActionID = actionID
+            isAIRemoteProcessingConsentRequired = true
+            return
+        }
+        executionTask?.cancel()
+        executionID = UUID()
         state = .executing(actionID)
+        if action is any AsyncContentAction {
+            executeAsyncAction(actionID: actionID, action: action, session: session, executionID: executionID)
+            return
+        }
         if session.sourceItem.contentType == .image,
            session.steps.isEmpty,
            action is any BinaryContentAction,
@@ -100,6 +128,20 @@ final class ContentActionPanelViewModel: ObservableObject {
         }
     }
 
+    func acceptAIRemoteProcessing() {
+        guard let actionID = pendingAIActionID else { return }
+        config.hasAcknowledgedAIRemoteProcessing = true
+        pendingAIActionID = nil
+        isAIRemoteProcessingConsentRequired = false
+        execute(actionID: actionID)
+    }
+
+    func declineAIRemoteProcessing() {
+        pendingAIActionID = nil
+        isAIRemoteProcessingConsentRequired = false
+        if session != nil { state = .choosing }
+    }
+
     func updateEditedOutput(_ text: String) {
         guard var session else { return }
         session.updateEditedOutput(text)
@@ -112,6 +154,20 @@ final class ContentActionPanelViewModel: ObservableObject {
         session.moveBack()
         self.session = session
         editedOutput = session.currentOutput
+        guard let currentStep = session.currentStep else {
+            selectedAction = nil
+            copyVariants = []
+            notices = []
+            aiTokenUsage = nil
+            isAIUsageUnavailable = false
+            state = .choosing
+            return
+        }
+        selectedAction = currentStep.actionID
+        copyVariants = currentStep.originalResult.copyVariants
+        notices = currentStep.originalResult.notices
+        aiTokenUsage = currentStep.originalResult.aiTokenUsage
+        isAIUsageUnavailable = currentStep.originalResult.isAIUsageUnavailable
         state = .previewing
     }
 
@@ -125,6 +181,7 @@ final class ContentActionPanelViewModel: ObservableObject {
     func close() {
         executionTask?.cancel()
         executionTask = nil
+        executionID = UUID()
         state = .closed
         session = nil
         selectedAction = nil
@@ -134,6 +191,35 @@ final class ContentActionPanelViewModel: ObservableObject {
         showsRecommendedActions = false
         activeContentType = .plainText
         commandSearchText = ""
+        aiTokenUsage = nil
+        isAIUsageUnavailable = false
+        isAIRemoteProcessingConsentRequired = false
+        pendingAIActionID = nil
+    }
+
+    private func executeAsyncAction(
+        actionID: ContentActionID,
+        action: any ContentAction,
+        session: ActionSession,
+        executionID: UUID
+    ) {
+        executionTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let result = try await executor.executeAsync(id: actionID, input: session.currentOutput)
+                guard Task.isCancelled == false, self.executionID == executionID else { return }
+                var updatedSession = session
+                publish(result: result, action: action, actionID: actionID, session: &updatedSession)
+            } catch is CancellationError {
+                return
+            } catch let error as ContentActionError {
+                guard Task.isCancelled == false, self.executionID == executionID else { return }
+                publishFailure(error, actionID: actionID)
+            } catch {
+                guard Task.isCancelled == false, self.executionID == executionID else { return }
+                publishFailure(.parseFailed(messageKey: "content-action.failed"), actionID: actionID)
+            }
+        }
     }
 
     private func executeImageAction(
@@ -181,6 +267,8 @@ final class ContentActionPanelViewModel: ObservableObject {
         selectedAction = actionID
         copyVariants = result.copyVariants
         notices = result.notices
+        aiTokenUsage = result.aiTokenUsage
+        isAIUsageUnavailable = result.isAIUsageUnavailable
         editedOutput = result.output
         state = .previewing
     }
@@ -211,6 +299,8 @@ final class ContentActionPanelViewModel: ObservableObject {
         selectedAction = actionID
         copyVariants = []
         notices = []
+        aiTokenUsage = nil
+        isAIUsageUnavailable = false
         editedOutput = ""
         state = .failed(error)
     }

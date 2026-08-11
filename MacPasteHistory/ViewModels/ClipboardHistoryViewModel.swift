@@ -262,6 +262,35 @@ final class ClipboardHistoryViewModel: ObservableObject {
     }
 
     @discardableResult
+    func recordClipboardOnlyUsage(for item: ClipboardHistoryItem) -> Bool {
+        do {
+            try repository.recordReuseCopy(historyID: item.id, at: Date())
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = L10n.string("Failed to record clipboard usage.")
+            return false
+        }
+    }
+
+    @discardableResult
+    func sendPasteForRestoredItem(_ item: ClipboardHistoryItem, pasteCommandService: PasteCommandService) -> Bool {
+        do {
+            if pasteCommandService.sendPasteCommand() {
+                try repository.recordPaste(historyID: item.id, at: Date())
+                errorMessage = nil
+                return true
+            }
+            try repository.recordReuseCopy(historyID: item.id, at: Date())
+            errorMessage = L10n.string("Paste was not sent. Press Command-V to paste manually.")
+            return false
+        } catch {
+            errorMessage = L10n.string("Failed to record clipboard usage.")
+            return false
+        }
+    }
+
+    @discardableResult
     func saveDerivedActionOutput(from session: ActionSession) -> ClipboardHistoryItem? {
         guard let currentStep = session.currentStep else { return nil }
         do {

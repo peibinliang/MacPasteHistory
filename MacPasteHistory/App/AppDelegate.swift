@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var imageStorageService: ImageStorageService?
     private var clipboardMonitor: ClipboardMonitor?
     private var searchCoordinator: SearchCoordinator?
+    private var aiTokenUsageRepository: AITokenUsageRepository?
     private var clearDataCancellable: AnyCancellable?
     private let shortcutService: ShortcutService
     private var shortcutCancellable: AnyCancellable?
@@ -54,7 +55,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboardMonitor?.start()
         setupClearDataObserver()
         setupShortcut()
-        scheduleLaunchAccessibilityPermissionReminder()
     }
 
     private static func applicationSupportOverrideURL() -> URL? {
@@ -93,34 +93,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
     }
 
-    private func scheduleLaunchAccessibilityPermissionReminder() {
-        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
-            return
-        }
-        DispatchQueue.main.async { [weak self] in
-            self?.presentLaunchAccessibilityPermissionReminderIfNeeded()
-        }
-    }
-
-    private func presentLaunchAccessibilityPermissionReminderIfNeeded() {
-        guard accessibilityPermissionService.reminderIfNeeded(for: .launch) else {
-            return
-        }
-
-        let alert = NSAlert()
-        alert.alertStyle = .informational
-        alert.messageText = L10n.string("Accessibility Permission Required")
-        alert.informativeText = L10n.string(
-            "Allow 粘易 in System Settings → Privacy & Security → Accessibility, then try pasting again."
-        )
-        alert.addButton(withTitle: L10n.string("Open System Settings"))
-        alert.addButton(withTitle: L10n.string("Later"))
-        NSApp.activate(ignoringOtherApps: true)
-        if alert.runModal() == .alertFirstButtonReturn {
-            accessibilityPermissionService.openSystemSettings()
-        }
-    }
-
     private func rememberExternalApplication(_ application: NSRunningApplication?) {
         guard application?.bundleIdentifier != Bundle.main.bundleIdentifier else {
             return
@@ -136,7 +108,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             try ClipboardDataClearService(
                 repository: repository,
-                imageStorageService: imageStorageService
+                imageStorageService: imageStorageService,
+                aiTokenUsageRepository: aiTokenUsageRepository
             ).clearAllData()
             logger.info("All clipboard data cleared")
         } catch {
@@ -192,6 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 maxImageSizeInBytesProvider: { UserDefaultsConfig().maxImageSizeInBytes }
             )
             clipboardHistoryRepository = repository
+            aiTokenUsageRepository = AITokenUsageRepository(database: database)
             clipboardWriter = writer
             self.imageStorageService = imageStorageService
             clipboardMonitor = ClipboardMonitor(
@@ -239,6 +213,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             hostingView.rootView = MainPanelView(
                 viewModel: viewModel,
                 accessibilityPermissionService: accessibilityPermissionService,
+                actionViewModel: makeContentActionViewModel(),
                 pasteTargetApplication: pasteTargetApplication,
                 dismissAction: { [weak window = controller.window] in
                     window?.orderOut(nil)
@@ -272,12 +247,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsViewModel(
             config: config,
             appearanceService: AppearanceService(config: config),
-            shortcutService: shortcutService
+            shortcutService: shortcutService,
+            accessibilityPermissionService: accessibilityPermissionService,
+            aiCredentialStore: KeychainAICredentialStore(),
+            aiTokenUsageRepository: aiTokenUsageRepository
         )
     }
 
     func makeUpdateService() -> UpdateService {
         updateService
+    }
+
+    private func makeContentActionViewModel() -> ContentActionPanelViewModel {
+        let config = UserDefaultsConfig()
+        let polishingAction = AITextPolishingAction(
+            service: AITextPolishingService(
+                config: config,
+                usageRepository: aiTokenUsageRepository
+            )
+        )
+        let registry = ContentActionRegistry(
+            actions: ContentActionRegistry.defaultActions + [polishingAction]
+        )
+        return ContentActionPanelViewModel(registry: registry, config: config)
     }
 
     @objc private func openSettings() {
@@ -326,6 +318,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             rootView: MainPanelView(
                 viewModel: viewModel,
                 accessibilityPermissionService: accessibilityPermissionService,
+                actionViewModel: makeContentActionViewModel(),
                 pasteTargetApplication: pasteTargetApplication,
                 dismissAction: { [weak panel] in
                     panel?.orderOut(nil)

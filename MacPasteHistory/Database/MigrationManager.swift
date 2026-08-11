@@ -21,6 +21,7 @@ final class MigrationManager {
         try applyMigration(version: 1, name: "create_clipboard_history", sql: Self.createClipboardHistorySQL)
         try applyMigration(version: 2, name: "add_image_format_to_clipboard_history", sql: Self.addImageFormatSQL)
         try applyMigration(version: 3, name: "enhanced_search_content_actions", sql: Self.enhancedHistorySQL)
+        try applyMigration(version: 4, name: "create_ai_token_usage", sql: Self.createAITokenUsageSQL)
     }
 
     private func applyMigration(version: Int, name: String, sql: String) throws {
@@ -176,6 +177,26 @@ final class MigrationManager {
 
     CREATE INDEX idx_capture_events_captured_at
     ON clipboard_capture_events(captured_at);
+    """
+
+    private static let createAITokenUsageSQL = """
+    CREATE TABLE ai_token_usage (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        request_id TEXT NOT NULL UNIQUE,
+        provider TEXT NOT NULL,
+        model_identifier TEXT NOT NULL,
+        input_tokens INTEGER NOT NULL CHECK (input_tokens >= 0),
+        output_tokens INTEGER NOT NULL CHECK (output_tokens >= 0),
+        total_tokens INTEGER NOT NULL CHECK (total_tokens >= 0),
+        cached_input_tokens INTEGER CHECK (cached_input_tokens IS NULL OR cached_input_tokens >= 0),
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX idx_ai_token_usage_model_created_at
+    ON ai_token_usage(model_identifier, created_at DESC);
+
+    CREATE INDEX idx_ai_token_usage_created_at
+    ON ai_token_usage(created_at DESC);
     """
 }
 

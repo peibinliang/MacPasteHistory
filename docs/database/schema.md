@@ -46,6 +46,22 @@ Stores local clipboard history records. The current implementation writes text r
 | `created_at` | DATETIME | Yes | `CURRENT_TIMESTAMP` | Copy time and list sort key. |
 | `updated_at` | DATETIME | Yes | `CURRENT_TIMESTAMP` | Last update time. |
 
+### `ai_token_usage`
+
+Stores provider-reported accounting metadata for successful AI responses. It never stores source text, prompts, model output, history IDs, or API keys.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | INTEGER | Yes | Auto-increment primary key. |
+| `request_id` | TEXT | Yes | Provider response ID; unique for exact-once accounting. |
+| `provider` | TEXT | Yes | Provider identifier, currently `deepseek`. |
+| `model_identifier` | TEXT | Yes | Model returned by the provider. |
+| `input_tokens` | INTEGER | Yes | Non-negative provider-reported input tokens. |
+| `output_tokens` | INTEGER | Yes | Non-negative provider-reported output tokens. |
+| `total_tokens` | INTEGER | Yes | Non-negative provider-reported total tokens. |
+| `cached_input_tokens` | INTEGER | No | Optional non-negative cached-input tokens. |
+| `created_at` | DATETIME | Yes | Local insertion time. |
+
 ## Indexes
 
 | Index | Fields | Purpose |
@@ -55,6 +71,8 @@ Stores local clipboard history records. The current implementation writes text r
 | `idx_clipboard_content_type` | `content_type` | Type-specific queries and clear actions. |
 | `idx_clipboard_favorite` | `is_favorite` | Favorites-only filtering. |
 | `idx_clipboard_text_content` | `text_content` | Keyword search support. |
+| `idx_ai_token_usage_model_created_at` | `model_identifier`, `created_at` | Per-model aggregation. |
+| `idx_ai_token_usage_created_at` | `created_at` | Time-ordered aggregation. |
 
 ## Planned Tables
 

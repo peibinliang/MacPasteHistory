@@ -19,3 +19,4 @@ Core development must keep these documents synchronized with code changes. See `
 ## Current Development Notes
 
 - `development/appearance-and-smart-actions.md`: appearance preference, smart classification, action visibility mapping, configuration, privacy, and test design.
+- `development/automatic-paste-and-ai-configuration.md`: default-off automatic paste, DeepSeek model/Keychain configuration, remote privacy boundary, and token accounting.

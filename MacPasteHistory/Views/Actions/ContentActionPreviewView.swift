@@ -35,7 +35,7 @@ struct ContentActionPreviewView: View {
                         SyntaxHighlightedTextView(text: Binding(
                             get: { actionViewModel.editedOutput },
                             set: { actionViewModel.updateEditedOutput($0) }
-                        ), syntax: session.steps.last?.originalResult.syntax ?? .plainText)
+                        ), syntax: session.currentStep?.originalResult.syntax ?? .plainText)
                         .accessibilityValue(L10n.string(ContentActionAccessibilityPresentation.resultEditedValue))
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
@@ -69,7 +69,7 @@ struct ContentActionPreviewView: View {
                 .buttonStyle(.plain)
                 .help(L10n.string("Back"))
             VStack(alignment: .leading, spacing: 2) {
-                Text(session.steps.last.map { L10n.string($0.actionTitleKey) } ?? L10n.string("Actions"))
+                Text(session.currentStep.map { L10n.string($0.actionTitleKey) } ?? L10n.string("Actions"))
                     .font(.headline)
                 Text(session.sourceItem.effectiveDetectedType.localizedTitle()).font(.caption).foregroundStyle(.secondary)
             }
@@ -89,6 +89,21 @@ struct ContentActionPreviewView: View {
                 Label(L10n.string(notice.messageKey), systemImage: "info.circle")
                     .font(.caption).foregroundStyle(.secondary)
                     .accessibilityLabel(L10n.string(notice.messageKey))
+            }
+            if let usage = actionViewModel.aiTokenUsage {
+                Label(
+                    String(
+                        format: L10n.string("ai.usage.request-summary"),
+                        Int64(usage.inputTokens), Int64(usage.outputTokens), Int64(usage.totalTokens)
+                    ),
+                    systemImage: "number"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else if actionViewModel.isAIUsageUnavailable {
+                Label(L10n.string("ai.usage.unavailable"), systemImage: "questionmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             if actionViewModel.copyVariants.isEmpty == false {
                 HStack {
