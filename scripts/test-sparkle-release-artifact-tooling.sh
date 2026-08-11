@@ -7,7 +7,7 @@ EXPECTED_PUBLIC_KEY="$(
     /usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' \
         "$REPO_ROOT/MacPasteHistory/Resources/Info.plist"
 )"
-EXPECTED_URL="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/%E7%B2%98%E6%98%93-1.0.2-3.zip"
+EXPECTED_URL="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/MacPasteHistory-1.0.2-3.zip"
 VALID_SIGNATURE_SHAPE="$(
     /bin/dd if=/dev/zero bs=64 count=1 2>/dev/null \
         | /usr/bin/base64 \
@@ -81,7 +81,7 @@ expect_success() {
 fixture_repo="$TEST_ROOT/repository"
 release_dir="$fixture_repo/release"
 archive_app="$TEST_ROOT/archive-root/粘易.app"
-archive_path="$release_dir/粘易-1.0.2-3.zip"
+archive_path="$release_dir/MacPasteHistory-1.0.2-3.zip"
 appcast_path="$release_dir/appcast.xml"
 source_plist="$fixture_repo/MacPasteHistory/Resources/Info.plist"
 
@@ -183,7 +183,7 @@ expect_failure_containing \
     --archive "$archive_path" \
     --expected-public-key "$EXPECTED_PUBLIC_KEY"
 
-wrong_url="https://example.invalid/粘易-1.0.2-3.zip"
+wrong_url="https://example.invalid/MacPasteHistory-1.0.2-3.zip"
 write_appcast \
     "$appcast_path" \
     "$wrong_url" \
@@ -481,7 +481,7 @@ release_directory=""
 for argument in "$@"; do
     release_directory="$argument"
 done
-archive_path="$release_directory/粘易-1.0.2-3.zip"
+archive_path="$release_directory/MacPasteHistory-1.0.2-3.zip"
 archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
 valid_signature_shape="$(
     /bin/dd if=/dev/zero bs=64 count=1 2>/dev/null \
@@ -499,7 +499,7 @@ cat >"$release_directory/appcast.xml" <<EOF
     <item>
       <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
       <sparkle:version>3</sparkle:version>
-      <enclosure url="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/%E7%B2%98%E6%98%93-1.0.2-3.zip" length="$archive_length"$signature_attribute />
+      <enclosure url="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/MacPasteHistory-1.0.2-3.zip" length="$archive_length"$signature_attribute />
     </item>
   </channel>
 </rss>
@@ -649,9 +649,9 @@ expect_success \
     --output-dir "$package_output" \
     --release-notes "$package_release_notes"
 unset PACKAGE_VERIFY_RECORD
-if [[ ! -f "$package_output/粘易-1.0.2-3.zip" \
-    || ! -f "$package_output/粘易-1.0.2-3.zip.sha256" \
-    || ! -f "$package_output/粘易-1.0.2-3-release-notes.md" ]]; then
+if [[ ! -f "$package_output/MacPasteHistory-1.0.2-3.zip" \
+    || ! -f "$package_output/MacPasteHistory-1.0.2-3.zip.sha256" \
+    || ! -f "$package_output/MacPasteHistory-1.0.2-3-release-notes.md" ]]; then
     add_failure "formal packaging did not produce all three expected artifacts."
 fi
 if [[ ! -f "$package_verify_record" \

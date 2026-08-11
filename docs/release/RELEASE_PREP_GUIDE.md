@@ -485,16 +485,16 @@ app bundle 内（包括经符号链接解析后的别名）。正式产物先写
 通过正式 ZIP verifier 后才移动到最终名称。
 输出必须包括：
 
-- `粘易-1.0.2-3.zip`
-- `粘易-1.0.2-3.zip.sha256`
-- `粘易-1.0.2-3-release-notes.md`
+- `MacPasteHistory-1.0.2-3.zip`
+- `MacPasteHistory-1.0.2-3.zip.sha256`
+- `MacPasteHistory-1.0.2-3-release-notes.md`
 
 2. 在传递给 Sparkle 前独立验证正式 ZIP：
 
 ```bash
 scripts/verify-release-qa-package.sh \
   --formal-update \
-  /absolute/path/to/V1.0.2-release/粘易-1.0.2-3.zip
+  /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-3.zip
 ```
 
 3. 找到 Sparkle 2.9.2 的 `bin` 目录（其中必须有可执行的
@@ -526,7 +526,7 @@ Base64 fixture 只证明结构校验，不得作为正式签名或发布证据�
 ```bash
 scripts/verify-sparkle-appcast.sh \
   --appcast docs/appcast.xml \
-  --archive /absolute/path/to/V1.0.2-release/粘易-1.0.2-3.zip \
+  --archive /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-3.zip \
   --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)"
 ```
 
@@ -542,7 +542,7 @@ V1.0.2 (3)，并把历史、收藏、设置和快捷键保留证据填写到
 #### ✅ 验收清单
 
 - [ ] 正式 ZIP 由 Developer ID Application 签名并通过 `spctl` 公证检查
-- [ ] `粘易-1.0.2-3.zip.sha256` 与 ZIP 一致
+- [ ] `MacPasteHistory-1.0.2-3.zip.sha256` 与 ZIP 一致
 - [ ] appcast 由官方 `generate_appcast` 生成，并通过固定 URL、长度、签名结构、版本、Bundle ID 和公钥校验
 - [ ] V1.0.1 → V1.0.2 手动与自动升级证据完整
 - [ ] 私钥、令牌和凭据未进入参数、日志、文档或 Git
@@ -995,7 +995,7 @@ scripts/release-readiness-report.sh --output build/release-readiness-report.md
 scripts/release-readiness-report.sh \
   --manual-record build/manual-release-qa-session/<timestamp>-<commit>/manual-qa-record.md \
   --qa-session build/manual-release-qa-session/<timestamp>-<commit> \
-  --formal-update-archive /absolute/path/to/V1.0.2-release/粘易-1.0.2-3.zip \
+  --formal-update-archive /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-3.zip \
   --appcast docs/appcast.xml \
   --output build/release-readiness-report.md \
   --json-output build/release-readiness-report.json \

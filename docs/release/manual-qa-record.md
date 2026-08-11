@@ -70,16 +70,16 @@ scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
 ```
 
 The formal Sparkle update is a separate artifact. It must be named
-`粘易-1.0.2-3.zip`, have an adjacent `.sha256`, and pass the strict verifier:
+`MacPasteHistory-1.0.2-3.zip`, have an adjacent `.sha256`, and pass the strict verifier:
 
 ```bash
 scripts/verify-release-qa-package.sh \
   --formal-update \
-  /path/to/粘易-1.0.2-3.zip
+  /path/to/MacPasteHistory-1.0.2-3.zip
 
 scripts/verify-sparkle-appcast.sh \
   --appcast /path/to/appcast.xml \
-  --archive /path/to/粘易-1.0.2-3.zip \
+  --archive /path/to/MacPasteHistory-1.0.2-3.zip \
   --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)"
 ```
 

@@ -178,10 +178,10 @@ package_formal_update() {
         exit 1
     }
 
-    archive_name="粘易-1.0.2-3.zip"
+    archive_name="MacPasteHistory-1.0.2-3.zip"
     archive_path="$OUTPUT_DIR/$archive_name"
     checksum_path="$archive_path.sha256"
-    release_notes_name="粘易-1.0.2-3-release-notes.md"
+    release_notes_name="MacPasteHistory-1.0.2-3-release-notes.md"
     release_notes_output="$OUTPUT_DIR/$release_notes_name"
     mkdir -p "$OUTPUT_DIR"
     canonical_output="$(canonical_path "$OUTPUT_DIR")"

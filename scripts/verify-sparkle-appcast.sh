@@ -3,8 +3,8 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_INFO_PLIST="$REPO_ROOT/MacPasteHistory/Resources/Info.plist"
-EXPECTED_ARCHIVE_NAME="粘易-1.0.2-3.zip"
-EXPECTED_URL="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/%E7%B2%98%E6%98%93-1.0.2-3.zip"
+EXPECTED_ARCHIVE_NAME="MacPasteHistory-1.0.2-3.zip"
+EXPECTED_URL="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/MacPasteHistory-1.0.2-3.zip"
 EXPECTED_VERSION="1.0.2"
 EXPECTED_BUILD="3"
 EXPECTED_BUNDLE_ID="com.peibin.MacPasteHistory"

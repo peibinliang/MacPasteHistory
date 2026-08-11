@@ -257,8 +257,8 @@ if [[ ! -f "$zip_path" ]]; then
     exit 1
 fi
 
-if [[ "$formal_update" -eq 1 && "$(basename "$zip_path")" != "粘易-1.0.2-3.zip" ]]; then
-    echo "Formal update archive must be named 粘易-1.0.2-3.zip" >&2
+if [[ "$formal_update" -eq 1 && "$(basename "$zip_path")" != "MacPasteHistory-1.0.2-3.zip" ]]; then
+    echo "Formal update archive must be named MacPasteHistory-1.0.2-3.zip" >&2
     exit 1
 fi
 if [[ "$formal_update" -eq 1 && "$checksum_explicit" -eq 1 ]]; then
