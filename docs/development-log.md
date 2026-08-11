@@ -12,11 +12,14 @@
 
 - Subscribed `UpdateService` to driver-originated `automaticallyChecksForUpdates` changes so Sparkle's authorization UI cannot leave the About toggle stale on a later launch.
 - Kept preference synchronization one-way: the explicit user setter writes to Sparkle, while KVO publishers only refresh service state and never write back.
+- Added a main-actor update status stream driven by Sparkle's real found-update, no-update, and abort delegate callbacks. The About page now shows checking, latest-version, available-version, and localized failure summaries and prevents concurrent manual checks.
+- Declared Sparkle gentle scheduled-reminder support for the dockless `LSUIElement` app. Update sessions temporarily expose and badge the Dock icon, clear attention state, and restore accessory mode without overriding a user's visible-Dock preference.
+- Added the missing `AppVersionProviding` protocol and kept `AppVersionInfo` as its Bundle-backed implementation so Settings version rendering remains injectable.
 
 ### Architecture and UI ownership
 
-- The app owns updater availability and preference presentation only.
-- Sparkle's standard updater controller owns progress, latest-version, release-notes, download, error, authorization, installation and relaunch feedback.
+- The app owns updater availability, preference presentation, a concise update-status summary, and the Dock visibility reminder needed by a background app.
+- Sparkle's standard updater controller owns the complete progress, release-notes, download, authorization, installation, cancellation, error-dialog, and relaunch experience.
 
 ### Security and release readiness
 
@@ -26,10 +29,10 @@
 
 ### Verification
 
-- `UpdateServiceTests` passed with 5 tests and 0 failures, including driver-originated automatic-check preference synchronization.
+- `UpdateServiceTests` passed with 10 tests and 0 failures, including driver-originated preference synchronization, manual-check state, real Sparkle callback outcomes, and gentle reminder behavior. `AppVersionInfoTests` passed with 3 tests and 0 failures, including the injectable provider contract.
 - `BrandAndInteractionTests` and `LocalizationCoverageTests` passed with 10 tests and 0 failures.
 - `scripts/validate-xcode-file-references.sh` passed with 175 Swift references checked and 0 missing.
-- The full macOS test suite passed with 271 tests and 0 failures while resolving Sparkle `2.9.2`.
+- The full macOS test suite passed with 277 tests and 0 failures while resolving Sparkle `2.9.2`. The generic macOS Release build and embedded Sparkle framework/Installer/Downloader XPC inspection also passed.
 
 ### Compatibility
 

@@ -21,4 +21,18 @@ final class AppVersionInfoTests: XCTestCase {
         XCTAssertEqual(info.shortVersion, "—")
         XCTAssertEqual(info.buildNumber, "—")
     }
+
+    func testAppVersionInfo_shouldSatisfyInjectableVersionProviderContract() {
+        let info = AppVersionInfo(infoDictionary: [
+            "CFBundleDisplayName": "Test App",
+            "CFBundleShortVersionString": "9.8.7",
+            "CFBundleVersion": "654"
+        ])
+
+        func versionFields(from provider: any AppVersionProviding) -> [String] {
+            [provider.displayName, provider.shortVersion, provider.buildNumber]
+        }
+
+        XCTAssertEqual(versionFields(from: info), ["Test App", "9.8.7", "654"])
+    }
 }

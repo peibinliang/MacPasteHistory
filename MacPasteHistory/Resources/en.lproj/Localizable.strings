@@ -284,3 +284,7 @@
 "View on GitHub" = "View on GitHub";
 "Automatically check for updates" = "Automatically check for updates";
 "Check for Updates…" = "Check for Updates…";
+"Checking for updates…" = "Checking for updates…";
+"You're up to date." = "You're up to date.";
+"Update %@ is available." = "Update %@ is available.";
+"Update check failed: %@" = "Update check failed: %@";

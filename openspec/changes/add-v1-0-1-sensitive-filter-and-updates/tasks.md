@@ -16,14 +16,14 @@
 ## 3. About UI and Runtime Version Information
 
 - [x] 3.1 Update application metadata to version `1.0.1` and build `2` while preserving deployment target macOS `14.0` and bundle identifier `com.peibin.MacPasteHistory`.
-- [ ] 3.2 Add a testable `AppVersionProviding` abstraction and Bundle-backed implementation for display name, `CFBundleShortVersionString`, and `CFBundleVersion`.
-- [ ] 3.3 Add an “关于与更新” settings category showing the app icon, name, runtime version/build, automatic-check state, update status, and GitHub project link.
+- [x] 3.2 Add a testable `AppVersionProviding` abstraction and Bundle-backed implementation for display name, `CFBundleShortVersionString`, and `CFBundleVersion`.
+- [x] 3.3 Add an “关于与更新” settings category showing the app icon, name, runtime version/build, automatic-check state, update status, and GitHub project link.
 - [x] 3.4 Add unit tests confirming the About UI state uses injected Bundle/provider values rather than a hard-coded version.
 
 ## 4. Sparkle Integration and Secure Update Behavior
 
 - [x] 4.1 Add Sparkle 2 through Swift Package Manager and configure XcodeGen product linking and embedding for the app target.
-- [ ] 4.2 Add an `UpdateService` owned as a single instance by `AppDelegate`, exposing manual-check availability, in-progress state, automatic-check state, and understandable status/error.
+- [x] 4.2 Add an `UpdateService` owned as a single instance by `AppDelegate`, exposing manual-check availability, in-progress state, automatic-check state, and understandable status/error.
 - [x] 4.3 Configure the fixed HTTPS `SUFeedURL` as `https://peibinliang.github.io/MacPasteHistory/appcast.xml` and the Sparkle public key without adding GitHub Releases API polling or private key material.
 - [x] 4.4 Connect the About & Updates manual-check button to Sparkle and prevent concurrent checks while retaining clear “already up to date” and failure feedback.
 - [x] 4.5 Add focused tests for update-service state and manual-check wiring using an injected updater boundary where practical.

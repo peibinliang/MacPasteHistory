@@ -1,6 +1,13 @@
 import Foundation
 
-struct AppVersionInfo: Equatable {
+protocol AppVersionProviding {
+    var displayName: String { get }
+    var shortVersion: String { get }
+    var buildNumber: String { get }
+    var localizedVersionText: String { get }
+}
+
+struct AppVersionInfo: AppVersionProviding, Equatable {
     let displayName: String
     let shortVersion: String
     let buildNumber: String

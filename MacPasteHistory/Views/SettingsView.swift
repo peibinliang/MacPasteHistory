@@ -7,12 +7,12 @@ struct SettingsView: View {
     @ObservedObject private var updateService: UpdateService
     @State private var showClearConfirmation = false
     @State private var selectedCategory: SettingsCategory? = .general
-    private let appVersion: AppVersionInfo
+    private let appVersion: any AppVersionProviding
 
     init(
         viewModel: SettingsViewModel,
         updateService: UpdateService,
-        appVersion: AppVersionInfo = .current
+        appVersion: any AppVersionProviding = AppVersionInfo.current
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.updateService = updateService
@@ -373,7 +373,13 @@ struct SettingsView: View {
             Button(L10n.string("Check for Updates…")) {
                 updateService.checkForUpdates()
             }
-            .disabled(!updateService.canCheckForUpdates)
+            .disabled(!updateService.canStartManualUpdateCheck)
+
+            if let statusMessage = updateService.statusMessage {
+                Text(statusMessage)
+                    .font(.caption)
+                    .foregroundStyle(updateService.errorMessage == nil ? Color.secondary : Color.red)
+            }
         }
     }
 

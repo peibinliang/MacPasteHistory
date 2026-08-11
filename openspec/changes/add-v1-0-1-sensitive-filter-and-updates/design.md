@@ -62,18 +62,24 @@ metadata needed for diagnostics.
 
 An `AppVersionProviding` protocol and Bundle-backed implementation SHALL provide the
 application display name, `CFBundleShortVersionString`, and `CFBundleVersion`.
-`SettingsViewModel` SHALL receive this provider so it is testable. The About &
+`SettingsView` SHALL receive this provider so it is testable. The About &
 Updates UI SHALL not hard-code `1.0.1`; it SHALL display a localized equivalent of
 `版本 1.0.1（构建 2）` using runtime values.
 
 ### Delegate update mechanics to Sparkle
 
-`UpdateService` SHALL own the app's single Sparkle standard updater controller and
-SHALL be created by `AppDelegate` for injection into settings. It SHALL expose only
+`AppDelegate` SHALL own the app's single `UpdateService`, backed by one Sparkle
+standard updater controller, and inject it into settings. The service SHALL expose only
 the UI state needed for manual checks: availability, in-progress state, automatic
 check state, and a user-readable status/error. The manual check button SHALL be
 disabled while a check is in progress. Sparkle's standard scheduler SHALL perform
 automatic checks; the UI SHALL only request foreground manual checks.
+
+Because the application is normally dockless (`LSUIElement`), the Sparkle standard
+user-driver delegate SHALL declare gentle scheduled-reminder support and temporarily
+make the update session visible in the Dock without disabling automatic checks or
+overriding the user's persistent Dock preference. Sparkle's standard UI SHALL remain
+responsible for update download, verification, installation, cancellation, and relaunch.
 
 `SUFeedURL` SHALL be the fixed URL
 `https://peibinliang.github.io/MacPasteHistory/appcast.xml`. The app SHALL NOT call

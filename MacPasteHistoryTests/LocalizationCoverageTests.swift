@@ -20,7 +20,8 @@ final class LocalizationCoverageTests: XCTestCase {
             "Keep Filtering", "Disable Filtering",
             "When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved.",
             "About & Updates", "Version information and software updates", "Version %@ (Build %@)", "View on GitHub",
-            "Automatically check for updates", "Check for Updates…"
+            "Automatically check for updates", "Check for Updates…", "Checking for updates…",
+            "You're up to date.", "Update %@ is available.", "Update check failed: %@"
         ]
         let localizations = ["en", "zh-Hans", "zh-Hant"]
 

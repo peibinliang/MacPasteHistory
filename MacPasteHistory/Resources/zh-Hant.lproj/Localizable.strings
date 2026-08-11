@@ -284,3 +284,7 @@
 "View on GitHub" = "在 GitHub 上檢視";
 "Automatically check for updates" = "自動檢查更新";
 "Check for Updates…" = "檢查更新…";
+"Checking for updates…" = "正在檢查更新…";
+"You're up to date." = "目前已是最新版本。";
+"Update %@ is available." = "發現新版本 %@。";
+"Update check failed: %@" = "檢查更新失敗：%@";
