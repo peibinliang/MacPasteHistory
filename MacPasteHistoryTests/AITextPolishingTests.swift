@@ -82,6 +82,18 @@ final class AITextPolishingTests: XCTestCase {
 
 @MainActor
 final class AITextPolishingViewModelTests: XCTestCase {
+    func testPolishingIsAvailableForPlainTextButNotRecommendedForURL() {
+        let defaults = isolatedDefaults()
+        defer { defaults.defaults.removePersistentDomain(forName: defaults.name) }
+        let service = PolishingServiceFake(outcomes: [])
+        let viewModel = makeViewModel(service: service, config: UserDefaultsConfig(defaults: defaults.defaults))
+
+        viewModel.present(for: makeItem())
+
+        XCTAssertTrue(viewModel.availableActions.contains { $0.id == AITextPolishingAction.actionID })
+        XCTAssertFalse(viewModel.recommendedActions(for: .url).contains { $0.id == AITextPolishingAction.actionID })
+    }
+
     func testFirstUseDecline_shouldSendNoRequestAndKeepChoosingState() {
         let defaults = isolatedDefaults()
         defer { defaults.defaults.removePersistentDomain(forName: defaults.name) }
