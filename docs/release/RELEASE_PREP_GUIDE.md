@@ -8,6 +8,8 @@
 
 > **增强功能边界**: 结构化搜索、内容动作和 Vision OCR 均在本机执行。OCR 必须由用户逐张触发；JWT 检查不会验证签名或信任关系。
 
+> **更新网络边界**: 自动检查或用户点击“检查更新…”时，Sparkle 会请求 GitHub Pages 上的固定 appcast，并可能请求 GitHub Releases 上的发布说明和更新包。更新请求不包含剪贴板历史、图片、内容哈希或设置；主应用本身继续禁用 network client/server，由 Sparkle Downloader XPC 负责下载。
+
 ---
 
 ## 目录
@@ -17,6 +19,16 @@
 - [阶段 3: 功能 QA](#阶段-3-功能-qa) — 常用应用复制 / 大内容 / 数据清理
 - [阶段 4: 发布材料](#阶段-4-发布材料) — 用户文档 / 隐私政策 / App Store 截图
 - [阶段 5: 最终验收](#阶段-5-最终验收) — 清单汇总
+
+---
+
+## V1.0.1 当前交接边界
+
+已可在本地自动复核的内容包括版本 `1.0.1 (2)`、敏感过滤默认值与持久化、关闭确认、长文本完整捕获回归、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。
+
+以下项目没有真实证据时必须保持未完成：GUI 过滤开关回归、Developer ID Application 签名、Apple 公证、官方 `generate_appcast` 产生的真实 EdDSA 正式产物、本地 HTTPS V1.0.0 → V1.0.1 演练、无效签名安装拒绝、公共 feed 升级、Intel/多 macOS 版本验证和 GitHub 发布。`--strict-final` 在这些证据缺失时应退出非零，这是正确门禁结果。
+
+任何 GitHub Release、GitHub Pages、push 或其他远程修改都必须在用户批准确切资产与动作后单独执行。本地构建、fixture 或结构正确的合成签名不能替代正式发布证据。
 
 ---
 
@@ -557,7 +569,7 @@ scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
 scripts/generate-manual-qa-fixtures.swift
 ```
 
-默认输出到 `build/manual-qa-fixtures/`，包含浏览器文本、VS Code 代码、聊天应用文本、大文本、标准图片和大尺寸图片。使用这些样本执行 3.1-3.6 的复制、搜索、预览和恢复验证，并把真实结果记录到 `docs/release/manual-qa-record.md`。
+默认输出到 `build/manual-qa-fixtures/`，包含浏览器文本、VS Code 代码、聊天应用文本、大文本、两个 V1.0.1 合成敏感文本、标准图片和大尺寸图片。使用这些样本执行 3.0-3.6 的复制、搜索、预览和恢复验证，并把真实结果记录到 `docs/release/manual-qa-record.md`。fixture verifier 使用固定 SHA-256 校验两个敏感样例，且不得在输出中打印 payload。
 
 ### 2.1 Apple Silicon Mac 测试
 
@@ -653,6 +665,22 @@ scripts/verify-manual-qa-fixtures.sh
 `scripts/verify-manual-qa-fixtures.sh` 会在临时目录重新生成样本并校验文本标记、大文本体量、PNG 尺寸和 README，可用于确认 QA 输入材料完整；它不替代真实 Chrome、Safari、VS Code、微信、钉钉里的人工复制结果。
 
 如果已经运行 `scripts/start-manual-release-qa-session.sh`，优先使用会话目录中的 `fixtures/` 和 `manual-qa-record.md`，避免多次生成样本后记录路径不一致。
+
+### 3.0 V1.0.1 敏感内容过滤回归
+
+仅使用生成目录中的 `05-sensitive-curl-sample.txt` 与 `06-sensitive-long-documentation-sample.txt`；它们包含明显虚构的占位符，不得替换为真实凭据。证据记录只写 fixture 路径、构建信息、时间和结果，不复制 payload。
+
+| # | 操作 | 预期结果 |
+|---|------|---------|
+| 1 | 使用全新/清空的偏好启动 Release 构建 | “设置 → 隐私 → 过滤敏感内容”默认开启 |
+| 2 | 过滤开启时依次复制两个 fixture | 两项均被跳过，日志不包含 payload |
+| 3 | 请求关闭过滤后取消风险确认 | 开关仍开启，后续匹配内容仍被跳过 |
+| 4 | 再次关闭并确认未加密本地数据库风险 | 开关关闭并立即生效 |
+| 5 | 重新复制两个 fixture | 完整多行内容可保存、搜索、打开和恢复 |
+| 6 | 退出并重新启动 | 关闭状态持久化，复制行为保持一致 |
+| 7 | 重新开启过滤并复制匹配内容 | 过滤立即恢复，后续匹配内容被跳过 |
+
+这些是 GUI 人工步骤；单元测试和 fixture hash PASS 不能把本节标记为完成。
 
 ### 3.1 Chrome 中文本/图片复制测试
 
@@ -759,7 +787,7 @@ osascript -e 'id of app "DingTalk"'  # 返回 com.alibaba.DingTalk
 
 ## 简介
 MacPasteHistory 是一款 macOS 菜单栏工具，自动记录剪贴板历史。
-- 纯本地存储，无任何网络上传
+ - 剪贴板历史仅本地存储，不上传；软件更新会访问 GitHub 托管的更新资源
 - 支持文本和图片格式
 - 完全免费、开源
 
@@ -817,7 +845,7 @@ MacPasteHistory 是一款 macOS 菜单栏工具，自动记录剪贴板历史。
 
 ## 隐私说明
 - 所有数据存储在本地 `~/Library/Application Support/MacPasteHistory/`
-- 不上传任何数据到云端
+- 不上传剪贴板历史；更新检查会请求 GitHub 托管的 appcast、发布说明和更新包
 - 可一键清除所有数据
 - 完整隐私政策见 [链接]
 
@@ -843,9 +871,10 @@ MacPasteHistory **不收集任何个人身份信息**。
 
 该应用:
 - ❌ 不包含任何分析或追踪代码
-- ❌ 不含网络请求（无任何联网功能）
+- ❌ 不上传剪贴板历史、图片、内容哈希或设置
 - ❌ 不收集用户行为数据
 - ❌ 不与任何第三方共享数据
+- ✅ 自动或手动更新检查会访问 GitHub Pages / GitHub Releases 更新资源
 
 ## 本地存储
 
@@ -871,7 +900,7 @@ MacPasteHistory **不收集任何个人身份信息**。
 - 15-18 位数字（疑似身份证号）
 - 长度 > 32 的字母数字组合（疑似密钥）
 
-被检测到的敏感内容**不写入数据库或文件**，仅跳过。
+过滤默认开启；被检测到的敏感内容**不写入数据库或文件**，仅跳过。用户首次关闭过滤前会看到本地 SQLite 数据库未加密的风险提示；确认关闭后，匹配文本可能保存到该本地数据库。用户可随时在隐私设置中重新开启过滤。
 
 ## 数据清除
 
@@ -1010,6 +1039,7 @@ scripts/validate-manual-qa-record.sh --allow-adhoc docs/release/manual-qa-record
 | 18 | 最终 readiness report 默认 Release smoke test 通过 | 4.4 | ⬜ |
 | 19 | Developer ID 签名、公证、正式 ZIP 与 appcast 全部验证 | 1.5 | ⬜ |
 | 20 | V1.0.0 → V1.0.1 手动与自动升级证据完整 | 1.5 | ⬜ |
+| 21 | V1.0.1 敏感过滤开启/关闭 GUI 回归完整 | 3.0 | ⬜ |
 
 ### 发布决策
 

@@ -120,6 +120,11 @@ scripts/generate-manual-qa-fixtures.swift
 scripts/verify-manual-qa-fixtures.sh
 ```
 
+The generated `05-sensitive-curl-sample.txt` and
+`06-sensitive-long-documentation-sample.txt` are the only approved inputs for
+the V1.0.1 filtering regression below. Record their paths and results, but do
+not paste either payload into this record, screenshots, or logs.
+
 Before final approval, run the static log privacy scan:
 
 ```bash
@@ -204,6 +209,22 @@ scripts/verify-release-screenshot-assets.sh
 | Logs | Logs contain no full clipboard content or sensitive data. | ⬜ Not run | TBD |
 | Local storage | History and images stay under app Application Support. | ⬜ Not run | TBD |
 
+## V1.0.1 Sensitive Filtering Regression
+
+Use an isolated Release build and the two generated synthetic sensitive
+fixtures. Unit tests and fixture hashes do not replace these GUI/manual results.
+
+| Scenario | Expected Result | Result | Evidence / Notes |
+|---|---|---|---|
+| Default filtering | With no stored preference, **Filter sensitive content** is enabled. | ⬜ Not run | Record build, tester, date, macOS version, and screenshot path only. |
+| Enabled fixture capture | Copy both sensitive fixtures while filtering is enabled. | ⬜ Not run | Both are skipped; record fixture paths, not payloads. |
+| Cancel disable warning | Request disable, then cancel the unencrypted-database warning. | ⬜ Not run | Filtering remains enabled. |
+| Confirm disable warning | Request disable and accept the unencrypted local SQLite risk. | ⬜ Not run | Filtering becomes disabled immediately. |
+| Disabled exact capture | Recopy both fixtures, then search, open, and restore each item. | ⬜ Not run | Exact multiline text, URL, Chinese text, quotes, and Emoji are preserved. Record evidence paths only. |
+| Disabled preference persistence | Quit and relaunch the same isolated build. | ⬜ Not run | Filtering remains disabled and capture behavior is unchanged. |
+| Re-enable filtering | Re-enable filtering and recopy a matching fixture. | ⬜ Not run | Later matching text is skipped immediately. |
+| Runtime logs | Review logs across every state above. | ⬜ Not run | No clipboard payload appears. Record redacted log path and review interval. |
+
 ## Enhanced Search, Actions And OCR
 
 | Scenario | Expected Result | Result | Evidence / Notes |
@@ -234,11 +255,25 @@ the tester for every passed row.
 | History and favorites preserved | Post-upgrade history count and favorite state match the recorded V1.0.0 baseline. | ⬜ Not run | TBD |
 | Settings and shortcut preserved | Sensitive-filter preference, other settings, and configured shortcut match the recorded V1.0.0 baseline. | ⬜ Not run | TBD |
 
+### Update Failure And Cancellation Evidence
+
+Run these cases only with a real installed V1.0.0 and controlled update inputs.
+Synthetic XML/archive fixtures used by shell tests are not release evidence.
+
+| Scenario | Expected Result | Result | Evidence / Notes |
+|---|---|---|---|
+| Network unavailable | Update check reports a recoverable failure. | ⬜ Not run | V1.0.0 remains usable and data is unchanged. |
+| HTTP 404 | Missing appcast or enclosure is reported without replacement. | ⬜ Not run | Record controlled HTTPS URL and redacted evidence path. |
+| Malformed appcast | Sparkle rejects invalid XML/metadata. | ⬜ Not run | V1.0.0 remains installed. |
+| Invalid EdDSA signature | Sparkle refuses installation. | ⬜ Not run | V1.0.0 remains usable; no bundle replacement occurs. |
+| Invalid code signature | Sparkle refuses installation. | ⬜ Not run | History and settings remain unchanged. |
+| User cancellation | Cancel download or installation. | ⬜ Not run | Current app and data remain unchanged. |
+
 ## Decision
 
 | Item | Value |
 |---|---|
 | Ready for distribution? | ⬜ No |
-| Blocking issues | TBD |
-| Follow-up issues | TBD |
+| Blocking issues | Developer ID signing, notarization, genuine EdDSA formal artifacts, GUI/manual QA, real V1.0.0 → V1.0.1 upgrade, cross-device coverage, and public-feed evidence are not yet recorded. |
+| Follow-up issues | Obtain explicit user approval for the exact release assets and each remote GitHub publication action after all local gates pass. |
 | Approver | TBD |

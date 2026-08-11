@@ -20,8 +20,9 @@
 
 ### Security and release readiness
 
-- Feed URL, EdDSA public key and any required sandbox network entitlement remain intentionally absent and are assigned to Task 6.
-- The updater dependency and service boundary are not considered release-ready until Task 6 completes and validates that security configuration.
+- Configured the fixed HTTPS GitHub Pages feed, the Sparkle EdDSA public key, Installer/Downloader XPC services, and exact sandbox Mach lookup exceptions while keeping main-app network client/server access disabled.
+- Added fail-closed static verifiers for V1.0.1 version/build metadata, Sparkle configuration, sandbox entitlements, embedded framework/XPC services, formal update archives, checksums, and appcast structure.
+- Kept the EdDSA private key outside the repository and logs. No Developer ID artifact, notarization, formal signed appcast/archive pair, GitHub publication, or public upgrade is claimed without direct evidence.
 
 ### Verification
 
@@ -33,6 +34,29 @@
 ### Compatibility
 
 - No database migration, clipboard data change or new system permission is introduced in this phase.
+
+### Sensitive-content control and documentation
+
+- Added persisted `filterSensitiveContent` behavior with a missing-value default of `true`; upgraded installations therefore retain the privacy-safe behavior.
+- Added a first-disable confirmation that discloses the local unencrypted SQLite storage risk. Cancelling keeps filtering enabled; re-enabling takes effect immediately.
+- Kept the capture pipeline unchanged except for bypassing the detector when the user has explicitly disabled it. Multiline text, quotes, URLs, Chinese text, and Emoji remain intact, and clipboard payloads are never logged.
+- Added two deterministic, clearly synthetic manual QA fixtures for the enabled/disabled filtering regression. The verifier checks fixed SHA-256 values and reports only filenames, counts, and status.
+- Updated both READMEs, the privacy policy, V1.0.1 changelog, release guide, and manual QA template with filtering, local-storage risk, automatic/manual update behavior, GitHub-hosted update requests, and the no-upload boundary.
+
+### V1.0.1 release evidence boundary
+
+- Version `1.0.1` build `2`, the shared updater, Sparkle package/configuration, Release bundle embedding, and local verification tooling are implemented.
+- GUI filtering QA, Developer ID signing, notarization, genuine Sparkle EdDSA release artifacts, a local HTTPS V1.0.0 → V1.0.1 rehearsal, public GitHub assets/appcast, and cross-device upgrade QA remain incomplete until direct evidence exists.
+- No remote publication, Git push, GitHub Release mutation, or GitHub Pages mutation was performed.
+
+### Task 8 verification
+
+- Manual fixture verifier TDD RED failed only because the two new sensitive fixtures were absent; the GREEN run passed with 7 text fixtures, 2 image fixtures, and 0 violations.
+- Release configuration and Sparkle artifact-tooling self-tests passed, including 9 configuration negative cases, 1 positive bundle case, and the expected unsigned/formally unsigned failures.
+- Xcode file references, Sparkle configuration, version/build, entitlements, supported macOS target, release identity, privacy usage descriptions, privacy-log safety, and privacy-preserving credential-pattern scans passed.
+- The complete macOS XCTest suite passed with 271 tests and 0 failures. The generic macOS Release build succeeded, and the built bundle passed Sparkle framework, Installer XPC, and Downloader XPC inspection.
+- Automated install preflight passed for an isolated V1.0.1 (2) app copy and SQLite initialization. The broader Release smoke run printed successful intermediate checks but terminated before its final status, so it is not counted as a completed gate.
+- `--strict-final` exited 1 as required while the manual QA record, formal Developer ID/notarized artifacts, real appcast/ZIP, signing identity, V1.0.0 → V1.0.1 upgrade evidence, QA session, and OpenSpec CLI evidence remain unavailable.
 
 ## 2026-08-07
 

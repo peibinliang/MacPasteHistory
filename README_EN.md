@@ -63,8 +63,15 @@
 
 - Enables text and image recording independently, with an option to pause all recording
 - Blocks the current foreground app in one click, or manages blocked apps by name and bundle identifier
-- Filters common sensitive text patterns such as passwords, tokens, identity data, and payment card numbers during capture
+- Enables sensitive-content filtering by default, skipping common password, token, identity, and payment-card patterns
+- Allows filtering to be disabled under **Settings → Privacy**; the first disable request warns that sensitive text may be written to the local unencrypted SQLite history database. Re-enable the same switch at any time for immediate protection
 - Never writes complete clipboard contents to application logs
+
+### About and updates
+
+- Shows the running app name, version, and build under **Settings → About & Updates**
+- Uses Sparkle for automatic checks and the **Check for Updates…** button for manual checks; after a formally signed update is published, Sparkle verifies, installs, and relaunches the app
+- Contacts a fixed GitHub Pages appcast and GitHub Releases update resources during update checks; clipboard history, images, content hashes, and preferences are never uploaded
 
 ### Storage and personalization
 
@@ -106,7 +113,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 ## Privacy
 
-Clipboard history, images, and preferences stay on the device by default and are not uploaded to the cloud. The current release does not encrypt its local history database or app-managed image files; enable macOS account security and FileVault if you require device-level protection. See the [Privacy Policy](docs/privacy-policy.md) and [User Guide](docs/user-guide.md) for details.
+Clipboard history, images, and preferences stay on the device by default and are not uploaded to the cloud. Update checks request GitHub-hosted appcast, release-note, and update-package resources, but those requests do not contain clipboard history. The current release does not encrypt its local history database or app-managed image files; disabling sensitive-content filtering may store password- or token-like text in that database. Enable macOS account security and FileVault if you require device-level protection. See the [Privacy Policy](docs/privacy-policy.md) and [User Guide](docs/user-guide.md) for details.
 
 ## Documentation
 
