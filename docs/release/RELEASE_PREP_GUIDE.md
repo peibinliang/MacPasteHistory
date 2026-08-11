@@ -62,9 +62,11 @@
     <key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
     <array>
         <string>com.apple.coreaudio</string>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER)-spks</string>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER)-spki</string>
     </array>
 
-    <!-- 网络：首版无需网络访问，保持关闭 -->
+    <!-- 网络由 Sparkle Downloader XPC 隔离处理，主应用保持关闭 -->
     <key>com.apple.security.network.client</key>
     <false/>
     <key>com.apple.security.network.server</key>
@@ -77,7 +79,15 @@
 </plist>
 ```
 
-可用以下脚本校验 `project.yml` 已绑定正确 entitlements 文件、App Sandbox 已开启，且首版不需要的网络、USB、用户选择文件读写权限保持关闭：
+主应用不得直接开启 `com.apple.security.network.client` 或
+`com.apple.security.network.server`；appcast、发布说明和更新包由 Sparkle
+Downloader XPC 获取。与此同时，`com.apple.coreaudio`、
+`$(PRODUCT_BUNDLE_IDENTIFIER)-spks` 和
+`$(PRODUCT_BUNDLE_IDENTIFIER)-spki` 三个 Mach lookup exception 都是当前
+V1.0.1 沙盒配置的必需项，必须各保留一次。不得因为主应用网络 entitlement
+保持关闭而删除 Sparkle 的 XPC 例外。
+
+可用以下脚本校验 `project.yml` 已绑定正确 entitlements 文件、App Sandbox 已开启，主应用网络、USB、用户选择文件读写权限保持关闭，并且三项 Mach lookup exception 各存在一次：
 
 ```bash
 scripts/verify-release-entitlements.sh
@@ -778,7 +788,7 @@ osascript -e 'id of app "DingTalk"'  # 返回 com.alibaba.DingTalk
 
 ### 4.1 用户使用说明
 
-发布到 `docs/release/USER_GUIDE.md`。
+发布到 `docs/user-guide.md`。当前内容已覆盖 V1.0.1 默认开启的敏感内容过滤、首次关闭风险提示、重新开启路径、About & Updates、自动/手动检查，以及 GitHub 更新请求不上传剪贴板历史的边界。
 
 #### 文档大纲
 
