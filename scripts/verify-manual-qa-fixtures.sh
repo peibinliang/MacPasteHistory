@@ -64,6 +64,8 @@ fi
 trap '[[ -n "${generated_dir:-}" ]] && rm -rf "$generated_dir"' EXIT
 
 ruby -W0 - "$fixture_dir" <<'RUBY'
+require "digest"
+
 fixture_dir = ARGV.fetch(0)
 
 expected_text_files = {
@@ -76,6 +78,10 @@ expected_text_files = {
 expected_images = {
   "05-standard-image-1024x768.png" => [1024, 768],
   "06-large-image-2400x1600.png" => [2400, 1600]
+}
+expected_sensitive_text_sha256 = {
+  "05-sensitive-curl-sample.txt" => "bf02a32322a375ae17f29cc4773cb518ac82a3a7bcb17191741742bf12d7c8b7",
+  "06-sensitive-long-documentation-sample.txt" => "94b745ff546cfa870a5c9da68c9970267cc19cc3dd1b323aafad9a75c0badb81"
 }
 
 violations = []
@@ -103,6 +109,20 @@ expected_text_files.each do |filename, marker|
   end
   if filename == "04-large-text-sample.txt" && contents.length < 1_000_000
     violations << "Large text fixture is too small: #{contents.length} characters."
+    next
+  end
+  valid_text_files += 1
+end
+
+expected_sensitive_text_sha256.each do |filename, expected_sha256|
+  path = File.join(fixture_dir, filename)
+  unless File.file?(path)
+    violations << "Missing sensitive text fixture: #{filename}."
+    next
+  end
+  actual_sha256 = Digest::SHA256.file(path).hexdigest
+  unless actual_sha256 == expected_sha256
+    violations << "Sensitive text fixture hash mismatch: #{filename}."
     next
   end
   valid_text_files += 1
@@ -136,7 +156,7 @@ puts
 puts "| Field | Value |"
 puts "|---|---|"
 puts "| Fixture directory | `#{fixture_dir}` |"
-puts "| Expected text fixtures | `#{expected_text_files.length}` |"
+puts "| Expected text fixtures | `#{expected_text_files.length + expected_sensitive_text_sha256.length}` |"
 puts "| Valid text fixtures | `#{valid_text_files}` |"
 puts "| Expected image fixtures | `#{expected_images.length}` |"
 puts "| Valid image fixtures | `#{valid_images}` |"
