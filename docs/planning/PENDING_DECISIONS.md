@@ -9,3 +9,4 @@
 | PD-003 | 待决策 | V1.0.x | 旧 OpenSpec 中依赖证书、Intel 机器或真实升级链路的未完成 QA 项应补齐、豁免还是迁移到独立 Release Task？ | 保留原勾选状态和证据，不虚假完成；新版本需求单独跟踪。 | 影响旧变更归档，不阻塞本地代码迭代。 |
 | PD-004 | 待决策 | V1.1 | V1.1 采用一个总 OpenSpec change，还是按 Slots、Tags/Collections、App Rules、FTS5 拆分多个 change？ | V1.0.3 完成前不提前实现；建议同一 release 分支内按能力拆成可独立审查的 change。 | 影响 V1.1 排期、migration 次数和 Review 粒度。 |
 | PD-005 | 待决策 | V1.0.3 | 是否接受“来源应用为轮询观察时的前台 App”这一 macOS 限制？如果用户复制后在下一次 0.5 秒轮询前切换 App，pasteboard 不提供真实复制来源；项目规则禁止用键盘监听推断复制。 | 当前只保证 capture pipeline 开始后来源快照不漂移；文档明确为 best-effort，不宣称可防住轮询前切换。 | 若不接受，需要批准并另行设计更强来源信号及其 Accessibility/隐私成本；当前 blocked-app 功能不能作为绝对安全边界。 |
+| PD-006 | 待决策 | V1.0.3 | 谁提供一份由已发布 V1.0.2 build 4 应用实际创建、已脱敏且可提交仓库的 SQLite 数据库 fixture？ | 已用 V1–V4 代码生成的合成 build 4 数据集验证 reopen、幂等 migration、历史/派生记录和 AI usage；不将其冒充真实发布包 fixture。 | Task 8.1、最终旧库升级门禁和合并回 `main` 保持未完成，直到收到并校验真实 fixture，或产品负责人明确批准豁免。 |

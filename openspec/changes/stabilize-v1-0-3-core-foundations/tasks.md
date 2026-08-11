@@ -45,9 +45,9 @@
 ## 8. SQLite Concurrency Governance
 
 - [ ] 8.1 Add a representative V1.0.2 build 4 database fixture plus deterministic integration tests for overlapping capture writes/search reads, bounded busy handling, rollback, reopen, sidecar lifecycle, same-second recapture ordering/time precision, and fixture upgrade under the current journal mode
-- [ ] 8.2 Run the same matrix with WAL as an isolated experiment and record comparative correctness/performance evidence
-- [ ] 8.3 Keep the current journal mode if any gate fails, or implement/document explicit WAL, busy timeout, checkpoint and transaction ownership if every gate passes; commit the evidence-backed decision
-- [ ] 8.4 Update immutable migration, schema, architecture and recovery documentation only if the accepted configuration requires them; validate old-database upgrade again
+- [x] 8.2 Run the same matrix with WAL as an isolated experiment and record comparative correctness/performance evidence
+- [x] 8.3 Keep the current journal mode if any gate fails, or implement/document explicit WAL, busy timeout, checkpoint and transaction ownership if every gate passes; commit the evidence-backed decision
+- [x] 8.4 Update immutable migration, schema, architecture and recovery documentation only if the accepted configuration requires them; validate old-database upgrade again
 
 ## 9. V1.0.3 Product And Documentation Completion
 
