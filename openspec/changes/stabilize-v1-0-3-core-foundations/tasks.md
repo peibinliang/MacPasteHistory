@@ -26,7 +26,7 @@
 ## 5. Search Task Lifecycle
 
 - [x] 5.1 Add failing ViewModel tests for explicit superseded-task cancellation, latest-result ownership, pending-result continuity, error preservation, and rapid input; validate RED and commit the test checkpoint
-- [ ] 5.2 Retain and cancel the ViewModel search Task while preserving SearchCoordinator generation checks and existing visible results; validate targeted GREEN and commit the implementation checkpoint
+- [x] 5.2 Retain and cancel the ViewModel search Task while preserving SearchCoordinator generation checks and existing visible results; validate targeted GREEN and commit the implementation checkpoint
 - [ ] 5.3 Run search correctness/performance regression tests and update search architecture/development documentation
 
 ## 6. Unified Paste Coordination

@@ -29,6 +29,8 @@ final class ClipboardHistoryViewModel: ObservableObject {
     private var rankedCandidates: [ClipboardHistoryItem] = []
     private var visibleCandidateCount = 0
     private var isShowingRankedResults = false
+    private var searchTask: Task<Void, Never>?
+    private var searchRequestID = 0
     private var historyDidChangeCancellable: AnyCancellable?
 
     init(
@@ -75,6 +77,9 @@ final class ClipboardHistoryViewModel: ObservableObject {
     }
 
     func updateSearchText(_ text: String) {
+        searchTask?.cancel()
+        searchRequestID += 1
+        let requestID = searchRequestID
         searchText = text
         let parsed = SearchQueryParser().parse(text)
         parsedSearchQuery = parsed
@@ -83,28 +88,33 @@ final class ClipboardHistoryViewModel: ObservableObject {
         searchSuggestions = SearchSuggestionProvider(sourceOptions: sourceOptions).suggestions(for: text)
         guard let searchCoordinator else { loadHistory(); return }
         let filters = SearchUIFilters(selectedSourceOption: selectedSourceOption, selectedContentType: selectedContentType, isFavoritesOnly: isFavoritesOnly, selectedTimeRange: selectedTimeRange)
-        Task { [weak self] in
+        searchTask = Task { [weak self] in
             guard let self else { return }
+            guard isCurrentSearchRequest(requestID) else { return }
+            await searchCoordinator.cancelCurrentSearch()
+            guard isCurrentSearchRequest(requestID) else { return }
             isSearchLoading = true
-            let immediate = await searchCoordinator.immediateResults(input: text, loadedItems: items, filters: filters)
-            guard immediate.isCurrent else {
-                isSearchLoading = false
-                return
+            defer {
+                if searchRequestID == requestID {
+                    isSearchLoading = false
+                }
             }
+            let immediate = await searchCoordinator.immediateResults(input: text, loadedItems: items, filters: filters)
+            guard isCurrentSearchRequest(requestID), immediate.isCurrent else { return }
             showRankedResults(immediate.results.map(\.item))
             let full = await searchCoordinator.search(input: text, loadedItems: items, filters: filters)
-            guard full.isCurrent else {
-                isSearchLoading = false
-                return
-            }
+            guard isCurrentSearchRequest(requestID), full.isCurrent else { return }
             if let errorDescription = full.errorDescription {
                 errorMessage = errorDescription
             } else {
                 showRankedResults(full.results.map(\.item))
                 errorMessage = nil
             }
-            isSearchLoading = false
         }
+    }
+
+    private func isCurrentSearchRequest(_ requestID: Int) -> Bool {
+        searchRequestID == requestID && Task.isCancelled == false
     }
 
     func acceptSuggestion(_ suggestion: SearchSuggestion) {
