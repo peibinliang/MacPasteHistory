@@ -21,9 +21,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>1.0.1</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>NSHumanReadableCopyright</key>
@@ -36,5 +36,15 @@
     <string>Paste History needs pasteboard access to record and restore your clipboard history.</string>
     <key>NSAccessibilityUsageDescription</key>
     <string>粘易 needs accessibility access to return to the previous app and paste the selected content.</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUEnableDownloaderService</key>
+    <true/>
+    <key>SUEnableInstallerLauncherService</key>
+    <true/>
+    <key>SUFeedURL</key>
+    <string>https://peibinliang.github.io/MacPasteHistory/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>EvuCjAjvsSwKgMzaT1yMI9suIYPkzxYNreHL1O++oYU=</string>
 </dict>
 </plist>
