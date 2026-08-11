@@ -15,12 +15,21 @@ plist_value() {
     /usr/libexec/PlistBuddy -c "Print :$key" "$ENTITLEMENTS_PLIST" 2>/dev/null || true
 }
 
-require_false() {
+plist_type() {
     local key="$1"
+    local escaped_key="${key//./\\.}"
+    /usr/bin/plutil -type "$escaped_key" "$ENTITLEMENTS_PLIST" 2>/dev/null || true
+}
+
+require_boolean() {
+    local key="$1"
+    local expected="$2"
+    local type
     local value
+    type="$(plist_type "$key")"
     value="$(plist_value "$key")"
-    if [[ "$value" != "false" ]]; then
-        add_violation "$key is '$value', expected 'false'."
+    if [[ "$type" != "bool" || "$value" != "$expected" ]]; then
+        add_violation "$key must be the Boolean value $expected."
     fi
 }
 
@@ -54,14 +63,11 @@ if [[ "$configured_entitlements" != "$EXPECTED_ENTITLEMENTS" ]]; then
 fi
 
 app_sandbox="$(plist_value "com.apple.security.app-sandbox")"
-if [[ "$app_sandbox" != "true" ]]; then
-    add_violation "com.apple.security.app-sandbox is '$app_sandbox', expected 'true'."
-fi
-
-require_false "com.apple.security.network.client"
-require_false "com.apple.security.network.server"
-require_false "com.apple.security.files.user-selected.read-write"
-require_false "com.apple.security.device.usb"
+require_boolean "com.apple.security.app-sandbox" "true"
+require_boolean "com.apple.security.network.client" "false"
+require_boolean "com.apple.security.network.server" "false"
+require_boolean "com.apple.security.files.user-selected.read-write" "false"
+require_boolean "com.apple.security.device.usb" "false"
 
 coreaudio_mach_count="$(mach_lookup_count "com.apple.coreaudio")"
 installer_mach_count="$(mach_lookup_count '$(PRODUCT_BUNDLE_IDENTIFIER)-spks')"
@@ -78,11 +84,11 @@ echo "|---|---|"
 echo "| Expected entitlements path | \`$EXPECTED_ENTITLEMENTS\` |"
 echo "| project.yml CODE_SIGN_ENTITLEMENTS | \`$configured_entitlements\` |"
 echo "| Entitlements file | \`$ENTITLEMENTS_PLIST\` |"
-echo "| App Sandbox | \`$app_sandbox\` |"
-echo "| Network client | \`$(plist_value "com.apple.security.network.client")\` |"
-echo "| Network server | \`$(plist_value "com.apple.security.network.server")\` |"
-echo "| User-selected read/write files | \`$(plist_value "com.apple.security.files.user-selected.read-write")\` |"
-echo "| USB entitlement | \`$(plist_value "com.apple.security.device.usb")\` |"
+echo "| App Sandbox | \`$app_sandbox ($(plist_type "com.apple.security.app-sandbox"))\` |"
+echo "| Network client | \`$(plist_value "com.apple.security.network.client") ($(plist_type "com.apple.security.network.client"))\` |"
+echo "| Network server | \`$(plist_value "com.apple.security.network.server") ($(plist_type "com.apple.security.network.server"))\` |"
+echo "| User-selected read/write files | \`$(plist_value "com.apple.security.files.user-selected.read-write") ($(plist_type "com.apple.security.files.user-selected.read-write"))\` |"
+echo "| USB entitlement | \`$(plist_value "com.apple.security.device.usb") ($(plist_type "com.apple.security.device.usb"))\` |"
 echo "| CoreAudio mach exception entries | \`$coreaudio_mach_count\` |"
 echo "| Sparkle Installer Launcher mach exception entries | \`$installer_mach_count\` |"
 echo "| Sparkle Downloader mach exception entries | \`$downloader_mach_count\` |"

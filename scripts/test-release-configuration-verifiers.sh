@@ -49,11 +49,28 @@ create_fixture() {
 
 expect_failure() {
     local label="$1"
-    local verifier="$2"
+    shift
 
-    if "$verifier" >/dev/null 2>&1; then
+    if "$@" >/dev/null 2>&1; then
         add_failure "$label: verifier unexpectedly passed."
     fi
+}
+
+expect_success() {
+    local label="$1"
+    shift
+
+    if ! "$@" >/dev/null 2>&1; then
+        add_failure "$label: verifier unexpectedly failed."
+    fi
+}
+
+write_xpc_info() {
+    local xpc_path="$1"
+    local bundle_id="$2"
+    /usr/bin/plutil -create xml1 "$xpc_path/Contents/Info.plist"
+    /usr/bin/plutil -insert CFBundleIdentifier -string "$bundle_id" \
+        "$xpc_path/Contents/Info.plist"
 }
 
 create_fixture
@@ -124,11 +141,41 @@ expect_failure \
     "Version verifier treats dots literally" \
     "$CURRENT_FIXTURE/scripts/verify-release-version-build.sh"
 
+release_app="$TEST_ROOT/release/粘易.app"
+mkdir -p \
+    "$release_app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents" \
+    "$release_app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents"
+cp "$REPO_ROOT/MacPasteHistory/Resources/Info.plist" "$release_app/Contents/Info.plist"
+write_xpc_info \
+    "$release_app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc" \
+    "org.sparkle-project.InstallerLauncher"
+write_xpc_info \
+    "$release_app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc" \
+    "org.sparkle-project.DownloaderService"
+expect_success \
+    "Release bundle verifier accepts Sparkle 2.9.2 service paths" \
+    "$REPO_ROOT/scripts/verify-sparkle-release-bundle.sh" "$release_app"
+
+old_name_app="$TEST_ROOT/old-name/粘易.app"
+mkdir -p \
+    "$old_name_app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/InstallerLauncher.xpc/Contents" \
+    "$old_name_app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents"
+write_xpc_info \
+    "$old_name_app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/InstallerLauncher.xpc" \
+    "org.sparkle-project.InstallerLauncher"
+write_xpc_info \
+    "$old_name_app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc" \
+    "org.sparkle-project.DownloaderService"
+expect_failure \
+    "Release bundle verifier rejects assumed InstallerLauncher.xpc path" \
+    "$REPO_ROOT/scripts/verify-sparkle-release-bundle.sh" "$old_name_app"
+
 echo "# Release Configuration Verifier Self-Test"
 echo
 echo "| Field | Value |"
 echo "|---|---|"
-echo "| Negative cases | \`8\` |"
+echo "| Negative cases | \`9\` |"
+echo "| Positive bundle cases | \`1\` |"
 echo "| Failures | \`${#failures[@]}\` |"
 echo
 

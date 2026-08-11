@@ -369,6 +369,34 @@ scripts/preview-release-app.sh
 scripts/preview-release-app.sh --build-only
 ```
 
+Sparkle 发布配置与嵌入服务需要额外执行以下校验：
+
+```bash
+scripts/verify-sparkle-configuration.sh
+
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+  xcodebuild -project MacPasteHistory.xcodeproj \
+  -scheme MacPasteHistory \
+  -configuration Release \
+  -destination 'generic/platform=macOS' \
+  build
+
+# 使用 xcodebuild -showBuildSettings 返回的 TARGET_BUILD_DIR 与
+# FULL_PRODUCT_NAME 组合为实际 Release App 路径。
+scripts/verify-sparkle-release-bundle.sh "/actual/path/to/粘易.app"
+```
+
+Sparkle 2.9.2 在应用包中的实际必需路径为：
+
+- `Contents/Frameworks/Sparkle.framework`
+- `Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc`
+  （Bundle ID：`org.sparkle-project.InstallerLauncher`）
+- `Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc`
+  （Bundle ID：`org.sparkle-project.DownloaderService`）
+
+Info.plist 中的开关名称仍是 `SUEnableInstallerLauncherService`；物理 XPC
+目录名是 `Installer.xpc`，不得按开关名称臆测为 `InstallerLauncher.xpc`。
+
 如需使用临时隔离数据目录预览，避免写入真实历史数据库：
 
 ```bash
