@@ -866,7 +866,7 @@ MacPasteHistory 是一款 macOS 菜单栏工具，自动记录剪贴板历史。
 
 ### 4.2 隐私政策
 
-发布到 `docs/release/PRIVACY_POLICY.md`。
+发布到 `docs/privacy-policy.md`。
 
 #### 文档大纲
 
