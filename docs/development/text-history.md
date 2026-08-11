@@ -30,6 +30,7 @@ Text history is the first user-facing clipboard workflow. It records accepted pl
 | `ClipboardMonitor` | Polls pasteboard changes and coordinates text capture. |
 | `ClipboardCaptureContext` | Holds one immutable source application and capture time for a pasteboard change. |
 | `ClipboardReader` | Reads sanitized plain text from a pasteboard. |
+| `SensitiveContentDetector` | Produces local category, confidence, and safe reason-code results using focused credential, secret, card, identity, and optional user rules. |
 | `ClipboardWriter` | Restores selected text to the system clipboard. |
 | `PasteCommandService` | Sends Command+V after a successful double-click restore. |
 | `ClipboardHistoryRepository` | Performs SQLite CRUD with bound parameters. |
@@ -44,7 +45,7 @@ Duplicate text does not create a second row. The existing row keeps its original
 
 ## Privacy And Security
 
-Clipboard content remains local in `~/Library/Application Support/MacPasteHistory/clipboard.db`. Logs record only text length and operational status, never full clipboard content. Pause, blocked-app and sensitive-content checks run before persistence. A foreground-app change after capture begins cannot replace the source snapshot used by the blocked-app decision or saved metadata.
+Clipboard content remains local in `~/Library/Application Support/MacPasteHistory/clipboard.db`. Logs record only text length and operational status, never full clipboard content. Sensitive detection also remains local and returns fixed reason codes rather than matched values. Only high-confidence results block persistence while filtering is enabled. Card candidates must pass Luhn validation, identity candidates must pass date and check-digit validation, and ordinary developer identifiers are not rejected solely because of length. Pause, blocked-app and sensitive-content checks run before persistence. A foreground-app change after capture begins cannot replace the source snapshot used by the blocked-app decision or saved metadata.
 
 macOS pasteboard data does not identify the process that placed content on the pasteboard. The source snapshot is therefore the foreground app observed when the 0.5-second polling loop detects the change. If the user switches apps before that observation, source attribution and blocked-app filtering are best-effort rather than an absolute security boundary; the project does not use keyboard interception to infer copy events.
 

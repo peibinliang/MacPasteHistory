@@ -12,7 +12,7 @@ Text recording and image recording can be enabled or disabled in **Settings**. S
 
 ## Sensitive Content Filtering
 
-**Settings → Privacy → Filter sensitive content** is enabled by default, including after upgrading from a version that did not store this preference. While enabled, text matching common password, token, identity-number, or payment-card patterns is skipped instead of being added to history.
+**Settings → Privacy → Filter sensitive content** is enabled by default, including after upgrading from a version that did not store this preference. While enabled, high-confidence contextual passwords, tokens and secrets, checksum-valid payment-card candidates, and date/checksum-valid 18-character Mainland China identity candidates are skipped instead of being added to history. Common developer identifiers such as Git SHA values, MD5 hashes, UUIDs and trace IDs are not blocked solely because they are long or random-looking.
 
 The first request to turn filtering off shows a warning that the local SQLite history database is not encrypted and that matching sensitive text may be stored on this Mac. Cancelling the warning leaves filtering enabled. If you accept the warning, filtering turns off immediately and matching text becomes eligible for the normal local capture flow, including multiline technical text.
 
