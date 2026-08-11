@@ -121,6 +121,18 @@ final class ContentActionPanelViewModelTests: XCTestCase {
         }
     }
 
+    func testRecommendedActionsForURLMatchTheActionsShownInTheCommandPalette() {
+        let viewModel = ContentActionPanelViewModel()
+        let item = makeItem(text: "https://example.com/path?a=1", detectedType: .url)
+
+        viewModel.present(for: item)
+
+        XCTAssertEqual(
+            viewModel.recommendedActions(for: item.effectiveDetectedType).map(\.id),
+            viewModel.availableActions.map(\.id)
+        )
+    }
+
     func testImageWithOCRUsesRecognizedTextClassificationWithoutImageOnlyActions() {
         let viewModel = ContentActionPanelViewModel()
         let item = makeImageItem(filePath: "/tmp/image.png", ocrText: "{\"name\":\"粘易\"}")
