@@ -123,6 +123,7 @@
 		9ED0BABF87EFC928B67DEC76 /* SearchTextMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117636E67609B087702C8C2E /* SearchTextMatcher.swift */; };
 		9F00CA91B26DA0D2931558A9 /* OCRViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A884DA48CF5CDE6783BE613 /* OCRViewModelTests.swift */; };
 		9F5DAEB4D9E1A4741FBCCC57 /* UserDefaultsConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7321BADEEC59E2320F4C3F2 /* UserDefaultsConfig.swift */; };
+		9FC07C34B32138F3EA9082CA /* ClipboardCaptureContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20DD23F0A7D75325E7D26FAA /* ClipboardCaptureContext.swift */; };
 		A06277B1EB833C3D8A3D0408 /* ApplicationSupportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AB745C884B8764CE5032B4 /* ApplicationSupportServiceTests.swift */; };
 		A0901342E1D5D85884011DE6 /* MigrationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF83AD77E858B66519E0818C /* MigrationManager.swift */; };
 		A0CB3690284731630E68F49F /* ActionSessionStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC1067B96C8262C1EAECA03 /* ActionSessionStep.swift */; };
@@ -236,6 +237,7 @@
 		1BCD4935E53622E37DDD2035 /* AITextPolishingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITextPolishingTests.swift; sourceTree = "<group>"; };
 		1F00684D55A05F1E52FECF14 /* AITokenUsageRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITokenUsageRecord.swift; sourceTree = "<group>"; };
 		1F0E45865062BFC15AE90048 /* SearchBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBarView.swift; sourceTree = "<group>"; };
+		20DD23F0A7D75325E7D26FAA /* ClipboardCaptureContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCaptureContext.swift; sourceTree = "<group>"; };
 		22307D0DB5918FC41F01DAFB /* HistoryRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRowView.swift; sourceTree = "<group>"; };
 		23942E2405CE612D580DAD21 /* HistoryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDetailView.swift; sourceTree = "<group>"; };
 		239CCCB5AA5D3829452423C9 /* OCRResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRResult.swift; sourceTree = "<group>"; };
@@ -546,6 +548,7 @@
 		266F8BA982373BAE8820BF57 /* Clipboard */ = {
 			isa = PBXGroup;
 			children = (
+				20DD23F0A7D75325E7D26FAA /* ClipboardCaptureContext.swift */,
 				86FC8AC050CA3EA5F3067537 /* ClipboardMonitor.swift */,
 				0708A6AE053FF672A9AA3F81 /* ClipboardReader.swift */,
 				A35C0BCF17E0DE4CDC8061BE /* ClipboardRestorationState.swift */,
@@ -1019,6 +1022,7 @@
 				B3A5C8D4E246251CEEB7F789 /* CaptureEventAggregationPreferences.swift in Sources */,
 				B2F64534573C7F1F6794C4D2 /* CaptureEventAggregationService.swift in Sources */,
 				1522713FD0A67FE0298E4630 /* CaptureSourceIdentity.swift in Sources */,
+				9FC07C34B32138F3EA9082CA /* ClipboardCaptureContext.swift in Sources */,
 				644D8435B33FCEF92F836022 /* ClipboardCaptureEvent.swift in Sources */,
 				2636A66F404EABD2ACB3BD5D /* ClipboardCaptureEventSummary.swift in Sources */,
 				6E5E659F2E9A924A69D57EB2 /* ClipboardContentType.swift in Sources */,

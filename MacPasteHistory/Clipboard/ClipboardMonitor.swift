@@ -81,14 +81,20 @@ final class ClipboardMonitor: NSObject {
         }
 
         // Privacy: skip if the current foreground app is blocked
-        let sourceAppInfo = sourceApplicationProvider.currentSourceApplication()
-        if privacyService.isAppBlocked(bundleID: sourceAppInfo.bundleID) {
-            logger.info("Skipped clipboard change from blocked app: \(sourceAppInfo.bundleID ?? "unknown")")
+        let captureContext = ClipboardCaptureContext(
+            sourceApplication: sourceApplicationProvider.currentSourceApplication(),
+            capturedAt: Date()
+        )
+        if privacyService.isAppBlocked(bundleID: captureContext.sourceApplication.bundleID) {
+            logger.info(
+                "Skipped clipboard change from blocked app: "
+                    + (captureContext.sourceApplication.bundleID ?? "unknown")
+            )
             return
         }
 
         if recordingSettings.shouldRecordImage, let image = reader.readImage() {
-            saveImage(image)
+            saveImage(image, context: captureContext)
             return
         }
 
@@ -105,17 +111,17 @@ final class ClipboardMonitor: NSObject {
             return
         }
 
-        saveText(text)
+        saveText(text, context: captureContext)
     }
 
-    private func saveText(_ text: String) {
+    private func saveText(_ text: String, context: ClipboardCaptureContext) {
         do {
-            let sourceApplication = sourceApplicationProvider.currentSourceApplication()
             _ = try repository.saveText(
                 text,
-                sourceApp: sourceApplication.name,
-                sourceBundleID: sourceApplication.bundleID,
-                detection: contentClassifier.classifyComplete(text)
+                sourceApp: context.sourceApplication.name,
+                sourceBundleID: context.sourceApplication.bundleID,
+                detection: contentClassifier.classifyComplete(text),
+                capturedAt: context.capturedAt
             )
             logger.info("Clipboard text saved, length: \(text.count)")
             NotificationCenter.default.post(name: .clipboardHistoryDidChange, object: nil)
@@ -124,14 +130,14 @@ final class ClipboardMonitor: NSObject {
         }
     }
 
-    private func saveImage(_ image: ClipboardImageCandidate) {
+    private func saveImage(_ image: ClipboardImageCandidate, context: ClipboardCaptureContext) {
         do {
             let storedImage = try imageStorageService.storeImage(image)
-            let sourceApplication = sourceApplicationProvider.currentSourceApplication()
             _ = try repository.saveImage(
                 storedImage,
-                sourceApp: sourceApplication.name,
-                sourceBundleID: sourceApplication.bundleID
+                sourceApp: context.sourceApplication.name,
+                sourceBundleID: context.sourceApplication.bundleID,
+                capturedAt: context.capturedAt
             )
             logger.info("Clipboard image saved, bytes: \(storedImage.fileSize)")
             NotificationCenter.default.post(name: .clipboardHistoryDidChange, object: nil)
