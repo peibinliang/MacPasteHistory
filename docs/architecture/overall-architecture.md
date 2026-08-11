@@ -59,6 +59,8 @@ sequenceDiagram
 
 `ActionSession` retains only the active transformation branch. Copy increments reuse count; a successfully dispatched direct paste increments paste count; save-derived does not increment source usage. OCR is never an automatic historical scan: a user selects one image, edits the recognition, and explicitly saves it. Saving preserves image storage type but enables OCR text search and type-aware actions.
 
+`ClipboardHistoryViewModel` owns exactly one search `Task`. Every new input cancels the superseded task and advances a request ID; immediate results remain visible while the full candidate query is pending, and only the latest request may update results, errors, or loading state. `SearchCoordinator` keeps its separate generation check around debounce and read-only candidate retrieval. Explicit Task cancellation avoids wasted work, while generation and request ownership prevent late results from dependencies that do not promptly honor cancellation.
+
 ## Software update subsystem
 
 The application links Sparkle at the exact package version `2.9.2`. `AppDelegate` owns one lazy `UpdateService` backed by one `SparkleUpdateDriver` and injects that same service into both Settings entry points. This keeps Sparkle's updater controller alive for the application lifecycle and prevents duplicate update sessions.
