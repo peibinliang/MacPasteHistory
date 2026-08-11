@@ -509,10 +509,10 @@ struct MainPanelView: View {
 
     private func handlePasteOutcome(_ outcome: PasteOutcome) {
         viewModel.applyPasteOutcome(outcome)
-        switch outcome {
-        case .pasted, .cancelled, .failed:
+        switch PasteOutcomeFeedback.feedback(for: outcome) {
+        case .none:
             break
-        case .clipboardOnly:
+        case .manualPaste:
             showManualPasteToast()
         case .permissionRequired:
             _ = accessibilityPermissionService.reminderIfNeeded(for: .automaticPaste)

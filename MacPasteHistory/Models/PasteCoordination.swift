@@ -29,3 +29,20 @@ enum PasteOutcome: Equatable, Sendable {
     case cancelled(clipboardAvailable: Bool)
     case failed(PasteFailure)
 }
+
+enum PasteOutcomeFeedback: Equatable, Sendable {
+    case none
+    case manualPaste
+    case permissionRequired
+
+    static func feedback(for outcome: PasteOutcome) -> PasteOutcomeFeedback {
+        switch outcome {
+        case .pasted, .failed, .cancelled(clipboardAvailable: false):
+            return .none
+        case .clipboardOnly, .cancelled(clipboardAvailable: true):
+            return .manualPaste
+        case .permissionRequired:
+            return .permissionRequired
+        }
+    }
+}
