@@ -240,14 +240,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         let controller = mainWindowController ?? createHistoryPanelController(
             viewModel: viewModel,
-            pasteTargetApplication: pasteTargetApplication
+            pasteCoordinator: makePasteCoordinator(
+                viewModel: viewModel,
+                targetApplication: pasteTargetApplication
+            )
         )
         if let hostingView = controller.window?.contentView as? NSHostingView<MainPanelView> {
             hostingView.rootView = MainPanelView(
                 viewModel: viewModel,
                 accessibilityPermissionService: accessibilityPermissionService,
                 actionViewModel: makeContentActionViewModel(),
-                pasteTargetApplication: pasteTargetApplication,
+                pasteCoordinator: makePasteCoordinator(
+                    viewModel: viewModel,
+                    targetApplication: pasteTargetApplication
+                ),
                 dismissAction: { [weak window = controller.window] in
                     window?.orderOut(nil)
                 }
@@ -342,7 +348,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func createHistoryPanelController(
         viewModel: ClipboardHistoryViewModel,
-        pasteTargetApplication: NSRunningApplication?
+        pasteCoordinator: PasteCoordinator
     ) -> NSWindowController {
         let panel = HistoryPanelWindow(
             contentRect: NSRect(origin: .zero, size: HistoryPanelWindow.defaultSize)
@@ -352,13 +358,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 viewModel: viewModel,
                 accessibilityPermissionService: accessibilityPermissionService,
                 actionViewModel: makeContentActionViewModel(),
-                pasteTargetApplication: pasteTargetApplication,
+                pasteCoordinator: pasteCoordinator,
                 dismissAction: { [weak panel] in
                     panel?.orderOut(nil)
                 }
             )
         )
         return NSWindowController(window: panel)
+    }
+
+    private func makePasteCoordinator(
+        viewModel: ClipboardHistoryViewModel,
+        targetApplication: NSRunningApplication?
+    ) -> PasteCoordinator {
+        PasteCoordinator(
+            writer: viewModel,
+            readinessProvider: AutomaticPastePolicy(
+                accessibilityPermissionService: accessibilityPermissionService
+            ),
+            target: targetApplication.map(RunningApplicationPasteTarget.init(application:)),
+            commandDispatcher: PasteCommandService(),
+            usageRecorder: viewModel
+        )
     }
 
     private func showHistoryPanel(_ controller: NSWindowController) {

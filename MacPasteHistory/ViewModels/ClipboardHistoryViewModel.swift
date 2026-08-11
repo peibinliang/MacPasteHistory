@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 @MainActor
-final class ClipboardHistoryViewModel: ObservableObject {
+final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting, PasteUsageRecording {
     @Published private(set) var items: [ClipboardHistoryItem] = []
     @Published var searchText = ""
     @Published private(set) var parsedSearchQuery = SearchQueryParser().parse("")
@@ -225,12 +225,84 @@ final class ClipboardHistoryViewModel: ObservableObject {
         OCRViewModel(repository: repository, didSave: { [weak self] in self?.refreshSearch() })
     }
 
+    func applyPasteOutcome(_ outcome: PasteOutcome) {
+        switch outcome {
+        case .pasted, .clipboardOnly, .permissionRequired, .cancelled:
+            errorMessage = nil
+        case let .failed(failure):
+            switch failure {
+            case .clipboardWrite:
+                errorMessage = L10n.string("Failed to restore text to clipboard.")
+            case .dispatchPreparation:
+                errorMessage = L10n.string("Paste was not sent. Press Command-V to paste manually.")
+            case .usageAccounting:
+                errorMessage = L10n.string("Failed to record clipboard usage.")
+            }
+        }
+    }
+
     func clearTextHistory() {
         do {
             try repository.clearTextHistory()
             loadHistory()
         } catch {
             errorMessage = L10n.string("Failed to clear clipboard history.")
+        }
+    }
+
+    func pasteRequest(for item: ClipboardHistoryItem) -> PasteRequest? {
+        switch item.contentType {
+        case .text:
+            return PasteRequest(payload: .text(item.textContent), historyID: item.id)
+        case .image:
+            guard let filePath = item.filePath,
+                  let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)) else {
+                errorMessage = L10n.string("Failed to restore image to clipboard.")
+                return nil
+            }
+            return PasteRequest(payload: .image(data), historyID: item.id)
+        }
+    }
+
+    func actionOutputPasteRequest(_ output: String, sourceItem: ClipboardHistoryItem) -> PasteRequest {
+        PasteRequest(payload: .text(output), historyID: sourceItem.id)
+    }
+
+    func writeText(_ text: String) -> Bool {
+        guard writer.writeText(text) else {
+            errorMessage = L10n.string("Failed to restore text to clipboard.")
+            return false
+        }
+        errorMessage = nil
+        return true
+    }
+
+    func writeImage(_ data: Data) -> Bool {
+        guard writer.writeImage(data) else {
+            errorMessage = L10n.string("Failed to restore image to clipboard.")
+            return false
+        }
+        errorMessage = nil
+        return true
+    }
+
+    func recordReuseCopy(historyID: Int64, at date: Date) throws {
+        do {
+            try repository.recordReuseCopy(historyID: historyID, at: date)
+            errorMessage = nil
+        } catch {
+            errorMessage = L10n.string("Failed to record clipboard usage.")
+            throw error
+        }
+    }
+
+    func recordPaste(historyID: Int64, at date: Date) throws {
+        do {
+            try repository.recordPaste(historyID: historyID, at: date)
+            errorMessage = nil
+        } catch {
+            errorMessage = L10n.string("Failed to record clipboard usage.")
+            throw error
         }
     }
 

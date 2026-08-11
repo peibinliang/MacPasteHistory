@@ -66,7 +66,10 @@ final class PasteCoordinator {
         self.now = now
     }
 
-    func paste(_ request: PasteRequest) async -> PasteOutcome {
+    func paste(
+        _ request: PasteRequest,
+        beforeDispatch: (() -> Void)? = nil
+    ) async -> PasteOutcome {
         guard Task.isCancelled == false else {
             return .cancelled(clipboardAvailable: false)
         }
@@ -80,18 +83,22 @@ final class PasteCoordinator {
         case .permissionRequired:
             return recordClipboardOnly(request.historyID, outcome: .permissionRequired)
         case .ready:
-            return await dispatchPaste(request)
+            return await dispatchPaste(request, beforeDispatch: beforeDispatch)
         }
     }
 
-    private func dispatchPaste(_ request: PasteRequest) async -> PasteOutcome {
+    private func dispatchPaste(_ request: PasteRequest, beforeDispatch: (() -> Void)?) async -> PasteOutcome {
         guard Task.isCancelled == false else {
             return recordClipboardOnly(
                 request.historyID,
                 outcome: .cancelled(clipboardAvailable: true)
             )
         }
-        guard let target, target.activateForPaste() else {
+        guard let target else {
+            return recordClipboardOnly(request.historyID, outcome: .clipboardOnly(.targetUnavailable))
+        }
+        beforeDispatch?()
+        guard target.activateForPaste() else {
             return recordClipboardOnly(request.historyID, outcome: .clipboardOnly(.targetUnavailable))
         }
 
