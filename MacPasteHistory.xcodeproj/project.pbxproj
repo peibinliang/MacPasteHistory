@@ -148,6 +148,7 @@
 		B94DB184F64DB65D30E92B4E /* URLContentActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 789C593D2E3CD827994AEA8E /* URLContentActions.swift */; };
 		BA391F7139D70DC33146E557 /* UpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C293E0B40FD09A5D801F5D96 /* UpdateService.swift */; };
 		BBB21CE9D5205457B2405E96 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 29573C23DA2EA58B87F07E67 /* InfoPlist.strings */; };
+		BBD08611BB9AF58D5EFD0D7F /* SensitiveContentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07E562038800F71E12EF3CD0 /* SensitiveContentDetector.swift */; };
 		BC29F7659A9072FADFDA2F1A /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 878741C709B061CAE3C0406B /* Security.framework */; };
 		C07F3158EEB246A6FC354C49 /* SearchTokenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E241452CAB074AB325621760 /* SearchTokenView.swift */; };
 		C29802C4D990EC9813250534 /* HistoryRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22307D0DB5918FC41F01DAFB /* HistoryRowView.swift */; };
@@ -221,6 +222,7 @@
 		0208A62A39A83C2313DD5D25 /* ClipboardHistoryViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistoryViewModelTests.swift; sourceTree = "<group>"; };
 		0708A6AE053FF672A9AA3F81 /* ClipboardReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardReader.swift; sourceTree = "<group>"; };
 		077470D50EF35D892FF9CC8F /* JWTContentAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWTContentAction.swift; sourceTree = "<group>"; };
+		07E562038800F71E12EF3CD0 /* SensitiveContentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensitiveContentDetector.swift; sourceTree = "<group>"; };
 		0A9D73AC1F891D106A23CC61 /* UpdateServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateServiceTests.swift; sourceTree = "<group>"; };
 		0CE48E59FEF9C13008A8ECB0 /* HistoryDisplayFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDisplayFormatter.swift; sourceTree = "<group>"; };
 		0CE7DB1CE989BD59355EF2DD /* ContentActionKeyboardPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentActionKeyboardPolicyTests.swift; sourceTree = "<group>"; };
@@ -610,6 +612,7 @@
 				E1FB76BFCE8E190C38BA03E2 /* PasteCommandService.swift */,
 				0F41BE278810E2DD572202D9 /* PrivacyService.swift */,
 				660DF8A3E084F5528CDA0377 /* RecordingSettingsProvider.swift */,
+				07E562038800F71E12EF3CD0 /* SensitiveContentDetector.swift */,
 				BED5FD8B43422A0E656B4B92 /* ShortcutService.swift */,
 				5BF30F9481AFEB3D51C6704D /* SourceApplicationProvider.swift */,
 				13233328E2014E9D1BB5BBFC /* SparkleUpdateDriver.swift */,
@@ -1108,6 +1111,7 @@
 				12402DF280A1E67D0EA67FE3 /* SearchSuggestionView.swift in Sources */,
 				9ED0BABF87EFC928B67DEC76 /* SearchTextMatcher.swift in Sources */,
 				C07F3158EEB246A6FC354C49 /* SearchTokenView.swift in Sources */,
+				BBD08611BB9AF58D5EFD0D7F /* SensitiveContentDetector.swift in Sources */,
 				F79E726B2994469DEB5D4383 /* SettingsView.swift in Sources */,
 				2A70146F10A28C866750713A /* SettingsViewModel.swift in Sources */,
 				C42200B2C3B3F46924C2BC4A /* ShellContentAction.swift in Sources */,

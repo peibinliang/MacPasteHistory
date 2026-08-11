@@ -13,7 +13,7 @@
 ## 3. Sensitive Detector V2
 
 - [x] 3.1 Add table-driven failing positive/negative tests for passwords, API tokens, authorization headers, Luhn-valid/invalid cards, valid/invalid identity values, Git SHA, MD5, UUID, trace IDs, and unlabelled long strings; validate RED and commit the test checkpoint
-- [ ] 3.2 Add structured detection result and focused local credential, card, identity, secret, and user-rule detector boundaries; adapt PrivacyService policy with minimal caller changes, validate GREEN, and commit the implementation checkpoint
+- [x] 3.2 Add structured detection result and focused local credential, card, identity, secret, and user-rule detector boundaries; adapt PrivacyService policy with minimal caller changes, validate GREEN, and commit the implementation checkpoint
 - [ ] 3.3 Verify no secret values enter logs, update three-language user feedback where classification is exposed, and update privacy/development documentation
 
 ## 4. Storage Reconciliation
