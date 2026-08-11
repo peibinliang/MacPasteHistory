@@ -53,6 +53,16 @@ final class BrandAndInteractionTests: XCTestCase {
 
         XCTAssertTrue(viewModel.shortcutService === shortcutService)
     }
+
+    @MainActor
+    func testAppDelegateUpdateFactory_shouldReuseApplicationUpdateService() {
+        let appDelegate = AppDelegate()
+
+        let first = appDelegate.makeUpdateService()
+        let second = appDelegate.makeUpdateService()
+
+        XCTAssertTrue(first === second)
+    }
 }
 
 private final class BrandFakeShortcutRegistrationManager: ShortcutRegistrationManaging {

@@ -19,7 +19,8 @@ final class LocalizationCoverageTests: XCTestCase {
             "Detected passwords, tokens, identity numbers, and payment card numbers may be stored in the local unencrypted history database.",
             "Keep Filtering", "Disable Filtering",
             "When enabled, detected passwords, tokens, identity numbers, and payment card numbers are not saved.",
-            "About & Updates", "Version information and software updates", "Version %@ (Build %@)", "View on GitHub"
+            "About & Updates", "Version information and software updates", "Version %@ (Build %@)", "View on GitHub",
+            "Automatically check for updates", "Check for Updates…"
         ]
         let localizations = ["en", "zh-Hans", "zh-Hant"]
 
