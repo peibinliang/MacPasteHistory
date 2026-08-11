@@ -90,6 +90,22 @@
 - 支持跟随系统、浅色和深色外观，切换后立即生效
 - 支持简体中文、繁体中文和英文界面
 
+## 产品规划
+
+粘易后续将从“剪贴板历史工具”逐步演进为“本地优先的 macOS 内容工作台”，围绕内容捕获、搜索、整理、转换、复用、工作流与隐私能力持续增强。
+
+| 版本 | 定位 | 重点能力 |
+| --- | --- | --- |
+| V1.0.x | 核心稳定 | 捕获一致性、敏感检测 V2、存储一致性、搜索生命周期、粘贴架构与数据库治理 |
+| V1.1 | 高频内容管理 | 快捷槽位、Tags、智能集合、应用规则、FTS5 搜索 |
+| V1.2 | Developer Clipboard | Snippet、模板变量、YAML/XML/IP/CIDR/Cron/cURL 动作、Paste Queue |
+| V1.3 | Workflow Automation | Workflow、动作链保存、执行引擎、快捷键、导入导出 |
+| V1.4 | AI & Privacy Platform | 多 AI Provider、OpenAI Compatible、Ollama、AI Actions、Privacy Vault、Temporary History、Backup/Restore |
+
+每个版本里程碑完成后创建独立 Git Tag；正式 Release、签名、公证、Sparkle 包与 GitHub Release 留给后续独立发布任务执行。
+
+完整功能说明、版本边界、验收标准与 Codex 长期开发约束请参见：[V1.0 → V1.4 产品规划](docs/roadmap/V1.0-V1.4-PRODUCT_ROADMAP.md)。
+
 ## 系统要求
 
 - macOS 14.0 或更高版本
@@ -127,6 +143,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 - [开发文档索引](docs/README.md)
 - [用户指南](docs/user-guide.md)
+- [产品规划 V1.0 → V1.4](docs/roadmap/V1.0-V1.4-PRODUCT_ROADMAP.md)
 - [整体架构](docs/architecture/overall-architecture.md)
 - [数据库设计](docs/database/schema.md)
 - [变更记录](docs/changelog/CHANGELOG.md)
