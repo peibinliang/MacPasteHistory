@@ -2,7 +2,7 @@
 
 This file defines the recommended implementation order for the OpenSpec changes under `openspec/changes/`.
 
-The order follows the original 9 project phases and keeps each change small enough to implement, verify, and archive independently.
+The order starts with the original 9 project phases and adds follow-up changes that remain small enough to implement, verify, and archive independently.
 
 ## Recommended Sequence
 
@@ -17,6 +17,7 @@ The order follows the original 9 project phases and keeps each change small enou
 | 7 | `add-privacy-and-security-controls` | Add privacy notice, sensitive filtering, pause, blocked apps, foreground app detection, cleanup, and privacy documentation. | `add-settings-center`, `add-text-clipboard-history`; image capture recommended | Capture gates and settings persistence exist. | First-launch notice appears, sensitive content is skipped, pause works, blocked apps are skipped, privacy policy exists. |
 | 8 | `optimize-data-cleanup-and-performance` | Add cleanup rules, indexes, pagination, thumbnail caching, polling tuning, and stability checks. | `add-text-clipboard-history`, `improve-history-experience`, `add-image-clipboard-history`, `add-settings-center`, `add-privacy-and-security-controls` | Core capture, listing, settings, favorites, and privacy gates are implemented. | 1000 text records search acceptably, 100 image records scroll smoothly, cleanup bounds data and file growth, CPU/memory are stable. |
 | 9 | `prepare-release-testing-and-store-assets` | Configure release packaging, sandboxing, signing, compatibility testing, QA, docs, privacy policy, and screenshots. | All implementation changes | Feature scope is frozen and previous completion gates pass. | Signed Release build launches and passes compatibility, common-app, large-content, cleanup, documentation, privacy, and screenshot checks. |
+| 10 | `add-v1-0-1-sensitive-filter-and-updates` | Deliver V1.0.1's user-controlled sensitive filtering, runtime version display, and secure GitHub Releases updates. | V1.0.0 feature and release foundations; `complete-user-controls-and-release-readiness` where its remaining release evidence applies | V1.0.0 behavior and release configuration are available for regression and upgrade testing. | V1.0.1 (build 2) preserves safe filtering by default, displays runtime bundle information, and completes a verified V1.0.0-to-V1.0.1 Sparkle upgrade without data loss. |
 
 ## Dependency Shape
 
@@ -39,6 +40,7 @@ flowchart TD
   F --> H
   G --> H
   H --> I["9 prepare-release-testing-and-store-assets"]
+  I --> J["10 add-v1-0-1-sensitive-filter-and-updates"]
 ```
 
 ## Parallelization Notes
@@ -48,6 +50,7 @@ flowchart TD
 - `add-privacy-and-security-controls` should not be delayed until the end of the product; implement it before performance and release work so sensitive data is not captured during extended testing.
 - `optimize-data-cleanup-and-performance` should wait until the main data-producing features exist; otherwise performance work risks optimizing incomplete query and storage paths.
 - `prepare-release-testing-and-store-assets` should be last because sandboxing, signing, and release QA can expose regressions across all earlier features.
+- `add-v1-0-1-sensitive-filter-and-updates` follows the V1.0.0 release foundation because it changes release metadata, entitlements, and the installed-app upgrade path; its V1.0.0-to-V1.0.1 test requires an installed baseline app.
 
 ## Archive Recommendation
 
@@ -62,5 +65,6 @@ Archive changes in the same order after each completion gate passes:
 7. `add-privacy-and-security-controls`
 8. `optimize-data-cleanup-and-performance`
 9. `prepare-release-testing-and-store-assets`
+10. `add-v1-0-1-sensitive-filter-and-updates`
 
 Do not archive a later change before its dependencies unless the spec deltas have been reviewed and the dependency relationship has changed.
