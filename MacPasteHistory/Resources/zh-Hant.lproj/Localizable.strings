@@ -282,3 +282,5 @@
 "Version information and software updates" = "版本資訊與軟體更新";
 "Version %@ (Build %@)" = "版本 %@（組建 %@）";
 "View on GitHub" = "在 GitHub 上檢視";
+"Automatically check for updates" = "自動檢查更新";
+"Check for Updates…" = "檢查更新…";

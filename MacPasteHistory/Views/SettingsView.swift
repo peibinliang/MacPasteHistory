@@ -4,12 +4,18 @@ import Carbon
 
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
+    @ObservedObject private var updateService: UpdateService
     @State private var showClearConfirmation = false
     @State private var selectedCategory: SettingsCategory? = .general
     private let appVersion: AppVersionInfo
 
-    init(viewModel: SettingsViewModel, appVersion: AppVersionInfo = .current) {
+    init(
+        viewModel: SettingsViewModel,
+        updateService: UpdateService,
+        appVersion: AppVersionInfo = .current
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.updateService = updateService
         self.appVersion = appVersion
     }
 
@@ -355,6 +361,19 @@ struct SettingsView: View {
             if let repositoryURL = URL(string: "https://github.com/peibinliang/MacPasteHistory") {
                 Link(L10n.string("View on GitHub"), destination: repositoryURL)
             }
+
+            Toggle(
+                L10n.string("Automatically check for updates"),
+                isOn: Binding(
+                    get: { updateService.automaticallyChecksForUpdates },
+                    set: { updateService.setAutomaticallyChecksForUpdates($0) }
+                )
+            )
+
+            Button(L10n.string("Check for Updates…")) {
+                updateService.checkForUpdates()
+            }
+            .disabled(!updateService.canCheckForUpdates)
         }
     }
 
