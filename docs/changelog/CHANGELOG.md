@@ -2,10 +2,6 @@
 
 ## Unreleased
 
-### Fixed
-
-- Made inline history-row actions use the same content suitability rules as All Actions, so URL records only show URL-specific operations while plain text retains AI polishing.
-
 ## 1.0.2 - 2026-08-11
 
 ### Added
@@ -13,6 +9,10 @@
 - Added opt-in Automatic Paste, disabled by default, with Accessibility guidance only after enablement and clipboard-only fallback on every paste path.
 - Added explicit DeepSeek AI text polishing with configurable default model `deepseek-v4-flash`, Keychain-backed API credentials, first-use remote-processing disclosure, cancellable preview flow, localized errors, and provider-reported token statistics.
 - Added migration-backed exact-once AI token accounting and clear-all-data integration without silently deleting the separately managed Keychain credential.
+
+### Fixed
+
+- Made inline history-row actions use the same content suitability rules as All Actions, so URL records only show URL-specific operations while plain text retains AI polishing.
 
 ## 1.0.1 - 2026-08-11
 

@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_INFO_PLIST="$REPO_ROOT/MacPasteHistory/Resources/Info.plist"
-EXPECTED_ARCHIVE_NAME="MacPasteHistory-1.0.2-3.zip"
+EXPECTED_ARCHIVE_NAME="MacPasteHistory-1.0.2-4.zip"
 DOWNLOAD_URL_PREFIX="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/"
 
 release_directory=""

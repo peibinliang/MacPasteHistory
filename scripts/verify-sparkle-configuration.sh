@@ -7,7 +7,7 @@ ENTITLEMENTS_PLIST="$REPO_ROOT/MacPasteHistory/MacPasteHistory.entitlements"
 PROJECT_YML="$REPO_ROOT/project.yml"
 
 EXPECTED_VERSION="1.0.2"
-EXPECTED_BUILD="3"
+EXPECTED_BUILD="4"
 EXPECTED_FEED_URL="https://peibinliang.github.io/MacPasteHistory/appcast.xml"
 EXPECTED_SPARKLE_VERSION="2.9.2"
 

@@ -24,7 +24,7 @@
 
 ## V1.0.2 当前交接边界
 
-已可在本地自动复核的内容包括版本 `1.0.2 (3)`、敏感过滤默认值与持久化、关闭确认、长文本完整捕获回归、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。
+已可在本地自动复核的内容包括版本 `1.0.2 (4)`、敏感过滤默认值与持久化、关闭确认、长文本完整捕获回归、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。
 
 以下项目没有真实证据时必须保持未完成：GUI 过滤开关回归、Developer ID Application 签名、Apple 公证、官方 `generate_appcast` 产生的真实 EdDSA 正式产物、本地 HTTPS V1.0.1 → V1.0.2 演练、无效签名安装拒绝、公共 feed 升级、Intel/多 macOS 版本验证和 GitHub 发布。`--strict-final` 在这些证据缺失时应退出非零，这是正确门禁结果。
 
@@ -308,7 +308,7 @@ scripts/verify-release-app-signature.sh --build --allow-adhoc
 
 3. **版本号确认**:
    - `CFBundleShortVersionString`: `1.0.2`
-   - `CFBundleVersion`: `3`
+   - `CFBundleVersion`: `4`
 
 4. 校验 Info.plist、发布指南和人工 QA 模板中的版本/构建号声明一致：
 
@@ -329,7 +329,7 @@ scripts/verify-release-version-build.sh
 - [x] Release 配置构建成功
 - [x] `SWIFT_OPTIMIZATION_LEVEL = -O`
 - [x] `ENABLE_DEBUG_DYLIB_SUPPORT = NO`
-- [x] 版本号为 `1.0.2 (3)`
+- [x] 版本号为 `1.0.2 (4)`
 - [x] `LSUIElement = true`
 
 ---
@@ -485,16 +485,16 @@ app bundle 内（包括经符号链接解析后的别名）。正式产物先写
 通过正式 ZIP verifier 后才移动到最终名称。
 输出必须包括：
 
-- `MacPasteHistory-1.0.2-3.zip`
-- `MacPasteHistory-1.0.2-3.zip.sha256`
-- `MacPasteHistory-1.0.2-3-release-notes.md`
+- `MacPasteHistory-1.0.2-4.zip`
+- `MacPasteHistory-1.0.2-4.zip.sha256`
+- `MacPasteHistory-1.0.2-4-release-notes.md`
 
 2. 在传递给 Sparkle 前独立验证正式 ZIP：
 
 ```bash
 scripts/verify-release-qa-package.sh \
   --formal-update \
-  /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-3.zip
+  /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-4.zip
 ```
 
 3. 找到 Sparkle 2.9.2 的 `bin` 目录（其中必须有可执行的
@@ -508,7 +508,7 @@ scripts/generate-sparkle-appcast.sh \
 
 生成脚本只接受上述两个目录参数，不接受、读取或打印私钥参数。EdDSA 私钥必须
 仅保存在发布者钥匙串或受保护的发布环境中。脚本运行 Sparkle 官方工具后，会严格
-验证 XML、Sparkle namespace URI、`1.0.2 (3)`、固定 URL、ZIP 字节长度、
+验证 XML、Sparkle namespace URI、`1.0.2 (4)`、固定 URL、ZIP 字节长度、
 64-byte Ed25519 签名的严格 Base64 结构、相邻 SHA-256、Bundle ID 和仓库内
 `SUPublicEDKey`，全部通过后才更新 `docs/appcast.xml`。两个 ZIP verifier 都会在
 解压前拒绝绝对路径与 `..` traversal 条目，解压后拒绝顶层 app symlink、逃出 app
@@ -526,7 +526,7 @@ Base64 fixture 只证明结构校验，不得作为正式签名或发布证据�
 ```bash
 scripts/verify-sparkle-appcast.sh \
   --appcast docs/appcast.xml \
-  --archive /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-3.zip \
+  --archive /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-4.zip \
   --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)"
 ```
 
@@ -536,13 +536,13 @@ ZIP、SHA-256 和发布说明，确认固定 enclosure URL 已可下载，再在
 或任何远程修改。
 
 5. 从真实安装的 V1.0.1 分别完成手动检查和自动提示，下载、安装、重启后确认
-V1.0.2 (3)，并把历史、收藏、设置和快捷键保留证据填写到
+V1.0.2 (4)，并把历史、收藏、设置和快捷键保留证据填写到
 `docs/release/manual-qa-record.md` 的升级章节。
 
 #### ✅ 验收清单
 
 - [ ] 正式 ZIP 由 Developer ID Application 签名并通过 `spctl` 公证检查
-- [ ] `MacPasteHistory-1.0.2-3.zip.sha256` 与 ZIP 一致
+- [ ] `MacPasteHistory-1.0.2-4.zip.sha256` 与 ZIP 一致
 - [ ] appcast 由官方 `generate_appcast` 生成，并通过固定 URL、长度、签名结构、版本、Bundle ID 和公钥校验
 - [ ] V1.0.1 → V1.0.2 手动与自动升级证据完整
 - [ ] 私钥、令牌和凭据未进入参数、日志、文档或 Git
@@ -995,7 +995,7 @@ scripts/release-readiness-report.sh --output build/release-readiness-report.md
 scripts/release-readiness-report.sh \
   --manual-record build/manual-release-qa-session/<timestamp>-<commit>/manual-qa-record.md \
   --qa-session build/manual-release-qa-session/<timestamp>-<commit> \
-  --formal-update-archive /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-3.zip \
+  --formal-update-archive /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-4.zip \
   --appcast docs/appcast.xml \
   --output build/release-readiness-report.md \
   --json-output build/release-readiness-report.json \
@@ -1065,7 +1065,7 @@ scripts/validate-manual-qa-record.sh --allow-adhoc docs/release/manual-qa-record
 
 - **应用名称**: MacPasteHistory
 - **Bundle ID**: `com.peibin.MacPasteHistory`
-- **版本**: 1.0.2 (3)
+- **版本**: 1.0.2 (4)
 - **最低 macOS 版本**: 14.0 Sonoma
 - **分发渠道**: ☐ App Store  /  ⚩ 自有网站 + DMG
 - **截图规范**: 当前仓库提供 4 张 5760 × 3600 PNG 截图素材；最终上传前按目标渠道裁切或导出目标尺寸

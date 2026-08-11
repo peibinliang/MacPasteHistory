@@ -35,7 +35,7 @@ Options:
                         Skip launching a copied Release app during readiness checks.
   --skip-release-smoke  Skip the synthetic Release smoke test during readiness checks.
   --formal-update-archive PATH
-                        Verify an explicit MacPasteHistory-1.0.2-3.zip formal update.
+                        Verify an explicit MacPasteHistory-1.0.2-4.zip formal update.
   --appcast PATH        Verify an explicit appcast against the formal update archive.
   --openspec-change NAME
                         Read progress from openspec/changes/NAME/tasks.md.

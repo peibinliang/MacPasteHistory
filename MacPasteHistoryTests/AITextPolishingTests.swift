@@ -162,6 +162,7 @@ final class AITextPolishingViewModelTests: XCTestCase {
         viewModel.present(for: makeItem())
 
         viewModel.execute(actionID: AITextPolishingAction.actionID)
+        await waitUntil { service.callCount == 1 }
         viewModel.execute(actionID: AITextPolishingAction.actionID)
         await waitUntil { viewModel.state == .previewing }
         try? await Task.sleep(for: .milliseconds(100))

@@ -70,16 +70,16 @@ scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
 ```
 
 The formal Sparkle update is a separate artifact. It must be named
-`MacPasteHistory-1.0.2-3.zip`, have an adjacent `.sha256`, and pass the strict verifier:
+`MacPasteHistory-1.0.2-4.zip`, have an adjacent `.sha256`, and pass the strict verifier:
 
 ```bash
 scripts/verify-release-qa-package.sh \
   --formal-update \
-  /path/to/MacPasteHistory-1.0.2-3.zip
+  /path/to/MacPasteHistory-1.0.2-4.zip
 
 scripts/verify-sparkle-appcast.sh \
   --appcast /path/to/appcast.xml \
-  --archive /path/to/MacPasteHistory-1.0.2-3.zip \
+  --archive /path/to/MacPasteHistory-1.0.2-4.zip \
   --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)"
 ```
 
@@ -154,7 +154,7 @@ scripts/verify-release-screenshot-assets.sh
 | Tester | TBD |
 | Git commit | TBD |
 | App path | TBD |
-| Version / build | `1.0.2 (3)` |
+| Version / build | `1.0.2 (4)` |
 | Signing identity | TBD |
 | Package SHA-256 | TBD |
 | Package manifest | TBD |
@@ -249,9 +249,9 @@ the tester for every passed row.
 | Scenario | Expected Result | Result | Evidence / Notes |
 |---|---|---|---|
 | V1.0.0 baseline captured | Installed app reports V1.0.0 and pre-upgrade history, favorites, settings, and shortcut values are recorded. | ⬜ Not run | TBD |
-| Manual update check | Check for Updates reaches the fixed HTTPS appcast and offers V1.0.2 (3). | ⬜ Not run | TBD |
+| Manual update check | Check for Updates reaches the fixed HTTPS appcast and offers V1.0.2 (4). | ⬜ Not run | TBD |
 | Automatic update prompt | Sparkle's scheduled check offers the same signed V1.0.2 update without a second updater instance. | ⬜ Not run | TBD |
-| Download, install, and restart | Sparkle downloads, verifies, replaces, and restarts the app as V1.0.2 (3). | ⬜ Not run | TBD |
+| Download, install, and restart | Sparkle downloads, verifies, replaces, and restarts the app as V1.0.2 (4). | ⬜ Not run | TBD |
 | History and favorites preserved | Post-upgrade history count and favorite state match the recorded V1.0.0 baseline. | ⬜ Not run | TBD |
 | Settings and shortcut preserved | Sensitive-filter preference, other settings, and configured shortcut match the recorded V1.0.0 baseline. | ⬜ Not run | TBD |
 

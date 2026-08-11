@@ -257,8 +257,8 @@ if [[ ! -f "$zip_path" ]]; then
     exit 1
 fi
 
-if [[ "$formal_update" -eq 1 && "$(basename "$zip_path")" != "MacPasteHistory-1.0.2-3.zip" ]]; then
-    echo "Formal update archive must be named MacPasteHistory-1.0.2-3.zip" >&2
+if [[ "$formal_update" -eq 1 && "$(basename "$zip_path")" != "MacPasteHistory-1.0.2-4.zip" ]]; then
+    echo "Formal update archive must be named MacPasteHistory-1.0.2-4.zip" >&2
     exit 1
 fi
 if [[ "$formal_update" -eq 1 && "$checksum_explicit" -eq 1 ]]; then
@@ -358,8 +358,8 @@ fi
 
 notarization="not checked"
 if [[ "$formal_update" -eq 1 ]]; then
-    if [[ "$version" != "1.0.2" || "$build_number" != "3" ]]; then
-        echo "Formal update app must report version 1.0.2 (3)" >&2
+    if [[ "$version" != "1.0.2" || "$build_number" != "4" ]]; then
+        echo "Formal update app must report version 1.0.2 (4)" >&2
         exit 1
     fi
     if [[ "$bundle_id" != "com.peibin.MacPasteHistory" ]]; then
