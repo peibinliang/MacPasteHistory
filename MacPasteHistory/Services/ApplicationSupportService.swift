@@ -42,6 +42,12 @@ final class ApplicationSupportService {
         }
     }
 
+    var reconciliationTemporaryURL: URL {
+        get throws {
+            try applicationSupportURL.appendingPathComponent("temporary", isDirectory: true)
+        }
+    }
+
     var logsURL: URL {
         get throws {
             try applicationSupportURL.appendingPathComponent("logs", isDirectory: true)
@@ -52,6 +58,7 @@ final class ApplicationSupportService {
         try createDirectory(at: applicationSupportURL)
         try createDirectory(at: imagesURL)
         try createDirectory(at: thumbnailsURL)
+        try createDirectory(at: reconciliationTemporaryURL)
         try createDirectory(at: logsURL)
     }
 

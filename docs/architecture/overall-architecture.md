@@ -8,6 +8,7 @@ flowchart LR
     MON --> REP[ClipboardHistoryRepository]
     REP --> DB[(SQLite + image files)]
     DB --> SEARCH[Read-only SearchCandidateProvider]
+    DB --> RECON[Read-only Storage Reconciliation]
     SEARCH --> VM[ClipboardHistoryViewModel]
     VM --> PANEL[History panel]
     PANEL --> ACTION[Content action session]
@@ -35,7 +36,7 @@ flowchart LR
 
 ## Data and concurrency
 
-`DatabaseInitializer` opens the writer connection. `SearchCandidateProvider` is an actor that opens, uses and closes a read-only connection per request. Clipboard capture, search, deterministic actions, and OCR remain local. The sole network path is an explicitly selected AI Polishing action: after first-use disclosure, the current action text is sent over HTTPS to DeepSeek. The API key stays in macOS Keychain. SQLite stores provider/model/token counts only, never prompts, source text, responses, or credentials.
+`DatabaseInitializer` opens the writer connection. `SearchCandidateProvider` is an actor that opens, uses and closes a read-only connection per request. After synchronous retention cleanup, startup dispatches storage reconciliation to a utility queue with its own read-only SQLite connection, so history opening and clipboard monitoring do not wait for image decoding. Reconciliation inventories canonical `images`, `thumbnails`, and `temporary` roots, reports drift using counts, retains ordinary orphaned or uncertain files, and mutates only a safely referenced missing thumbnail or an unreferenced `mph-image-*.tmp` file older than 24 hours. Clipboard capture, search, deterministic actions, OCR, and reconciliation remain local. The sole network path is an explicitly selected AI Polishing action: after first-use disclosure, the current action text is sent over HTTPS to DeepSeek. The API key stays in macOS Keychain. SQLite stores provider/model/token counts only, never prompts, source text, responses, or credentials.
 
 Automatic paste is controlled by a persisted default-off preference and live Accessibility trust. The shared policy returns clipboard-only, permission-required, or ready; every paste path restores/copies first and dispatches `Command-V` only in the ready state.
 

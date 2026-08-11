@@ -188,8 +188,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 )
             )
             cleanupService.performStartupCleanup()
+            startStorageReconciliation()
         } catch {
             logger.error("Local storage initialization failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func startStorageReconciliation() {
+        do {
+            let databaseURL = try applicationSupportService.databaseURL
+            let imagesURL = try applicationSupportService.imagesURL
+            let thumbnailsURL = try applicationSupportService.thumbnailsURL
+            let temporaryURL = try applicationSupportService.reconciliationTemporaryURL
+            DispatchQueue.global(qos: .utility).async {
+                let reconciliationLogger = Logger(category: "StorageReconciliation")
+                do {
+                    let database = try DatabaseConnection(databaseURL: databaseURL, mode: .readOnly)
+                    defer { try? database.close() }
+                    let report = StorageReconciliationService(
+                        repository: ClipboardHistoryRepository(database: database),
+                        imagesDirectory: imagesURL,
+                        thumbnailsDirectory: thumbnailsURL,
+                        temporaryDirectory: temporaryURL
+                    ).reconcile()
+                    let issueCount = report.issueCounts.values.reduce(0, +)
+                    reconciliationLogger.info(
+                        "Storage reconciliation completed, issues: \(issueCount), "
+                            + "planned: \(report.plannedActionCount), "
+                            + "completed: \(report.completedActionCount), failed: \(report.failedActionCount)"
+                    )
+                } catch {
+                    reconciliationLogger.error("Storage reconciliation could not start")
+                }
+            }
+        } catch {
+            logger.error("Storage reconciliation paths unavailable")
         }
     }
 

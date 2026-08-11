@@ -156,6 +156,16 @@ final class StorageReconciliationServiceTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: staleTemporary.path))
     }
 
+    func testReconcile_whenOneManagedDirectoryCannotBeScanned_shouldReturnSummaryAndContinue() throws {
+        try FileManager.default.removeItem(at: imagesURL)
+
+        let report = service().reconcile()
+
+        XCTAssertEqual(report.issueCounts[.itemFailure], 1)
+        XCTAssertEqual(report.completedActionCount, 0)
+        XCTAssertEqual(report.failedActionCount, 0)
+    }
+
     private func makePlan() throws -> StorageReconciliationPlan {
         let service = service()
         return service.makePlan(from: try service.scan())

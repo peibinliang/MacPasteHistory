@@ -12,3 +12,7 @@
 `derived_from_history_id` is a self-reference with `ON DELETE SET NULL`; its action summary remains after the origin is deleted. Capture events are separate rows that can be aggregated for display. The content hash deduplicates normalized values but is not encryption; the SQLite database and app-managed image files remain unencrypted at application level.
 
 `ai_token_usage` stores a unique provider request ID, provider/model identifiers, non-negative input/output/total token counts, optional cached-input tokens, and insertion time. Model/time indexes support settings summaries. It deliberately has no history reference and stores no prompt, source text, response text, or API key. Clear All Data deletes these rows; the separately managed Keychain credential requires explicit removal.
+
+## Image storage reconciliation
+
+Image rows retain absolute original and thumbnail paths for compatibility. Startup reconciliation treats those database values as untrusted: both paths must resolve inside their canonical managed roots before any repair is planned. Missing and corrupted originals, ordinary orphan files, symlinks, and paths with uncertain ownership are retained and summarized. A valid referenced original may regenerate only its missing managed thumbnail. The dedicated `temporary` directory uses the `mph-image-*.tmp` ownership contract; only unreferenced regular files older than 24 hours may be deleted. Reconciliation does not change schema or migration history.
