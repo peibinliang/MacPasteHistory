@@ -1,6 +1,6 @@
 # 粘易发布准备操作指引
 
-> **版本**: v1.0.2 | **目标**: Apple Silicon / Intel macOS 14.0+ | **最后更新**: 2026-08-11
+> **版本**: v1.0.3 | **目标**: Apple Silicon / Intel macOS 14.0+ | **最后更新**: 2026-08-12
 
 本手册覆盖从代码冻结到 App Store 提交之前的全部发布准备步骤，按阶段顺序执行。每个阶段末尾有验收检查清单（✅ 全部打勾才能进入下一阶段）。
 
@@ -22,9 +22,9 @@
 
 ---
 
-## V1.0.2 当前交接边界
+## V1.0.3 当前交接边界
 
-已可在本地自动复核的内容包括版本 `1.0.2 (4)`、敏感过滤默认值与持久化、关闭确认、长文本完整捕获回归、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。
+已可在本地自动复核的内容包括版本 `1.0.3 (5)`、V1.0.3 核心稳定自动化矩阵、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。真实 V1.0.2 build 4 数据库升级 fixture 仍由 PD-006 跟踪，缺失时不得宣称真实升级门禁完成。
 
 以下项目没有真实证据时必须保持未完成：GUI 过滤开关回归、Developer ID Application 签名、Apple 公证、官方 `generate_appcast` 产生的真实 EdDSA 正式产物、本地 HTTPS V1.0.1 → V1.0.2 演练、无效签名安装拒绝、公共 feed 升级、Intel/多 macOS 版本验证和 GitHub 发布。`--strict-final` 在这些证据缺失时应退出非零，这是正确门禁结果。
 
@@ -307,8 +307,8 @@ scripts/verify-release-app-signature.sh --build --allow-adhoc
 | `COMPILE_SOURCES_WITH_NORMAL_ENTITLEMENTS` | `YES` | 使用普通 entitlements |
 
 3. **版本号确认**:
-   - `CFBundleShortVersionString`: `1.0.2`
-   - `CFBundleVersion`: `4`
+   - `CFBundleShortVersionString`: `1.0.3`
+   - `CFBundleVersion`: `5`
 
 4. 校验 Info.plist、发布指南和人工 QA 模板中的版本/构建号声明一致：
 
@@ -329,7 +329,7 @@ scripts/verify-release-version-build.sh
 - [x] Release 配置构建成功
 - [x] `SWIFT_OPTIMIZATION_LEVEL = -O`
 - [x] `ENABLE_DEBUG_DYLIB_SUPPORT = NO`
-- [x] 版本号为 `1.0.2 (4)`
+- [x] 版本号为 `1.0.3 (5)`
 - [x] `LSUIElement = true`
 
 ---

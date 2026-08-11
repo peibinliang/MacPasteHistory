@@ -51,10 +51,10 @@
 
 ## 9. V1.0.3 Product And Documentation Completion
 
-- [ ] 9.1 Update bundle version/build metadata to V1.0.3, README, English README, User Guide, development log and CHANGELOG without performing external release actions
-- [ ] 9.2 Complete English, Simplified Chinese and Traditional Chinese localization coverage and required Accessibility labels for changed user-visible states
-- [ ] 9.3 Update privacy policy, database/storage docs and release notes to match the final implementation, or explicitly document why a file was unaffected
-- [ ] 9.4 Resolve or retain every entry in `docs/planning/PENDING_DECISIONS.md` with current status and evidence; do not mark externally blocked evidence complete
+- [x] 9.1 Update bundle version/build metadata to V1.0.3, README, English README, User Guide, development log and CHANGELOG without performing external release actions
+- [x] 9.2 Complete English, Simplified Chinese and Traditional Chinese localization coverage and required Accessibility labels for changed user-visible states
+- [x] 9.3 Update privacy policy, database/storage docs and release notes to match the final implementation, or explicitly document why a file was unaffected
+- [x] 9.4 Resolve or retain every entry in `docs/planning/PENDING_DECISIONS.md` with current status and evidence; do not mark externally blocked evidence complete
 
 ## 10. QA, Independent Review And Merge Gate
 

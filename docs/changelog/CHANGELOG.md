@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## 1.0.3 - 2026-08-12
+
+### Added
+
+- Added conservative asynchronous storage reconciliation with canonical-path, symlink, age, ownership, reference, and idempotency guards.
+- Added a unified typed paste coordinator for history and content-action output, including explicit fallback, cancellation, and exact-once usage outcomes.
+- Added SQLite DELETE/WAL comparison coverage and retained the current DELETE mode after WAL sidecars failed the shutdown lifecycle gate.
+
+### Changed
+
+- Captures now share one immutable observed source/time context throughout privacy checks, history writes, and capture events.
+- Sensitive filtering now uses focused credential, Luhn card, identity, secret, and local user-rule detectors with structured confidence and safe reason codes.
+- Search and history UI state now have explicit Task ownership, cancellation, list pagination, and selection collaborators.
+- New timestamps retain subsecond precision while remaining compatible with V1.0.2 second-only database values.
+
+### Fixed
+
+- Prevented superseded or released ViewModel searches from overwriting newer or repository-refreshed results.
+- Prevented same-second duplicate recaptures from remaining below newer IDs because of timestamp truncation.
+
 ## 1.0.2 - 2026-08-11
 
 ### Added
