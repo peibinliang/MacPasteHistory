@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.2 - 2026-08-11
+
 ### Added
 
 - Added opt-in Automatic Paste, disabled by default, with Accessibility guidance only after enablement and clipboard-only fallback on every paste path.

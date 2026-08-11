@@ -7,7 +7,7 @@ EXPECTED_PUBLIC_KEY="$(
     /usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' \
         "$REPO_ROOT/MacPasteHistory/Resources/Info.plist"
 )"
-EXPECTED_URL="https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.1/%E7%B2%98%E6%98%93-1.0.1-2.zip"
+EXPECTED_URL="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/%E7%B2%98%E6%98%93-1.0.2-3.zip"
 VALID_SIGNATURE_SHAPE="$(
     /bin/dd if=/dev/zero bs=64 count=1 2>/dev/null \
         | /usr/bin/base64 \
@@ -42,9 +42,9 @@ write_appcast() {
         printf '%s\n' '  <channel>'
         printf '%s\n' '    <title>Fixture updates</title>'
         printf '%s\n' '    <item>'
-        printf '%s\n' '      <title>1.0.1</title>'
-        printf '%s\n' '      <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>'
-        printf '%s\n' '      <sparkle:version>2</sparkle:version>'
+        printf '%s\n' '      <title>1.0.2</title>'
+        printf '%s\n' '      <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>'
+        printf '%s\n' '      <sparkle:version>3</sparkle:version>'
         printf '      <enclosure url="%s" length="%s" type="application/octet-stream"%s />\n' \
             "$enclosure_url" "$enclosure_length" "$signature_attribute"
         printf '%s\n' '    </item>'
@@ -81,7 +81,7 @@ expect_success() {
 fixture_repo="$TEST_ROOT/repository"
 release_dir="$fixture_repo/release"
 archive_app="$TEST_ROOT/archive-root/粘易.app"
-archive_path="$release_dir/粘易-1.0.1-2.zip"
+archive_path="$release_dir/粘易-1.0.2-3.zip"
 appcast_path="$release_dir/appcast.xml"
 source_plist="$fixture_repo/MacPasteHistory/Resources/Info.plist"
 
@@ -98,8 +98,8 @@ cp "$REPO_ROOT/MacPasteHistory/Resources/Info.plist" "$source_plist"
 
 /usr/bin/plutil -create xml1 "$archive_app/Contents/Info.plist"
 /usr/bin/plutil -insert CFBundleIdentifier -string com.peibin.MacPasteHistory "$archive_app/Contents/Info.plist"
-/usr/bin/plutil -insert CFBundleShortVersionString -string 1.0.1 "$archive_app/Contents/Info.plist"
-/usr/bin/plutil -insert CFBundleVersion -string 2 "$archive_app/Contents/Info.plist"
+/usr/bin/plutil -insert CFBundleShortVersionString -string 1.0.2 "$archive_app/Contents/Info.plist"
+/usr/bin/plutil -insert CFBundleVersion -string 3 "$archive_app/Contents/Info.plist"
 /usr/bin/plutil -insert SUPublicEDKey -string "$EXPECTED_PUBLIC_KEY" "$archive_app/Contents/Info.plist"
 cp /usr/bin/true "$archive_app/Contents/MacOS/粘易"
 chmod +x "$archive_app/Contents/MacOS/粘易"
@@ -165,10 +165,10 @@ write_appcast \
     "$archive_length" \
     " sparkle:edSignature=\"$VALID_SIGNATURE_SHAPE\""
 
-perl -pi -e 's/shortVersionString>1\.0\.1/shortVersionString>1.0.0/' "$appcast_path"
+perl -pi -e 's/shortVersionString>1\.0\.2/shortVersionString>1.0.0/' "$appcast_path"
 expect_failure_containing \
     "unexpected appcast short version" \
-    "latest item short version is not 1.0.1" \
+    "latest item short version is not 1.0.2" \
     "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
     --appcast "$appcast_path" \
     --archive "$archive_path" \
@@ -183,7 +183,7 @@ expect_failure_containing \
     --archive "$archive_path" \
     --expected-public-key "$EXPECTED_PUBLIC_KEY"
 
-wrong_url="https://example.invalid/粘易-1.0.1-2.zip"
+wrong_url="https://example.invalid/粘易-1.0.2-3.zip"
 write_appcast \
     "$appcast_path" \
     "$wrong_url" \
@@ -481,7 +481,7 @@ release_directory=""
 for argument in "$@"; do
     release_directory="$argument"
 done
-archive_path="$release_directory/粘易-1.0.1-2.zip"
+archive_path="$release_directory/粘易-1.0.2-3.zip"
 archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
 valid_signature_shape="$(
     /bin/dd if=/dev/zero bs=64 count=1 2>/dev/null \
@@ -497,9 +497,9 @@ cat >"$release_directory/appcast.xml" <<EOF
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
   <channel>
     <item>
-      <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
-      <sparkle:version>2</sparkle:version>
-      <enclosure url="https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.1/%E7%B2%98%E6%98%93-1.0.1-2.zip" length="$archive_length"$signature_attribute />
+      <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
+      <sparkle:version>3</sparkle:version>
+      <enclosure url="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/%E7%B2%98%E6%98%93-1.0.2-3.zip" length="$archive_length"$signature_attribute />
     </item>
   </channel>
 </rss>
@@ -524,7 +524,7 @@ fi
 expected_arguments="$TEST_ROOT/expected-generate-appcast-args.txt"
 {
     echo "--download-url-prefix"
-    echo "https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.1/"
+    echo "https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/"
     echo "--maximum-versions"
     echo "10"
     echo "$release_dir"
@@ -649,9 +649,9 @@ expect_success \
     --output-dir "$package_output" \
     --release-notes "$package_release_notes"
 unset PACKAGE_VERIFY_RECORD
-if [[ ! -f "$package_output/粘易-1.0.1-2.zip" \
-    || ! -f "$package_output/粘易-1.0.1-2.zip.sha256" \
-    || ! -f "$package_output/粘易-1.0.1-2-release-notes.md" ]]; then
+if [[ ! -f "$package_output/粘易-1.0.2-3.zip" \
+    || ! -f "$package_output/粘易-1.0.2-3.zip.sha256" \
+    || ! -f "$package_output/粘易-1.0.2-3-release-notes.md" ]]; then
     add_failure "formal packaging did not produce all three expected artifacts."
 fi
 if [[ ! -f "$package_verify_record" \

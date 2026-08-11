@@ -134,8 +134,8 @@ package_formal_update() {
     version="$(plist_value "$info_plist" CFBundleShortVersionString)"
     build_number="$(plist_value "$info_plist" CFBundleVersion)"
     bundle_id="$(plist_value "$info_plist" CFBundleIdentifier)"
-    [[ "$version" == "1.0.1" && "$build_number" == "2" ]] || {
-        echo "Formal update app must report version 1.0.1 (2)" >&2
+    [[ "$version" == "1.0.2" && "$build_number" == "3" ]] || {
+        echo "Formal update app must report version 1.0.2 (3)" >&2
         exit 1
     }
     [[ "$bundle_id" == "com.peibin.MacPasteHistory" ]] || {
@@ -178,10 +178,10 @@ package_formal_update() {
         exit 1
     }
 
-    archive_name="粘易-1.0.1-2.zip"
+    archive_name="粘易-1.0.2-3.zip"
     archive_path="$OUTPUT_DIR/$archive_name"
     checksum_path="$archive_path.sha256"
-    release_notes_name="粘易-1.0.1-2-release-notes.md"
+    release_notes_name="粘易-1.0.2-3-release-notes.md"
     release_notes_output="$OUTPUT_DIR/$release_notes_name"
     mkdir -p "$OUTPUT_DIR"
     canonical_output="$(canonical_path "$OUTPUT_DIR")"

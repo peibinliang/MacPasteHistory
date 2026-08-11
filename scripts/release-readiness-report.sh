@@ -35,7 +35,7 @@ Options:
                         Skip launching a copied Release app during readiness checks.
   --skip-release-smoke  Skip the synthetic Release smoke test during readiness checks.
   --formal-update-archive PATH
-                        Verify an explicit 粘易-1.0.1-2.zip formal update.
+                        Verify an explicit 粘易-1.0.2-3.zip formal update.
   --appcast PATH        Verify an explicit appcast against the formal update archive.
   --openspec-change NAME
                         Read progress from openspec/changes/NAME/tasks.md.
@@ -318,7 +318,7 @@ verify_upgrade_evidence() {
         fi
     done
 
-    echo "All required V1.0.0 → V1.0.1 upgrade scenarios contain direct pass evidence."
+    echo "All required V1.0.1 → V1.0.2 upgrade scenarios contain direct pass evidence."
     echo "Status: PASS"
 }
 
@@ -654,8 +654,8 @@ if ! run_capture "Manual QA record" "${manual_args[@]}"; then
     add_blocker "Manual QA record is incomplete or still contains release blockers."
 fi
 
-if ! run_capture "V1.0.0 → V1.0.1 upgrade evidence" verify_upgrade_evidence "$manual_record"; then
-    add_warning "V1.0.0 → V1.0.1 upgrade evidence is incomplete; final release approval is blocked in --strict-final mode."
+if ! run_capture "V1.0.1 → V1.0.2 upgrade evidence" verify_upgrade_evidence "$manual_record"; then
+    add_warning "V1.0.1 → V1.0.2 upgrade evidence is incomplete; final release approval is blocked in --strict-final mode."
 fi
 
 git_status="$(git status --short)"
@@ -777,7 +777,7 @@ EOF
 
 - Signed Release build with the intended distribution certificate and Team ID.
 - Developer ID notarization and a verified Sparkle appcast/formal ZIP pair.
-- Direct V1.0.0 → V1.0.1 manual and automatic update evidence, including restart and data preservation.
+- Direct V1.0.1 → V1.0.2 manual and automatic update evidence, including restart and data preservation.
 - Menu bar, history window, restore, delete, clear-all, pause, blacklist, and launch-at-login manual QA.
 - Apple Silicon, Intel, and supported macOS version coverage or explicit release decision records.
 - Final reviewer decision in the manual QA record.
@@ -950,7 +950,7 @@ payload = {
     "manualEvidenceStillRequired": [
         "Signed Release build with the intended distribution certificate and Team ID.",
         "Developer ID notarization and a verified Sparkle appcast/formal ZIP pair.",
-        "Direct V1.0.0 to V1.0.1 manual and automatic update evidence, including restart and data preservation.",
+        "Direct V1.0.1 to V1.0.2 manual and automatic update evidence, including restart and data preservation.",
         "Menu bar, history window, restore, delete, clear-all, pause, blacklist, and launch-at-login manual QA.",
         "Apple Silicon, Intel, and supported macOS version coverage or explicit release decision records.",
         "Final reviewer decision in the manual QA record.",

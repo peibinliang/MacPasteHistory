@@ -3,8 +3,8 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_INFO_PLIST="$REPO_ROOT/MacPasteHistory/Resources/Info.plist"
-EXPECTED_ARCHIVE_NAME="粘易-1.0.1-2.zip"
-DOWNLOAD_URL_PREFIX="https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.1/"
+EXPECTED_ARCHIVE_NAME="粘易-1.0.2-3.zip"
+DOWNLOAD_URL_PREFIX="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/"
 
 release_directory=""
 sparkle_bin_directory=""
@@ -15,7 +15,7 @@ Usage: scripts/generate-sparkle-appcast.sh \
   --release-directory DIR \
   --sparkle-bin-directory DIR
 
-Generate a V1.0.1 appcast from an explicit formal-release directory, verify it,
+Generate a V1.0.2 appcast from an explicit formal-release directory, verify it,
 then copy the verified XML to docs/appcast.xml. This command accepts no key
 arguments; Sparkle accesses its signing key through its protected environment.
 EOF
