@@ -130,6 +130,23 @@ import sys
 
 with open(sys.argv[1], encoding="utf-8") as handle:
     payload = json.load(handle)
+
+checks = [row for row in payload["checks"] if row["name"] == "Update identity continuity"]
+if len(checks) != 1 or checks[0]["status"] != "SKIP":
+    raise SystemExit(f"expected one skipped update identity check, got {checks}")
+if not any("Accessibility permission continuity" in warning for warning in payload["warnings"]):
+    raise SystemExit("missing Accessibility permission continuity warning")
+PY
+then
+    add_failure "default: missing update identity continuity release gate."
+fi
+
+if [[ -s "$default_json" ]] && ! /usr/bin/python3 - "$default_json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    payload = json.load(handle)
 if not any("Strict final mode requires zero warnings" in blocker for blocker in payload["blockers"]):
     raise SystemExit("strict-final did not block the missing CLI and pending V1.0.1 tasks")
 PY
