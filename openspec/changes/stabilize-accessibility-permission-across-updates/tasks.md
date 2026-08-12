@@ -22,4 +22,4 @@
 - [x] 4.1 Document that V1.0.3 ad-hoc users may need one final Accessibility authorization when moving to V1.0.4.
 - [ ] 4.2 Install the previous stable-identity baseline, grant Accessibility, update through Sparkle, and record that trust and Automatic Paste survive the update.
 - [x] 4.3 Run full unit/build/release QA and obtain an independent code and release review.
-- [ ] 4.4 Merge `release/v1.0.4` to `main` only after all formal identity and upgrade gates pass.
+- [x] 4.4 Merge `release/v1.0.4` to `main` after the product owner explicitly waived the still-open Developer ID, notarization, and real identity-continuity gates for V1.0.4 only (PD-009).
