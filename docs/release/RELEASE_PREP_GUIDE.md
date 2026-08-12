@@ -502,33 +502,37 @@ scripts/verify-release-update-identity.sh \
 Developer ID 签名版本时，用户仍可能需要最后一次辅助功能授权。后续版本只有在保持
 兼容 Developer ID designated requirement 并通过真实升级 smoke 后，才可宣称无需重授。
 
-1. 准备非空 Markdown 发布说明，然后使用显式输入和输出路径打包：
+1. V1.0.5 按 PD-011 使用显式应用与输出目录打包 ad-hoc 更新包：
 
 ```bash
-scripts/package-release-qa-build.sh \
-  --formal-update \
-  --app /absolute/path/to/粘易.app \
-  --output-dir /absolute/path/to/v1.0.5-release \
-  --release-notes /absolute/path/to/V1.0.5-release-notes.md
+mkdir -p /absolute/path/to/v1.0.5-release
+ditto -c -k --sequesterRsrc --keepParent \
+  /absolute/path/to/粘易.app \
+  /absolute/path/to/v1.0.5-release/MacPasteHistory-1.0.5-7.zip
+cd /absolute/path/to/v1.0.5-release
+shasum -a 256 MacPasteHistory-1.0.5-7.zip >MacPasteHistory-1.0.5-7.zip.sha256
+cp /absolute/path/to/V1.0.5-release-notes.md \
+  MacPasteHistory-1.0.5-7-release-notes.md
 ```
 
-该命令不搜索其他 `.app`，不会修改输入应用，也拒绝覆盖已经存在的正式产物。
-输入 app 和输出目录都会先规范化；输入不能是符号链接，输出目录不能等于或位于
-app bundle 内（包括经符号链接解析后的别名）。正式产物先写入隔离 staging 目录，
-通过正式 ZIP verifier 后才移动到最终名称。
+上述路径必须由发布者逐项确认，且目标文件必须预先不存在。Developer ID 正式路径仍为
+`scripts/package-release-qa-build.sh --formal-update ...`；对本次 ad-hoc app 执行它应当
+失败，并作为 PD-011 没有放宽正式签名与公证门禁的预期失败证据。
 输出必须包括：
 
 - `MacPasteHistory-1.0.5-7.zip`
 - `MacPasteHistory-1.0.5-7.zip.sha256`
 - `MacPasteHistory-1.0.5-7-release-notes.md`
 
-2. 在传递给 Sparkle 前独立验证正式 ZIP：
+2. 在传递给 Sparkle 前按本次豁免路径独立验证 ZIP：
 
 ```bash
 scripts/verify-release-qa-package.sh \
-  --formal-update \
   /absolute/path/to/v1.0.5-release/MacPasteHistory-1.0.5-7.zip
 ```
+
+另行执行带 `--formal-update` 的同一命令并记录其因缺少 Developer ID/公证而预期失败；
+不得将该失败改写为正式门禁通过。
 
 3. 找到 Sparkle 2.9.2 的 `bin` 目录（其中必须有可执行的
 `generate_appcast`），生成并验证 appcast：
@@ -543,7 +547,7 @@ scripts/generate-sparkle-appcast.sh \
   --allow-adhoc
 ```
 
-生成脚本只接受上述两个目录参数，不接受、读取或打印私钥参数。EdDSA 私钥必须
+生成脚本接受显式目录、版本、构建号、下载 URL 与豁免开关，但不接受、读取或打印任何私钥参数。EdDSA 私钥必须
 仅保存在发布者钥匙串或受保护的发布环境中。脚本运行 Sparkle 官方工具后，会严格
 验证 XML、Sparkle namespace URI、`1.0.5 (7)`、固定 URL、ZIP 字节长度、
 64-byte Ed25519 签名的严格 Base64 结构、相邻 SHA-256、Bundle ID 和仓库内
