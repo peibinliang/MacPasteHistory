@@ -346,7 +346,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appearanceService: AppearanceService(config: config),
             shortcutService: makeSettingsShortcutService(config: config),
             accessibilityPermissionService: accessibilityPermissionService,
-            aiCredentialStore: KeychainAICredentialStore(),
+            aiCredentialStore: LocalFileAICredentialStore(),
             aiTokenUsageRepository: aiTokenUsageRepository
         )
     }
@@ -386,8 +386,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 usageRepository: aiTokenUsageRepository
             )
         )
+        let translationAction = AITextTranslationAction(
+            service: AITextTranslationService(
+                config: config,
+                usageRepository: aiTokenUsageRepository
+            )
+        )
         let registry = ContentActionRegistry(
-            actions: ContentActionRegistry.defaultActions + [polishingAction]
+            actions: ContentActionRegistry.defaultActions + [polishingAction, translationAction]
         )
         return ContentActionPanelViewModel(registry: registry, config: config)
     }

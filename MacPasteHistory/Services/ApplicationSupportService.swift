@@ -54,6 +54,12 @@ final class ApplicationSupportService {
         }
     }
 
+    var aiCredentialURL: URL {
+        get throws {
+            try applicationSupportURL.appendingPathComponent("ai-credential", isDirectory: false)
+        }
+    }
+
     func createRequiredDirectories() throws {
         try createDirectory(at: applicationSupportURL)
         try createDirectory(at: imagesURL)

@@ -18,6 +18,9 @@ struct ContentActionSuitabilityPolicy {
 
     func isSuitable(_ action: any ContentAction, for type: DetectedContentType) -> Bool {
         let actionID = action.id.rawValue
+        if actionID == AITextTranslationAction.actionID.rawValue {
+            return type != .image
+        }
         return switch type {
         case .plainText:
             Self.plainTextActionIDs.contains(actionID)

@@ -2,6 +2,18 @@ import Foundation
 
 protocol DeepSeekClientProtocol: Sendable {
     func polish(text: String, modelIdentifier: String, apiKey: String) async throws -> DeepSeekPolishingResult
+    func translate(text: String, target: AITranslationTarget, modelIdentifier: String, apiKey: String) async throws -> DeepSeekPolishingResult
+}
+
+extension DeepSeekClientProtocol {
+    func translate(
+        text: String,
+        target: AITranslationTarget,
+        modelIdentifier: String,
+        apiKey: String
+    ) async throws -> DeepSeekPolishingResult {
+        throw DeepSeekClientError.invalidRequest
+    }
 }
 
 final class DeepSeekClient: DeepSeekClientProtocol, @unchecked Sendable {
@@ -17,6 +29,13 @@ final class DeepSeekClient: DeepSeekClientProtocol, @unchecked Sendable {
     Improve the clarity, fluency, grammar, and wording of the user's text while preserving its meaning and language. Return only the polished text, with no explanation or quotation marks.
     """
 
+    static func translationInstruction(target: AITranslationTarget) -> String {
+        """
+        [translation-instruction:v1]
+        Translate the user's text into \(target.promptLabel). Preserve its meaning, structure, paragraph breaks, formatting, code, URLs, and proper nouns. Return only the translated text, with no explanation or quotation marks.
+        """
+    }
+
     private let session: URLSession
     private let endpoint: URL?
 
@@ -26,6 +45,34 @@ final class DeepSeekClient: DeepSeekClientProtocol, @unchecked Sendable {
     }
 
     func polish(text: String, modelIdentifier: String, apiKey: String) async throws -> DeepSeekPolishingResult {
+        try await complete(
+            text: text,
+            instruction: Self.polishingInstruction,
+            modelIdentifier: modelIdentifier,
+            apiKey: apiKey
+        )
+    }
+
+    func translate(
+        text: String,
+        target: AITranslationTarget,
+        modelIdentifier: String,
+        apiKey: String
+    ) async throws -> DeepSeekPolishingResult {
+        try await complete(
+            text: text,
+            instruction: Self.translationInstruction(target: target),
+            modelIdentifier: modelIdentifier,
+            apiKey: apiKey
+        )
+    }
+
+    private func complete(
+        text: String,
+        instruction: String,
+        modelIdentifier: String,
+        apiKey: String
+    ) async throws -> DeepSeekPolishingResult {
         let normalizedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedModel = modelIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -42,6 +89,7 @@ final class DeepSeekClient: DeepSeekClientProtocol, @unchecked Sendable {
         let request = try makeRequest(
             endpoint: endpoint,
             text: normalizedText,
+            instruction: instruction,
             modelIdentifier: normalizedModel,
             apiKey: normalizedKey
         )
@@ -72,13 +120,14 @@ final class DeepSeekClient: DeepSeekClientProtocol, @unchecked Sendable {
     private func makeRequest(
         endpoint: URL,
         text: String,
+        instruction: String,
         modelIdentifier: String,
         apiKey: String
     ) throws -> URLRequest {
         let body = ChatCompletionRequest(
             model: modelIdentifier,
             messages: [
-                Message(role: "system", content: Self.polishingInstruction),
+                Message(role: "system", content: instruction),
                 Message(role: "user", content: text)
             ],
             maxTokens: Self.maxOutputTokens,

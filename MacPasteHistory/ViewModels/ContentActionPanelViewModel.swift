@@ -101,7 +101,7 @@ final class ContentActionPanelViewModel: ObservableObject {
             publishFailure(.unsupportedInput(messageKey: "content-action.unsupported"), actionID: actionID)
             return
         }
-        if actionID == AITextPolishingAction.actionID,
+        if action is any RemoteAIContentAction,
            config.hasAcknowledgedAIRemoteProcessing == false {
             pendingAIActionID = actionID
             isAIRemoteProcessingConsentRequired = true

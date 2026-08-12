@@ -38,6 +38,7 @@ final class SettingsViewModel: ObservableObject {
         }
     }
     @Published var aiAPIKeyEntry = ""
+    @Published var aiTranslationTarget = DefaultSettings.aiTranslationTarget
     @Published private(set) var hasStoredAIAPIKey = false
     @Published var aiCredentialMessage: String?
     @Published private(set) var allModelsAIUsage = AITokenUsageSummary.zero
@@ -64,7 +65,7 @@ final class SettingsViewModel: ObservableObject {
         shortcutService: ShortcutService? = nil,
         sourceApplicationProvider: SourceApplicationProviding = SourceApplicationProvider(),
         accessibilityPermissionService: any AccessibilityPermissionServing = AccessibilityPermissionService(),
-        aiCredentialStore: any AICredentialStoring = KeychainAICredentialStore(),
+        aiCredentialStore: any AICredentialStoring = LocalFileAICredentialStore(),
         aiTokenUsageRepository: AITokenUsageRepository? = nil
     ) {
         self.config = config
@@ -104,6 +105,7 @@ final class SettingsViewModel: ObservableObject {
         selectedAppearance = config.appAppearance
         automaticPasteEnabled = config.automaticPasteEnabled
         aiModelIdentifier = config.aiModelIdentifier
+        aiTranslationTarget = config.aiTranslationTarget
         refreshAutomaticPastePermissionState()
         refreshAISettingsState()
     }
@@ -224,6 +226,11 @@ final class SettingsViewModel: ObservableObject {
         config.removeValue(forKey: .aiModelIdentifier)
         aiModelIdentifier = config.aiModelIdentifier
         refreshAITokenUsage()
+    }
+
+    func updateAITranslationTarget(_ target: AITranslationTarget) {
+        config.aiTranslationTarget = target
+        aiTranslationTarget = target
     }
 
     func saveAIAPIKey() {

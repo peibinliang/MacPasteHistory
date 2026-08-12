@@ -13,4 +13,5 @@ enum DefaultSettings {
     static let filterSensitiveContent = true
     static let automaticPasteEnabled = false
     static let aiModelIdentifier = "deepseek-v4-flash"
+    static let aiTranslationTarget = AITranslationTarget.simplifiedChinese
 }

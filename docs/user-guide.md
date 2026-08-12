@@ -34,11 +34,13 @@ JWT inspection only decodes visible fields. The signature warning means the app 
 
 For image records, open details and select **Recognize Text**. OCR is manual and local. Edit the recognized text, then select **Save** to make it searchable and usable with content actions.
 
-## AI Polishing
+## AI Polishing And Translation
 
-Open actions for any text record and choose **AI Polishing**. On first use, review the remote-processing disclosure: continuing sends only the current action text to DeepSeek; cancelling sends no request. Configure the model (default `deepseek-v4-flash`) and save or replace the API key under **Settings → AI Polishing**. The key is stored in macOS Keychain and its full value is never displayed again.
+Open actions for textual content and choose **AI Polishing** or **AI Translation**. On first use, review the remote-processing disclosure: continuing sends only the current action text to DeepSeek; cancelling sends no request. Configure the model (default `deepseek-v4-flash`), translation target, and API key under **Settings → AI Text Tools**.
 
-The returned text opens in the normal editable result preview and can be copied, saved as a derived record, or pasted. The preview shows provider-reported input/output/total tokens when available, otherwise it explicitly says usage is unavailable. Settings shows cumulative totals for the current model and all models.
+The API key is stored as a plaintext file under the app's Application Support directory with owner-only file permissions. This avoids Keychain access after relaunch but does not provide Keychain-equivalent protection. Existing Keychain credentials are not read, migrated, or deleted automatically; after updating, save the key once in the new local store.
+
+Returned text opens in the normal editable result preview and can be copied, saved as a derived record, chained into another action, or pasted. Translation supports Simplified Chinese, Traditional Chinese, English, Japanese, and Korean targets. The preview shows provider-reported input/output/total tokens when available, otherwise it explicitly says usage is unavailable. Settings shows cumulative totals for the current model and all models.
 
 ## Restore Items
 
@@ -46,13 +48,15 @@ Selecting a history row always restores it to the clipboard. **Automatic Paste**
 
 No Accessibility prompt appears at launch. Enable **Settings → General → Automatic Paste** when desired. If access is missing, use **Open System Settings**, grant access under **Privacy & Security → Accessibility**, and try again. Disabling the setting immediately returns both history items and action results to clipboard-only behavior. If the previous app is unavailable or macOS cannot send the paste command, the copied content remains on the clipboard for manual `Command-V`.
 
+macOS does not provide a public, permission-free API that inserts pasteboard content into the focused control of every third-party app. Apple Events would require separate Automation permissions and application support, so 粘易 does not present it as an equivalent bypass.
+
 ## Manage Data
 
 Use row actions to favorite, restore, or delete individual records. **Clear Text** removes text history from the main window. **Settings → Clear All Data** asks for confirmation and then removes local history records and stored image files.
 
 ## Settings
 
-Settings are organized into **General**, **Privacy**, **AI Polishing**, **Storage and Data**, and **About & Updates**. They include text/image recording toggles, sensitive-content filtering, launch-at-login preference backed by macOS Login Items, Dock icon preference, history retention days, text/image count limits, single-image size limit, total storage cap, DeepSeek model and credential controls, token statistics, and software update controls. The single-image size limit applies to new image captures, while cleanup runs on startup and uses the count and storage limits to bound local data growth.
+Settings are organized into **General**, **Privacy**, **AI Text Tools**, **Storage and Data**, and **About & Updates**. They include text/image recording toggles, sensitive-content filtering, launch-at-login preference backed by macOS Login Items, Dock icon preference, history retention days, text/image count limits, single-image size limit, total storage cap, DeepSeek model, translation target and credential controls, token statistics, and software update controls. The single-image size limit applies to new image captures, while cleanup runs on startup and uses the count and storage limits to bound local data growth.
 
 General settings also include **Appearance** with **Follow System**, **Light**, and **Dark** options. Appearance changes apply immediately and persist across launches; following the system remains the default.
 
@@ -64,6 +68,6 @@ Automatic and manual checks request the fixed GitHub Pages appcast and may downl
 
 ## Privacy Notes
 
-Clipboard content stays on this Mac and is not uploaded by update checks, except for text you explicitly submit through AI Polishing, which is sent to DeepSeek after disclosure. Keep sensitive-content filtering enabled if you do not want recognized sensitive patterns stored locally, use blocked-app controls for applications whose clipboard changes should always be skipped, and do not submit sensitive data remotely if you do not want it processed. Sensitive detection is best-effort, so release behavior should still be verified against your actual workflow before distribution.
+Clipboard content stays on this Mac and is not uploaded by update checks, except for text you explicitly submit through AI Polishing or AI Translation, which is sent to DeepSeek after disclosure. Keep sensitive-content filtering enabled if you do not want recognized sensitive patterns stored locally, use blocked-app controls for applications whose clipboard changes should always be skipped, and do not submit sensitive data remotely if you do not want it processed. Sensitive detection is best-effort, so release behavior should still be verified against your actual workflow before distribution.
 
 The current release does not encrypt the local history database or app-managed image files. Use macOS account security and disk encryption such as FileVault if you need device-level protection for local files.

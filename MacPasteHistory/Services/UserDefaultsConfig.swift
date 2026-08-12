@@ -51,6 +51,7 @@ struct UserDefaultsConfig {
         case automaticPasteEnabled = "config.automaticPasteEnabled"
         case aiModelIdentifier = "config.aiModelIdentifier"
         case hasAcknowledgedAIRemoteProcessing = "config.hasAcknowledgedAIRemoteProcessing"
+        case aiTranslationTarget = "config.aiTranslationTarget"
     }
 
     // MARK: - Generic accessors
@@ -228,6 +229,17 @@ struct UserDefaultsConfig {
     var hasAcknowledgedAIRemoteProcessing: Bool {
         get { bool(forKey: .hasAcknowledgedAIRemoteProcessing, defaultValue: false) }
         set { setBool(newValue, forKey: .hasAcknowledgedAIRemoteProcessing) }
+    }
+
+    var aiTranslationTarget: AITranslationTarget {
+        get {
+            guard let value = string(forKey: .aiTranslationTarget),
+                  let target = AITranslationTarget(rawValue: value) else {
+                return DefaultSettings.aiTranslationTarget
+            }
+            return target
+        }
+        set { setString(newValue.rawValue, forKey: .aiTranslationTarget) }
     }
 
     private func positiveInteger(forKey key: Key, defaultValue: Int) -> Int {
