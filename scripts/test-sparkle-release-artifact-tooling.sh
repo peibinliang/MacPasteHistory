@@ -131,6 +131,48 @@ expect_success \
     --archive "$archive_path" \
     --expected-public-key "$EXPECTED_PUBLIC_KEY"
 
+v103_release_dir="$fixture_repo/release-v1.0.3"
+v103_archive_app="$TEST_ROOT/archive-v1.0.3/粘易.app"
+v103_archive_path="$v103_release_dir/MacPasteHistory-1.0.3-5.zip"
+v103_appcast_path="$v103_release_dir/appcast.xml"
+v103_expected_url="https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.3/MacPasteHistory-1.0.3-5.zip"
+mkdir -p "$v103_release_dir" "$(dirname "$v103_archive_app")"
+/usr/bin/ditto "$archive_app" "$v103_archive_app"
+/usr/libexec/PlistBuddy -c 'Set :CFBundleShortVersionString 1.0.3' \
+    "$v103_archive_app/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c 'Set :CFBundleVersion 5' \
+    "$v103_archive_app/Contents/Info.plist"
+/usr/bin/ditto -c -k --sequesterRsrc --keepParent "$v103_archive_app" "$v103_archive_path"
+(
+    cd "$v103_release_dir"
+    /usr/bin/shasum -a 256 "$(basename "$v103_archive_path")" >"$(basename "$v103_archive_path").sha256"
+)
+v103_archive_length="$(/usr/bin/stat -f '%z' "$v103_archive_path")"
+{
+    printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>'
+    printf '%s\n' '<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">'
+    printf '%s\n' '  <channel>'
+    printf '%s\n' '    <title>Fixture updates</title>'
+    printf '%s\n' '    <item>'
+    printf '%s\n' '      <title>1.0.3</title>'
+    printf '%s\n' '      <sparkle:shortVersionString>1.0.3</sparkle:shortVersionString>'
+    printf '%s\n' '      <sparkle:version>5</sparkle:version>'
+    printf '      <enclosure url="%s" length="%s" type="application/octet-stream" sparkle:edSignature="%s" />\n' \
+        "$v103_expected_url" "$v103_archive_length" "$VALID_SIGNATURE_SHAPE"
+    printf '%s\n' '    </item>'
+    printf '%s\n' '  </channel>'
+    printf '%s\n' '</rss>'
+} >"$v103_appcast_path"
+expect_success \
+    "parameterized V1.0.3 appcast fixture" \
+    "$fixture_repo/scripts/verify-sparkle-appcast.sh" \
+    --appcast "$v103_appcast_path" \
+    --archive "$v103_archive_path" \
+    --expected-public-key "$EXPECTED_PUBLIC_KEY" \
+    --expected-version 1.0.3 \
+    --expected-build 5 \
+    --expected-url "$v103_expected_url"
+
 write_appcast \
     "$appcast_path" \
     "$EXPECTED_URL" \
