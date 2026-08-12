@@ -2,9 +2,37 @@ import AppKit
 import Combine
 import SwiftUI
 
+enum AppLaunchPolicy {
+    static let appSupportOverrideEnvironmentKey = "MACPASTEHISTORY_APP_SUPPORT_DIR"
+    static let openHistoryEnvironmentKey = "MACPASTEHISTORY_OPEN_HISTORY_ON_LAUNCH"
+    static let userDefaultsSuiteEnvironmentKey = "MACPASTEHISTORY_USER_DEFAULTS_SUITE"
+    private static let qaSuitePrefix = "com.peibin.MacPasteHistory.qa."
+
+    static func shouldOpenHistory(environment: [String: String]) -> Bool {
+        guard let appSupportPath = environment[appSupportOverrideEnvironmentKey],
+              appSupportPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+              let requestedValue = environment[openHistoryEnvironmentKey]?.lowercased() else {
+            return false
+        }
+        return ["1", "true", "yes"].contains(requestedValue)
+    }
+
+    static func isolatedUserDefaultsSuiteName(environment: [String: String]) -> String? {
+        guard let appSupportPath = environment[appSupportOverrideEnvironmentKey],
+              appSupportPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+              let suiteName = environment[userDefaultsSuiteEnvironmentKey],
+              suiteName.hasPrefix(qaSuitePrefix),
+              suiteName.count <= 255,
+              suiteName.range(of: #"^[A-Za-z0-9.-]+$"#, options: .regularExpression) != nil else {
+            return nil
+        }
+        return suiteName
+    }
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private static let appSupportOverrideEnvironmentKey = "MACPASTEHISTORY_APP_SUPPORT_DIR"
+    private static let xctestConfigurationEnvironmentKey = "XCTestConfigurationFilePath"
 
     private let logger = Logger(category: "AppDelegate")
     private lazy var applicationSupportService = ApplicationSupportService(
@@ -35,7 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var updateService = UpdateService(driver: SparkleUpdateDriver())
 
     override init() {
-        shortcutService = ShortcutService()
+        shortcutService = Self.makeRuntimeShortcutService()
         accessibilityPermissionService = AccessibilityPermissionService()
         super.init()
     }
@@ -46,23 +74,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         super.init()
     }
 
+    static func makeRuntimeShortcutService(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> ShortcutService {
+        let config = UserDefaultsConfig(environment: environment)
+        if config.isIsolatedQASession {
+            return ShortcutService(
+                config: config,
+                registrationManager: IsolatedQAShortcutRegistrationManager()
+            )
+        }
+        return ShortcutService(config: config)
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
-        LanguageManager().applyCurrentLanguage()
+        LanguageManager(defaults: UserDefaultsConfig().backingDefaults).applyCurrentLanguage()
         configureApplication()
         initializeLocalStorage()
+        guard Self.isRunningUnderXCTest == false else {
+            return
+        }
         createStatusItem()
         setupPasteTargetTracking()
         clipboardMonitor?.start()
         setupClearDataObserver()
         setupShortcut()
+        if AppLaunchPolicy.shouldOpenHistory(environment: ProcessInfo.processInfo.environment) {
+            openMainPanel()
+        }
     }
 
     private static func applicationSupportOverrideURL() -> URL? {
-        guard let path = ProcessInfo.processInfo.environment[appSupportOverrideEnvironmentKey],
-              path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+        let processInfo = ProcessInfo.processInfo
+        if let path = processInfo.environment[AppLaunchPolicy.appSupportOverrideEnvironmentKey],
+           path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+            return URL(fileURLWithPath: path, isDirectory: true)
+        }
+        guard isRunningUnderXCTest else {
             return nil
         }
-        return URL(fileURLWithPath: path, isDirectory: true)
+        return FileManager.default.temporaryDirectory
+            .appendingPathComponent("MacPasteHistory-XCTest-\(processInfo.processIdentifier)", isDirectory: true)
+    }
+
+    private static var isRunningUnderXCTest: Bool {
+        ProcessInfo.processInfo.environment[xctestConfigurationEnvironmentKey] != nil
     }
 
     private func setupClearDataObserver() {
@@ -184,12 +240,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 imageStorageService: imageStorageService,
                 captureEventAggregationService: CaptureEventAggregationService(
                     repository: repository,
-                    preferences: CaptureEventAggregationPreferences(defaults: .standard)
+                    preferences: makeCaptureEventAggregationPreferences()
                 )
             )
             cleanupService.performStartupCleanup()
+            startStorageReconciliation()
         } catch {
             logger.error("Local storage initialization failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func startStorageReconciliation() {
+        do {
+            let databaseURL = try applicationSupportService.databaseURL
+            let imagesURL = try applicationSupportService.imagesURL
+            let thumbnailsURL = try applicationSupportService.thumbnailsURL
+            let temporaryURL = try applicationSupportService.reconciliationTemporaryURL
+            DispatchQueue.global(qos: .utility).async {
+                let reconciliationLogger = Logger(category: "StorageReconciliation")
+                do {
+                    let database = try DatabaseConnection(databaseURL: databaseURL, mode: .readOnly)
+                    defer { try? database.close() }
+                    let report = StorageReconciliationService(
+                        repository: ClipboardHistoryRepository(database: database),
+                        imagesDirectory: imagesURL,
+                        thumbnailsDirectory: thumbnailsURL,
+                        temporaryDirectory: temporaryURL
+                    ).reconcile()
+                    let issueCount = report.issueCounts.values.reduce(0, +)
+                    reconciliationLogger.info(
+                        "Storage reconciliation completed, issues: \(issueCount), "
+                            + "planned: \(report.plannedActionCount), "
+                            + "completed: \(report.completedActionCount), failed: \(report.failedActionCount)"
+                    )
+                } catch {
+                    reconciliationLogger.error("Storage reconciliation could not start")
+                }
+            }
+        } catch {
+            logger.error("Storage reconciliation paths unavailable")
         }
     }
 
@@ -207,14 +296,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         let controller = mainWindowController ?? createHistoryPanelController(
             viewModel: viewModel,
-            pasteTargetApplication: pasteTargetApplication
+            pasteCoordinator: makePasteCoordinator(
+                viewModel: viewModel,
+                targetApplication: pasteTargetApplication
+            )
         )
         if let hostingView = controller.window?.contentView as? NSHostingView<MainPanelView> {
             hostingView.rootView = MainPanelView(
                 viewModel: viewModel,
                 accessibilityPermissionService: accessibilityPermissionService,
                 actionViewModel: makeContentActionViewModel(),
-                pasteTargetApplication: pasteTargetApplication,
+                pasteCoordinator: makePasteCoordinator(
+                    viewModel: viewModel,
+                    targetApplication: pasteTargetApplication
+                ),
                 dismissAction: { [weak window = controller.window] in
                     window?.orderOut(nil)
                 }
@@ -246,12 +341,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ) -> SettingsViewModel {
         SettingsViewModel(
             config: config,
+            loginItemService: makeLoginItemService(config: config),
+            languageManager: LanguageManager(defaults: config.backingDefaults),
             appearanceService: AppearanceService(config: config),
-            shortcutService: shortcutService,
+            shortcutService: makeSettingsShortcutService(config: config),
             accessibilityPermissionService: accessibilityPermissionService,
             aiCredentialStore: KeychainAICredentialStore(),
             aiTokenUsageRepository: aiTokenUsageRepository
         )
+    }
+
+    func makeLoginItemService(config: UserDefaultsConfig = UserDefaultsConfig()) -> LoginItemService {
+        if config.isIsolatedQASession {
+            return LoginItemService(manager: IsolatedQALoginItemManager(), config: config)
+        }
+        return LoginItemService(manager: SystemLoginItemManager(), config: config)
+    }
+
+    func makeSettingsShortcutService(config: UserDefaultsConfig = UserDefaultsConfig()) -> ShortcutService {
+        if config.isIsolatedQASession {
+            return ShortcutService(
+                config: config,
+                registrationManager: IsolatedQAShortcutRegistrationManager()
+            )
+        }
+        return shortcutService
+    }
+
+    func makeCaptureEventAggregationPreferences(
+        config: UserDefaultsConfig = UserDefaultsConfig()
+    ) -> CaptureEventAggregationPreferences {
+        CaptureEventAggregationPreferences(defaults: config.backingDefaults)
     }
 
     func makeUpdateService() -> UpdateService {
@@ -309,7 +429,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func createHistoryPanelController(
         viewModel: ClipboardHistoryViewModel,
-        pasteTargetApplication: NSRunningApplication?
+        pasteCoordinator: PasteCoordinator
     ) -> NSWindowController {
         let panel = HistoryPanelWindow(
             contentRect: NSRect(origin: .zero, size: HistoryPanelWindow.defaultSize)
@@ -319,13 +439,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 viewModel: viewModel,
                 accessibilityPermissionService: accessibilityPermissionService,
                 actionViewModel: makeContentActionViewModel(),
-                pasteTargetApplication: pasteTargetApplication,
+                pasteCoordinator: pasteCoordinator,
                 dismissAction: { [weak panel] in
                     panel?.orderOut(nil)
                 }
             )
         )
         return NSWindowController(window: panel)
+    }
+
+    private func makePasteCoordinator(
+        viewModel: ClipboardHistoryViewModel,
+        targetApplication: NSRunningApplication?
+    ) -> PasteCoordinator {
+        PasteCoordinator(
+            writer: viewModel,
+            readinessProvider: AutomaticPastePolicy(
+                accessibilityPermissionService: accessibilityPermissionService
+            ),
+            target: targetApplication.map(RunningApplicationPasteTarget.init(application:)),
+            commandDispatcher: PasteCommandService(),
+            usageRecorder: viewModel
+        )
     }
 
     private func showHistoryPanel(_ controller: NSWindowController) {

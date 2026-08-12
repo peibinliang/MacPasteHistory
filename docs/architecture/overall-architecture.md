@@ -8,6 +8,7 @@ flowchart LR
     MON --> REP[ClipboardHistoryRepository]
     REP --> DB[(SQLite + image files)]
     DB --> SEARCH[Read-only SearchCandidateProvider]
+    DB --> RECON[Read-only Storage Reconciliation]
     SEARCH --> VM[ClipboardHistoryViewModel]
     VM --> PANEL[History panel]
     PANEL --> ACTION[Content action session]
@@ -35,11 +36,13 @@ flowchart LR
 
 ## Data and concurrency
 
-`DatabaseInitializer` opens the writer connection. `SearchCandidateProvider` is an actor that opens, uses and closes a read-only connection per request. Clipboard capture, search, deterministic actions, and OCR remain local. The sole network path is an explicitly selected AI Polishing action: after first-use disclosure, the current action text is sent over HTTPS to DeepSeek. The API key stays in macOS Keychain. SQLite stores provider/model/token counts only, never prompts, source text, responses, or credentials.
+`DatabaseInitializer` opens the writer connection. `SearchCandidateProvider` is an actor that opens, uses and closes a read-only connection per request. SQLite remains in default `DELETE` journal mode with a 1,000 ms busy timeout and `BEGIN IMMEDIATE` write transactions; WAL was tested with the same correctness matrix but rejected for V1.0.3 because its sidecars remained after the tested shutdown lifecycle. After synchronous retention cleanup, startup dispatches storage reconciliation to a utility queue with its own read-only SQLite connection, so history opening and clipboard monitoring do not wait for image decoding. Reconciliation inventories canonical `images`, `thumbnails`, and `temporary` roots, reports drift using counts, retains ordinary orphaned or uncertain files, and mutates only a safely referenced missing thumbnail or an unreferenced `mph-image-*.tmp` file older than 24 hours. Clipboard capture, search, deterministic actions, OCR, and reconciliation remain local. The sole network path is an explicitly selected AI Polishing action: after first-use disclosure, the current action text is sent over HTTPS to DeepSeek. The API key stays in macOS Keychain. SQLite stores provider/model/token counts only, never prompts, source text, responses, or credentials.
 
-Automatic paste is controlled by a persisted default-off preference and live Accessibility trust. The shared policy returns clipboard-only, permission-required, or ready; every paste path restores/copies first and dispatches `Command-V` only in the ready state.
+Automatic paste is controlled by a persisted default-off preference and live Accessibility trust. `PasteCoordinator` is the single MainActor orchestration boundary for history items and content-action output: it writes the clipboard, evaluates the shared policy, prepares the panel for dispatch, activates the captured target app, waits for focus transfer, sends `Command-V`, and records exactly one paste or reuse outcome. The policy returns clipboard-only, permission-required, or ready; every path writes the clipboard first, while only ready may activate and dispatch. Cancellation and target/command failure keep a typed clipboard-available fallback instead of retrying or double-counting.
 
 ## Search, action and OCR lifecycle
+
+`ClipboardHistoryViewModel` remains the stable SwiftUI-facing MainActor facade. Focused collaborators own ordinary/ranked pagination (`HistoryListCoordinator`), retained Task plus request ownership (`SearchTaskLifecycle`), and derived-item selection (`HistorySelectionState`) behind narrow injectable protocols. A list reload invalidates the active search before fetching, and the search Task captures the ViewModel weakly so replacing or closing a panel releases the old facade and cancels its work. Views continue to call the facade and do not access SQLite or paste accounting directly.
 
 ```mermaid
 sequenceDiagram
@@ -57,6 +60,8 @@ sequenceDiagram
 ```
 
 `ActionSession` retains only the active transformation branch. Copy increments reuse count; a successfully dispatched direct paste increments paste count; save-derived does not increment source usage. OCR is never an automatic historical scan: a user selects one image, edits the recognition, and explicitly saves it. Saving preserves image storage type but enables OCR text search and type-aware actions.
+
+`ClipboardHistoryViewModel` owns exactly one search `Task`. Every new input cancels the superseded task and advances a request ID; immediate results remain visible while the full candidate query is pending, and only the latest request may update results, errors, or loading state. `SearchCoordinator` keeps its separate generation check around debounce and read-only candidate retrieval. Explicit Task cancellation avoids wasted work, while generation and request ownership prevent late results from dependencies that do not promptly honor cancellation.
 
 ## Software update subsystem
 

@@ -12,7 +12,7 @@ Text recording and image recording can be enabled or disabled in **Settings**. S
 
 ## Sensitive Content Filtering
 
-**Settings → Privacy → Filter sensitive content** is enabled by default, including after upgrading from a version that did not store this preference. While enabled, text matching common password, token, identity-number, or payment-card patterns is skipped instead of being added to history.
+**Settings → Privacy → Filter sensitive content** is enabled by default, including after upgrading from a version that did not store this preference. While enabled, high-confidence contextual passwords, tokens and secrets, checksum-valid payment-card candidates, and date/checksum-valid 18-character Mainland China identity candidates are skipped instead of being added to history. Common developer identifiers such as Git SHA values, MD5 hashes, UUIDs and trace IDs are not blocked solely because they are long or random-looking.
 
 The first request to turn filtering off shows a warning that the local SQLite history database is not encrypted and that matching sensitive text may be stored on this Mac. Cancelling the warning leaves filtering enabled. If you accept the warning, filtering turns off immediately and matching text becomes eligible for the normal local capture flow, including multiline technical text.
 
@@ -44,7 +44,7 @@ The returned text opens in the normal editable result preview and can be copied,
 
 Selecting a history row always restores it to the clipboard. **Automatic Paste** is off by default; while it is off, use `Command-V` manually. If enabled and Accessibility permission is available, 粘易 returns focus to the previous app and sends `Command-V`. Use the row's **More Actions** menu to preview long text or images without pasting. Arrow keys move the inline selection, and `Enter` uses the same policy.
 
-No Accessibility prompt appears at launch. Enable **Settings → General → Automatic Paste** when desired. If access is missing, use **Open System Settings**, grant access under **Privacy & Security → Accessibility**, and try again. Disabling the setting immediately returns to clipboard-only behavior.
+No Accessibility prompt appears at launch. Enable **Settings → General → Automatic Paste** when desired. If access is missing, use **Open System Settings**, grant access under **Privacy & Security → Accessibility**, and try again. Disabling the setting immediately returns both history items and action results to clipboard-only behavior. If the previous app is unavailable or macOS cannot send the paste command, the copied content remains on the clipboard for manual `Command-V`.
 
 ## Manage Data
 

@@ -1,6 +1,6 @@
 # 粘易发布准备操作指引
 
-> **版本**: v1.0.2 | **目标**: Apple Silicon / Intel macOS 14.0+ | **最后更新**: 2026-08-11
+> **版本**: v1.0.3 | **目标**: Apple Silicon / Intel macOS 14.0+ | **最后更新**: 2026-08-12
 
 本手册覆盖从代码冻结到 App Store 提交之前的全部发布准备步骤，按阶段顺序执行。每个阶段末尾有验收检查清单（✅ 全部打勾才能进入下一阶段）。
 
@@ -22,9 +22,9 @@
 
 ---
 
-## V1.0.2 当前交接边界
+## V1.0.3 当前交接边界
 
-已可在本地自动复核的内容包括版本 `1.0.2 (4)`、敏感过滤默认值与持久化、关闭确认、长文本完整捕获回归、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。
+已可在本地自动复核的内容包括版本 `1.0.3 (5)`、V1.0.3 核心稳定自动化矩阵、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。真实 V1.0.2 build 4 应用生成并脱敏的数据库 fixture 已纳入仓库，checksum 与升级完整性门禁通过；来源和后处理边界见 fixture README 与 PD-006。
 
 以下项目没有真实证据时必须保持未完成：GUI 过滤开关回归、Developer ID Application 签名、Apple 公证、官方 `generate_appcast` 产生的真实 EdDSA 正式产物、本地 HTTPS V1.0.1 → V1.0.2 演练、无效签名安装拒绝、公共 feed 升级、Intel/多 macOS 版本验证和 GitHub 发布。`--strict-final` 在这些证据缺失时应退出非零，这是正确门禁结果。
 
@@ -307,8 +307,8 @@ scripts/verify-release-app-signature.sh --build --allow-adhoc
 | `COMPILE_SOURCES_WITH_NORMAL_ENTITLEMENTS` | `YES` | 使用普通 entitlements |
 
 3. **版本号确认**:
-   - `CFBundleShortVersionString`: `1.0.2`
-   - `CFBundleVersion`: `4`
+   - `CFBundleShortVersionString`: `1.0.3`
+   - `CFBundleVersion`: `5`
 
 4. 校验 Info.plist、发布指南和人工 QA 模板中的版本/构建号声明一致：
 
@@ -329,7 +329,7 @@ scripts/verify-release-version-build.sh
 - [x] Release 配置构建成功
 - [x] `SWIFT_OPTIMIZATION_LEVEL = -O`
 - [x] `ENABLE_DEBUG_DYLIB_SUPPORT = NO`
-- [x] 版本号为 `1.0.2 (4)`
+- [x] 版本号为 `1.0.3 (5)`
 - [x] `LSUIElement = true`
 
 ---
@@ -432,6 +432,14 @@ scripts/preview-release-app.sh --seed-preview-data
 ```
 
 该命令会调用 `scripts/seed-preview-data.sh`，写入 4 条合成文本记录和 2 条合成图片记录到临时 App Support 目录，不会修改真实历史数据库。
+
+自动化工具无法点击 `SystemUIServer` 托管的菜单栏状态项时，可使用下面的 QA 专用入口直接打开历史窗口：
+
+```bash
+scripts/preview-release-app.sh --seed-preview-data --open-history
+```
+
+隔离预览会同时使用 `com.peibin.MacPasteHistory.qa.*` 命名的独立 UserDefaults suite，因此修改 Automatic Paste、Blocked Apps 等设置不会写入真实用户偏好；其中“开机启动”只更新隔离偏好，不注册或注销真实 macOS Login Item，快捷键编辑也只验证配置、不改动真实全局 Hot Key。`MACPASTEHISTORY_OPEN_HISTORY_ON_LAUNCH` 只有在 `MACPASTEHISTORY_APP_SUPPORT_DIR` 同时存在时才生效；自定义偏好 suite 还必须使用上述 QA 前缀和安全字符。该入口仅用于内部 QA，不替代菜单栏状态项、全局快捷键和真实开机启动注册的人工验证。脚本会打印隔离数据目录与 suite 名，QA 后应仅清理这两个精确目标。
 
 确认以下行为：
 - 菜单栏出现剪贴板图标

@@ -10,6 +10,7 @@ should_build=1
 should_open=1
 use_isolated_data=0
 seed_preview_data=0
+open_history=0
 
 usage() {
     cat <<'EOF'
@@ -23,6 +24,7 @@ Options:
   --isolated-data  Launch with a temporary isolated App Support directory.
   --seed-preview-data
                   Seed isolated preview data before launching. Implies --isolated-data.
+  --open-history  Open the history window on launch. Implies --isolated-data.
   -h, --help       Show this help.
 EOF
 }
@@ -49,6 +51,10 @@ while [[ $# -gt 0 ]]; do
         --seed-preview-data)
             use_isolated_data=1
             seed_preview_data=1
+            ;;
+        --open-history)
+            use_isolated_data=1
+            open_history=1
             ;;
         -h|--help)
             usage
@@ -110,12 +116,23 @@ fi
 if [[ "$use_isolated_data" -eq 1 ]]; then
     mkdir -p "$CONTAINER_DATA_DIR"
     preview_data_dir="$(mktemp -d "$CONTAINER_DATA_DIR/manual-preview-data.XXXXXX")"
+    preview_session_name="$(basename "$preview_data_dir")"
+    preview_defaults_suite="com.peibin.MacPasteHistory.qa.$preview_session_name"
     echo "Using isolated preview data: $preview_data_dir"
+    echo "Using isolated preview preferences: $preview_defaults_suite"
     if [[ "$seed_preview_data" -eq 1 ]]; then
         echo "Seeding synthetic preview history..."
         scripts/seed-preview-data.sh "$preview_data_dir"
     fi
-    open -n --env "MACPASTEHISTORY_APP_SUPPORT_DIR=$preview_data_dir" "$app_path"
+    open_args=(
+        -n
+        --env "MACPASTEHISTORY_APP_SUPPORT_DIR=$preview_data_dir"
+        --env "MACPASTEHISTORY_USER_DEFAULTS_SUITE=$preview_defaults_suite"
+    )
+    if [[ "$open_history" -eq 1 ]]; then
+        open_args+=(--env "MACPASTEHISTORY_OPEN_HISTORY_ON_LAUNCH=1")
+    fi
+    open "${open_args[@]}" "$app_path"
 else
     open "$app_path"
 fi

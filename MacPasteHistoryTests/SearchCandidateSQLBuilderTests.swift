@@ -36,7 +36,7 @@ final class SearchCandidateSQLBuilderTests: XCTestCase {
         )
 
         let keywordBucketIndex = try XCTUnwrap(query.sql.range(of: "ORDER BY keyword_bucket ASC")).lowerBound
-        let recencyIndex = try XCTUnwrap(query.sql.range(of: "datetime(last_captured_at) DESC")).lowerBound
+        let recencyIndex = try XCTUnwrap(query.sql.range(of: "last_captured_at DESC")).lowerBound
 
         XCTAssertLessThan(keywordBucketIndex, recencyIndex)
         XCTAssertEqual(query.bindings.last, .integer(500))

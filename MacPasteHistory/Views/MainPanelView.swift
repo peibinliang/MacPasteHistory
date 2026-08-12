@@ -4,10 +4,8 @@ import SwiftUI
 struct MainPanelView: View {
     @StateObject private var viewModel: ClipboardHistoryViewModel
     @StateObject private var actionViewModel: ContentActionPanelViewModel
-    private let pasteCommandService: PasteCommandService
+    private let pasteCoordinator: PasteCoordinator
     private let accessibilityPermissionService: AccessibilityPermissionService
-    private let automaticPastePolicy: AutomaticPastePolicy
-    private let pasteTargetApplication: NSRunningApplication?
     private let dismissAction: (() -> Void)?
 
     @State private var selectedItem: ClipboardHistoryItem?
@@ -24,21 +22,15 @@ struct MainPanelView: View {
 
     init(
         viewModel: ClipboardHistoryViewModel,
-        pasteCommandService: PasteCommandService = PasteCommandService(),
         accessibilityPermissionService: AccessibilityPermissionService = AccessibilityPermissionService(),
-        automaticPastePolicy: AutomaticPastePolicy? = nil,
         actionViewModel: ContentActionPanelViewModel? = nil,
-        pasteTargetApplication: NSRunningApplication? = nil,
+        pasteCoordinator: PasteCoordinator,
         dismissAction: (() -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _actionViewModel = StateObject(wrappedValue: actionViewModel ?? ContentActionPanelViewModel())
-        self.pasteCommandService = pasteCommandService
+        self.pasteCoordinator = pasteCoordinator
         self.accessibilityPermissionService = accessibilityPermissionService
-        self.automaticPastePolicy = automaticPastePolicy ?? AutomaticPastePolicy(
-            accessibilityPermissionService: accessibilityPermissionService
-        )
-        self.pasteTargetApplication = pasteTargetApplication
         self.dismissAction = dismissAction
     }
 
@@ -490,55 +482,42 @@ struct MainPanelView: View {
     }
 
     private func restoreAndShowFeedback(_ item: ClipboardHistoryItem) {
-        viewModel.restore(item)
+        guard viewModel.restore(item) else { return }
         showCopyToast()
     }
 
     private func pasteIntoPreviousApplication(_ item: ClipboardHistoryItem) {
-        guard viewModel.restore(item) else { return }
-        switch automaticPastePolicy.readiness {
-        case .clipboardOnly:
-            _ = viewModel.recordClipboardOnlyUsage(for: item)
-            showManualPasteToast()
-        case .permissionRequired:
-            _ = viewModel.recordClipboardOnlyUsage(for: item)
-            _ = accessibilityPermissionService.reminderIfNeeded(for: .automaticPaste)
-            showAccessibilityPermissionReminder = true
-            showManualPasteToast()
-        case .ready:
-            closePanel()
-            pasteTargetApplication?.activate(options: PasteActivationPolicy.options)
-            Task {
-                try? await Task.sleep(nanoseconds: 250_000_000)
-                _ = viewModel.sendPasteForRestoredItem(item, pasteCommandService: pasteCommandService)
+        guard let request = viewModel.pasteRequest(for: item) else { return }
+        Task {
+            let outcome = await pasteCoordinator.paste(request) {
+                closePanel()
             }
+            handlePasteOutcome(outcome)
         }
     }
 
     private func pasteActionOutput(_ output: String, source: ClipboardHistoryItem) {
-        switch automaticPastePolicy.readiness {
-        case .clipboardOnly:
-            if viewModel.copyActionOutput(output, sourceItem: source) {
-                showManualPasteToast()
+        let request = viewModel.actionOutputPasteRequest(output, sourceItem: source)
+        Task {
+            let outcome = await pasteCoordinator.paste(request) {
+                actionViewModel.close()
+                closePanel()
             }
+            handlePasteOutcome(outcome)
+        }
+    }
+
+    private func handlePasteOutcome(_ outcome: PasteOutcome) {
+        viewModel.applyPasteOutcome(outcome)
+        switch PasteOutcomeFeedback.feedback(for: outcome) {
+        case .none:
+            break
+        case .manualPaste:
+            showManualPasteToast()
         case .permissionRequired:
-            if viewModel.copyActionOutput(output, sourceItem: source) {
-                showManualPasteToast()
-            }
             _ = accessibilityPermissionService.reminderIfNeeded(for: .automaticPaste)
             showAccessibilityPermissionReminder = true
-        case .ready:
-            actionViewModel.close()
-            closePanel()
-            pasteTargetApplication?.activate(options: PasteActivationPolicy.options)
-            Task {
-                try? await Task.sleep(nanoseconds: 250_000_000)
-                _ = viewModel.pasteActionOutput(
-                    output,
-                    sourceItem: source,
-                    pasteCommandService: pasteCommandService
-                )
-            }
+            showManualPasteToast()
         }
     }
 

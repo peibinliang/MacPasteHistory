@@ -166,6 +166,26 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, NSLocalizedString("Failed to restore text to clipboard.", comment: ""))
     }
 
+    func testPasteRequest_whenImageFileIsMissing_shouldPreserveImageSpecificFeedback() throws {
+        let pngData = try makePNGData()
+        let item = try saveImageRecord(pngData: pngData)
+        try FileManager.default.removeItem(atPath: try XCTUnwrap(item.filePath))
+
+        XCTAssertNil(viewModel.pasteRequest(for: item))
+        XCTAssertEqual(viewModel.errorMessage, NSLocalizedString("Failed to restore image to clipboard.", comment: ""))
+    }
+
+    func testApplyPasteOutcome_whenImageWriteAlreadyFailed_shouldNotReplaceSpecificFeedback() throws {
+        let pngData = try makePNGData()
+        let item = try saveImageRecord(pngData: pngData)
+        try FileManager.default.removeItem(atPath: try XCTUnwrap(item.filePath))
+        XCTAssertNil(viewModel.pasteRequest(for: item))
+
+        viewModel.applyPasteOutcome(.failed(.clipboardWrite))
+
+        XCTAssertEqual(viewModel.errorMessage, NSLocalizedString("Failed to restore image to clipboard.", comment: ""))
+    }
+
     func testCopyActionOutput_whenWriteSucceeds_shouldRecordReuseCopy() throws {
         let source = try repository.saveText("source", sourceApp: nil, sourceBundleID: nil)
 
@@ -250,6 +270,26 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         XCTAssertTrue(try repository.fetchHistory(query: HistoryQuery(contentType: .image)).isEmpty)
         XCTAssertFalse(FileManager.default.fileExists(atPath: filePath))
         XCTAssertFalse(FileManager.default.fileExists(atPath: thumbnailPath))
+    }
+
+    func testDelete_whenItemIsText_shouldRefreshVisibleList() throws {
+        let item = try repository.saveText("delete me", sourceApp: nil, sourceBundleID: nil)
+        _ = try repository.saveText("keep me", sourceApp: nil, sourceBundleID: nil)
+        viewModel.loadHistory()
+
+        viewModel.delete(item)
+
+        XCTAssertEqual(viewModel.items.map(\.textContent), ["keep me"])
+    }
+
+    func testClearTextHistory_shouldRemoveTextAndKeepImage() throws {
+        _ = try repository.saveText("clear me", sourceApp: nil, sourceBundleID: nil)
+        let image = try saveImageRecord(pngData: makePNGData())
+        viewModel.loadHistory()
+
+        viewModel.clearTextHistory()
+
+        XCTAssertEqual(viewModel.items.map(\.id), [image.id])
     }
 
     private func saveImageRecord(pngData: Data) throws -> ClipboardHistoryItem {

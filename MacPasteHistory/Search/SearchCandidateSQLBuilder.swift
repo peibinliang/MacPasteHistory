@@ -70,7 +70,7 @@ struct SearchCandidateSQLBuilder {
             sql: """
             \(selectSQL)
             \(whereClause)
-            ORDER BY keyword_bucket ASC, datetime(last_captured_at) DESC, id DESC
+            ORDER BY keyword_bucket ASC, last_captured_at DESC, id DESC
             LIMIT ?;
             """,
             bindings: bindings
@@ -119,18 +119,18 @@ struct SearchCandidateSQLBuilder {
         bindings: inout [SearchCandidateSQLBinding]
     ) {
         if let after = request.parsedQuery.after {
-            conditions.append("datetime(last_captured_at) >= datetime(?)")
+            conditions.append("julianday(last_captured_at) >= julianday(?)")
             bindings.append(.date(after))
         }
         if let before = request.parsedQuery.before {
-            conditions.append("datetime(last_captured_at) <= datetime(?)")
+            conditions.append("julianday(last_captured_at) <= julianday(?)")
             bindings.append(.date(before))
         }
         guard request.parsedQuery.before == nil, request.parsedQuery.after == nil,
               let startDate = timeRangeStartDate(for: request.timeRange) else {
             return
         }
-        conditions.append("datetime(last_captured_at) >= datetime(?)")
+        conditions.append("julianday(last_captured_at) >= julianday(?)")
         bindings.append(.date(startDate))
     }
 

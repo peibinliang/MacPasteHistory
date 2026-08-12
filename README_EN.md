@@ -32,6 +32,7 @@
 - Automatically records text and common image formats, including PNG, TIFF, and JPEG
 - Captures supported local image files copied from Finder and creates local thumbnails for previews
 - Deduplicates content by hash while retaining the latest copy time and source application
+- V1.0.3 keeps one immutable source/time snapshot per observed capture and orders rapid recaptures with subsecond precision
 - Stores history, images, and non-secret preferences locally; only text explicitly submitted to AI Polishing is sent to DeepSeek
 
 ### Timeline, search, and filters
@@ -72,6 +73,7 @@
 - Enables text and image recording independently, with an option to pause all recording
 - Blocks the current foreground app in one click, or manages blocked apps by name and bundle identifier
 - Enables sensitive-content filtering by default, skipping common password, token, identity, and payment-card patterns
+- V1.0.3 uses structured categories, confidence, and safe reason codes to avoid treating developer IDs, hashes, and ordinary long text as secrets
 - Allows filtering to be disabled under **Settings → Privacy**; the first disable request warns that sensitive text may be written to the local unencrypted SQLite history database. Re-enable the same switch at any time for immediate protection
 - Never writes complete clipboard contents to application logs
 
@@ -85,6 +87,7 @@
 
 - Configures retention days, text/image count limits, per-image size limits, and a total storage cap
 - Cleans up expired or excess records on startup and removes their local image files
+- Reconciles database/image storage asynchronously after startup, rebuilding only provably safe thumbnails and removing app-owned temporary files older than 24 hours
 - Clears text history separately or deletes all local history and image files at once
 - Supports launch at login and showing or hiding the Dock icon
 - Supports Follow System, Light, and Dark appearances with immediate updates

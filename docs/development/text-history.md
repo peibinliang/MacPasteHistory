@@ -17,16 +17,20 @@ Text history is the first user-facing clipboard workflow. It records accepted pl
 1. `AppDelegate` initializes Application Support directories, opens SQLite, runs migrations, and starts `ClipboardMonitor`.
 2. `ClipboardMonitor` compares the current pasteboard `changeCount` with the last processed value.
 3. Internal restore changes are skipped through `ClipboardRestorationState`.
-4. `ClipboardReader` reads sanitized plain text.
-5. `ClipboardHistoryRepository` saves or updates the text record.
-6. `ClipboardHistoryViewModel` reloads the list after save, search, delete, or clear.
+4. The monitor captures one immutable source-application and timestamp context for the pasteboard change.
+5. Pause and blocked-app privacy checks use that captured context before content is read.
+6. `ClipboardReader` reads sanitized plain text and sensitive filtering decides whether it may be persisted.
+7. `ClipboardHistoryRepository` saves or updates the text record and capture event with the same source context.
+8. `ClipboardHistoryViewModel` reloads the list after save, search, delete, or clear.
 
 ## Modules
 
 | Module | Responsibility |
 | --- | --- |
 | `ClipboardMonitor` | Polls pasteboard changes and coordinates text capture. |
+| `ClipboardCaptureContext` | Holds one immutable source application and capture time for a pasteboard change. |
 | `ClipboardReader` | Reads sanitized plain text from a pasteboard. |
+| `SensitiveContentDetector` | Produces local category, confidence, and safe reason-code results using focused credential, secret, card, identity, and optional user rules. |
 | `ClipboardWriter` | Restores selected text to the system clipboard. |
 | `PasteCommandService` | Sends Command+V after a successful double-click restore. |
 | `ClipboardHistoryRepository` | Performs SQLite CRUD with bound parameters. |
@@ -37,11 +41,13 @@ Text history is the first user-facing clipboard workflow. It records accepted pl
 
 Text records are stored in `clipboard_history` with `content_type = text`, `text_content`, `content_hash`, `text_length`, optional source app fields, timestamps, and favorite/sensitive flags.
 
-Duplicate text does not create a second row. The existing row is moved to the top by updating `created_at` and `updated_at`.
+Duplicate text does not create a second row. The existing row keeps its original creation time, increments `capture_count`, updates `last_captured_at`, and receives a capture event. The history row and its event use the same source metadata and capture timestamp from the monitor context.
 
 ## Privacy And Security
 
-Clipboard content remains local in `~/Library/Application Support/MacPasteHistory/clipboard.db`. Logs record only text length and operational status, never full clipboard content. Sensitive filtering and blocked-app behavior are planned in the privacy change.
+Clipboard content remains local in `~/Library/Application Support/MacPasteHistory/clipboard.db`. Logs record only text length and operational status, never full clipboard content. Sensitive detection also remains local and returns fixed reason codes rather than matched values. Only high-confidence results block persistence while filtering is enabled. Card candidates must pass Luhn validation, identity candidates must pass date and check-digit validation, and ordinary developer identifiers are not rejected solely because of length. Pause, blocked-app and sensitive-content checks run before persistence. A foreground-app change after capture begins cannot replace the source snapshot used by the blocked-app decision or saved metadata.
+
+macOS pasteboard data does not identify the process that placed content on the pasteboard. The source snapshot is therefore the foreground app observed when the 0.5-second polling loop detects the change. If the user switches apps before that observation, source attribution and blocked-app filtering are best-effort rather than an absolute security boundary; the project does not use keyboard interception to infer copy events.
 
 ## Testing
 
@@ -49,8 +55,8 @@ Automated tests cover:
 
 - text hash normalization and uniqueness
 - plain text reading and whitespace skipping
-- monitor change detection, no-change skipping, source metadata, and restore skipping
-- SQLite save, dedupe, search, delete, and text length metadata
+- monitor change detection, no-change skipping, single source-provider resolution, foreground-app race handling, unknown source metadata, and restore skipping
+- SQLite save, dedupe, capture-event source/time consistency, search, delete, and text length metadata
 - clipboard restore guard state
 - restore success/failure reporting and paste command dispatch
 

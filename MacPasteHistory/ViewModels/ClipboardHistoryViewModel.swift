@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 @MainActor
-final class ClipboardHistoryViewModel: ObservableObject {
+final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting, PasteUsageRecording {
     @Published private(set) var items: [ClipboardHistoryItem] = []
     @Published var searchText = ""
     @Published private(set) var parsedSearchQuery = SearchQueryParser().parse("")
@@ -24,11 +24,9 @@ final class ClipboardHistoryViewModel: ObservableObject {
     private let imageStorageService: ImageStorageService?
     private let pageSize: Int
     private let searchCoordinator: (any SearchCoordinating)?
-    private var currentOffset = 0
-    private var canLoadMore = true
-    private var rankedCandidates: [ClipboardHistoryItem] = []
-    private var visibleCandidateCount = 0
-    private var isShowingRankedResults = false
+    private let listCoordinator: any HistoryListCoordinating
+    private let searchLifecycle: any SearchTaskLifecycleManaging
+    private let selectionState: any HistorySelectionManaging
     private var historyDidChangeCancellable: AnyCancellable?
 
     init(
@@ -36,13 +34,19 @@ final class ClipboardHistoryViewModel: ObservableObject {
         writer: ClipboardWriter,
         imageStorageService: ImageStorageService? = nil,
         pageSize: Int = 50,
-        searchCoordinator: (any SearchCoordinating)? = nil
+        searchCoordinator: (any SearchCoordinating)? = nil,
+        listCoordinator: (any HistoryListCoordinating)? = nil,
+        searchLifecycle: (any SearchTaskLifecycleManaging)? = nil,
+        selectionState: (any HistorySelectionManaging)? = nil
     ) {
         self.repository = repository
         self.writer = writer
         self.imageStorageService = imageStorageService
         self.pageSize = pageSize
         self.searchCoordinator = searchCoordinator
+        self.listCoordinator = listCoordinator ?? HistoryListCoordinator(provider: repository, pageSize: pageSize)
+        self.searchLifecycle = searchLifecycle ?? SearchTaskLifecycle()
+        self.selectionState = selectionState ?? HistorySelectionState()
         historyDidChangeCancellable = NotificationCenter.default.publisher(for: .clipboardHistoryDidChange)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
@@ -51,19 +55,15 @@ final class ClipboardHistoryViewModel: ObservableObject {
     }
 
     func loadHistory() {
+        searchLifecycle.invalidate()
+        isSearchLoading = false
         do {
-            isShowingRankedResults = false
-            rankedCandidates = []
-            visibleCandidateCount = 0
-            currentOffset = 0
-            let loadedItems = try repository.fetchHistory(query: currentQuery(offset: currentOffset))
-            items = loadedItems
-            sourceOptions = try repository.fetchSourceOptions()
+            let snapshot = try listCoordinator.load(query: currentQuery(offset: 0))
+            items = snapshot.items
+            sourceOptions = snapshot.sourceOptions
             if let selectedSourceOption, sourceOptions.contains(selectedSourceOption) == false {
                 self.selectedSourceOption = nil
             }
-            currentOffset = loadedItems.count
-            canLoadMore = loadedItems.count == pageSize
             errorMessage = nil
         } catch {
             errorMessage = L10n.string("Failed to load clipboard history.")
@@ -75,6 +75,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
     }
 
     func updateSearchText(_ text: String) {
+        let requestID = searchLifecycle.beginRequest()
         searchText = text
         let parsed = SearchQueryParser().parse(text)
         parsedSearchQuery = parsed
@@ -83,28 +84,47 @@ final class ClipboardHistoryViewModel: ObservableObject {
         searchSuggestions = SearchSuggestionProvider(sourceOptions: sourceOptions).suggestions(for: text)
         guard let searchCoordinator else { loadHistory(); return }
         let filters = SearchUIFilters(selectedSourceOption: selectedSourceOption, selectedContentType: selectedContentType, isFavoritesOnly: isFavoritesOnly, selectedTimeRange: selectedTimeRange)
-        Task { [weak self] in
-            guard let self else { return }
-            isSearchLoading = true
-            let immediate = await searchCoordinator.immediateResults(input: text, loadedItems: items, filters: filters)
-            guard immediate.isCurrent else {
-                isSearchLoading = false
-                return
+        let loadedItems = items
+        let task = Task { [weak self] in
+            guard self?.isCurrentSearchRequest(requestID) == true else { return }
+            await searchCoordinator.cancelCurrentSearch()
+            guard self?.isCurrentSearchRequest(requestID) == true else { return }
+            self?.isSearchLoading = true
+            defer {
+                self?.finishSearchRequest(requestID)
             }
-            showRankedResults(immediate.results.map(\.item))
-            let full = await searchCoordinator.search(input: text, loadedItems: items, filters: filters)
-            guard full.isCurrent else {
-                isSearchLoading = false
-                return
-            }
+            let immediate = await searchCoordinator.immediateResults(
+                input: text,
+                loadedItems: loadedItems,
+                filters: filters
+            )
+            guard self?.isCurrentSearchRequest(requestID) == true, immediate.isCurrent else { return }
+            self?.showRankedResults(immediate.results.map(\.item))
+            let full = await searchCoordinator.search(
+                input: text,
+                loadedItems: loadedItems,
+                filters: filters
+            )
+            guard self?.isCurrentSearchRequest(requestID) == true, full.isCurrent else { return }
             if let errorDescription = full.errorDescription {
-                errorMessage = errorDescription
+                self?.errorMessage = errorDescription
             } else {
-                showRankedResults(full.results.map(\.item))
-                errorMessage = nil
+                self?.showRankedResults(full.results.map(\.item))
+                self?.errorMessage = nil
             }
+        }
+        searchLifecycle.retain(task, for: requestID)
+    }
+
+    private func isCurrentSearchRequest(_ requestID: Int) -> Bool {
+        searchLifecycle.isCurrent(requestID)
+    }
+
+    private func finishSearchRequest(_ requestID: Int) {
+        if searchLifecycle.isCurrent(requestID) {
             isSearchLoading = false
         }
+        searchLifecycle.finish(requestID)
     }
 
     func acceptSuggestion(_ suggestion: SearchSuggestion) {
@@ -130,16 +150,16 @@ final class ClipboardHistoryViewModel: ObservableObject {
     }
 
     func loadMoreIfNeeded(currentItem: ClipboardHistoryItem?) {
-        if isShowingRankedResults {
-            guard currentItem?.id == items.last?.id,
-                  visibleCandidateCount < rankedCandidates.count else {
-                return
+        if listCoordinator.isShowingRankedResults {
+            if let visibleItems = listCoordinator.revealMoreRankedResults(
+                currentItemID: currentItem?.id,
+                displayedLastItemID: items.last?.id
+            ) {
+                items = visibleItems
             }
-            visibleCandidateCount = min(visibleCandidateCount + pageSize, rankedCandidates.count)
-            items = Array(rankedCandidates.prefix(visibleCandidateCount))
             return
         }
-        guard canLoadMore, isLoadingMore == false else {
+        guard listCoordinator.canLoadMore, isLoadingMore == false else {
             return
         }
         guard currentItem?.id == items.last?.id else {
@@ -152,10 +172,10 @@ final class ClipboardHistoryViewModel: ObservableObject {
         }
 
         do {
-            let loadedItems = try repository.fetchHistory(query: currentQuery(offset: currentOffset))
+            let loadedItems = try listCoordinator.loadMore(
+                query: currentQuery(offset: listCoordinator.currentOffset)
+            )
             items.append(contentsOf: loadedItems)
-            currentOffset += loadedItems.count
-            canLoadMore = loadedItems.count == pageSize
             errorMessage = nil
         } catch {
             errorMessage = L10n.string("Failed to load more clipboard history.")
@@ -215,12 +235,86 @@ final class ClipboardHistoryViewModel: ObservableObject {
         OCRViewModel(repository: repository, didSave: { [weak self] in self?.refreshSearch() })
     }
 
+    func applyPasteOutcome(_ outcome: PasteOutcome) {
+        switch outcome {
+        case .pasted, .clipboardOnly, .permissionRequired, .cancelled:
+            errorMessage = nil
+        case let .failed(failure):
+            switch failure {
+            case .clipboardWrite:
+                if errorMessage == nil {
+                    errorMessage = L10n.string("Failed to restore text to clipboard.")
+                }
+            case .dispatchPreparation:
+                errorMessage = L10n.string("Paste was not sent. Press Command-V to paste manually.")
+            case .usageAccounting:
+                errorMessage = L10n.string("Failed to record clipboard usage.")
+            }
+        }
+    }
+
     func clearTextHistory() {
         do {
             try repository.clearTextHistory()
             loadHistory()
         } catch {
             errorMessage = L10n.string("Failed to clear clipboard history.")
+        }
+    }
+
+    func pasteRequest(for item: ClipboardHistoryItem) -> PasteRequest? {
+        switch item.contentType {
+        case .text:
+            return PasteRequest(payload: .text(item.textContent), historyID: item.id)
+        case .image:
+            guard let filePath = item.filePath,
+                  let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)) else {
+                errorMessage = L10n.string("Failed to restore image to clipboard.")
+                return nil
+            }
+            return PasteRequest(payload: .image(data), historyID: item.id)
+        }
+    }
+
+    func actionOutputPasteRequest(_ output: String, sourceItem: ClipboardHistoryItem) -> PasteRequest {
+        PasteRequest(payload: .text(output), historyID: sourceItem.id)
+    }
+
+    func writeText(_ text: String) -> Bool {
+        guard writer.writeText(text) else {
+            errorMessage = L10n.string("Failed to restore text to clipboard.")
+            return false
+        }
+        errorMessage = nil
+        return true
+    }
+
+    func writeImage(_ data: Data) -> Bool {
+        guard writer.writeImage(data) else {
+            errorMessage = L10n.string("Failed to restore image to clipboard.")
+            return false
+        }
+        errorMessage = nil
+        return true
+    }
+
+    func recordReuseCopy(historyID: Int64, at date: Date) throws {
+        do {
+            try repository.recordReuseCopy(historyID: historyID, at: date)
+            errorMessage = nil
+        } catch {
+            errorMessage = L10n.string("Failed to record clipboard usage.")
+            throw error
+        }
+    }
+
+    func recordPaste(historyID: Int64, at date: Date) throws {
+        do {
+            try repository.recordPaste(historyID: historyID, at: date)
+            errorMessage = nil
+        } catch {
+            errorMessage = L10n.string("Failed to record clipboard usage.")
+            throw error
         }
     }
 
@@ -305,7 +399,8 @@ final class ClipboardHistoryViewModel: ObservableObject {
                 detection: ContentClassifier().classifyFast(session.currentOutput)
             ))
             refreshSearch()
-            selectedItemID = item.id
+            selectionState.select(item.id)
+            selectedItemID = selectionState.selectedItemID
             errorMessage = item.id == source.id ? L10n.string("Existing clipboard record was reused.") : nil
             return item
         } catch {
@@ -327,10 +422,7 @@ final class ClipboardHistoryViewModel: ObservableObject {
     }
 
     private func showRankedResults(_ results: [ClipboardHistoryItem]) {
-        isShowingRankedResults = true
-        rankedCandidates = results
-        visibleCandidateCount = min(pageSize, rankedCandidates.count)
-        items = Array(rankedCandidates.prefix(visibleCandidateCount))
+        items = listCoordinator.showRankedResults(results)
     }
 
     private func restoreImage(_ item: ClipboardHistoryItem) -> Bool {

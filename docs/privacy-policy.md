@@ -1,6 +1,6 @@
 # 粘易 Privacy Policy
 
-Last updated: 2026-08-11
+Last updated: 2026-08-12
 
 粘易 is designed as a local-first macOS clipboard history tool. This policy describes what the app records, where data is stored, and what controls are available.
 
@@ -30,13 +30,13 @@ The current release does not encrypt the local SQLite database or app-managed im
 
 ## Sensitive Content
 
-The app enables sensitive-text filtering by default for common patterns such as passwords, API tokens, authorization headers, long token-like strings, bank-card-like numbers, and ID-like numbers. When filtering is enabled and a pattern is detected, matching text is skipped instead of being persisted. This filter is best-effort and does not guarantee that every sensitive value is detected.
+The app enables sensitive-text filtering by default. Detection runs entirely on the Mac and recognizes high-confidence contextual credentials and secrets, checksum-valid payment-card candidates, and 18-character Mainland China identity candidates whose date and check digit are valid. Git SHA values, MD5 hashes, UUIDs, trace identifiers, and unlabelled long strings are not blocked solely because of their shape or length. When filtering is enabled, only a high-confidence result is skipped instead of being persisted; lower-confidence or unmatched content remains eligible for recording. This filter is best-effort and does not guarantee that every sensitive value is detected.
 
 Users may disable the filter under **Settings → Privacy → Filter sensitive content**. The first disable request requires confirmation that matching sensitive text may then be saved to the local, unencrypted SQLite history database. Cancelling keeps filtering enabled. Re-enabling the same switch takes effect immediately and does not remove sensitive records that were already saved; those records can be deleted individually or through the clear-data controls.
 
 ## App Blocking And Pause Controls
 
-The capture pipeline supports paused recording and blocked application checks. When recording is paused or the foreground app is blocked, matching clipboard changes are skipped. Users should verify blocked-app behavior in their own environment before relying on it for high-risk workflows.
+The capture pipeline supports paused recording and blocked application checks. For each observed pasteboard change, the app resolves the current foreground application once and reuses that immutable snapshot for the blocked-app decision, history metadata, and capture event. Switching to another foreground app after processing begins does not replace that snapshot. macOS pasteboard data does not identify which process performed the copy, so switching apps before the polling loop observes the change can cause the later foreground app to be used; blocked-app filtering is best-effort and is not an absolute security boundary. When recording is paused or the captured source app is blocked, matching clipboard changes are skipped.
 
 ## User Controls
 
@@ -44,11 +44,11 @@ Users can disable text recording, disable image recording, delete individual rec
 
 ## System Permissions
 
-Automatic Paste is off by default. The app does not ask for Accessibility access on launch. When a user enables Automatic Paste, settings explains the permission and links to the correct macOS pane. Without permission—or while the setting is off—the app still restores content to the clipboard and asks the user to press `Command-V` manually. Permission state is checked locally and is never transmitted.
+Automatic Paste is off by default. The app does not ask for Accessibility access on launch. When a user enables Automatic Paste, settings explains the permission and links to the correct macOS pane. Without permission—or while the setting is off—the app still restores content to the clipboard and asks the user to press `Command-V` manually. Target-app activation, paste dispatch and usage accounting are coordinated locally; failed or cancelled dispatch does not transmit clipboard content and does not retry in the background. Permission state is checked locally and is never transmitted.
 
 ## Logs
 
-Operational logs should record statuses, lengths, counts, errors, and source identifiers only. Clipboard content itself should not be logged.
+Operational logs should record statuses, lengths, counts, errors, and source identifiers only. Clipboard content itself should not be logged. Sensitive detection results use only a category, confidence, and fixed reason code; matched values are not included in those diagnostics.
 
 ## Software Updates And Network Requests
 

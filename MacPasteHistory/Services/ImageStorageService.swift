@@ -59,23 +59,29 @@ final class ImageStorageService {
     }
 
     func deleteImageFiles(for item: ClipboardHistoryItem) {
-        if let filePath = item.filePath {
-            try? fileManager.removeItem(atPath: filePath)
-        }
-        if let thumbnailPath = item.thumbnailPath {
-            try? fileManager.removeItem(atPath: thumbnailPath)
-        }
+        deleteImageFiles(filePath: item.filePath, thumbnailPath: item.thumbnailPath)
+    }
+
+    func deleteImageFiles(filePath: String?, thumbnailPath: String?) {
+        deleteManagedFile(atPath: filePath, within: imagesDirectory)
+        deleteManagedFile(atPath: thumbnailPath, within: thumbnailsDirectory)
     }
 
     func deleteAllFiles() throws {
-        let images = try fileManager.contentsOfDirectory(at: imagesDirectory, includingPropertiesForKeys: nil)
-        for url in images {
-            try? fileManager.removeItem(at: url)
+        try deleteContents(of: imagesDirectory)
+        try deleteContents(of: thumbnailsDirectory)
+    }
+
+    func regenerateThumbnail(from originalURL: URL, to thumbnailURL: URL) throws {
+        let originalData = try Data(contentsOf: originalURL)
+        guard NSImage(data: originalData) != nil else {
+            throw ImageStorageError.invalidImageData
         }
-        let thumbnails = try fileManager.contentsOfDirectory(at: thumbnailsDirectory, includingPropertiesForKeys: nil)
-        for url in thumbnails {
-            try? fileManager.removeItem(at: url)
-        }
+        try fileManager.createDirectory(
+            at: thumbnailURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try thumbnailData(from: originalData).write(to: thumbnailURL, options: .atomic)
     }
 
     private func thumbnailData(from pngData: Data) throws -> Data {
@@ -102,5 +108,29 @@ final class ImageStorageService {
     private func hash(_ data: Data) -> String {
         let digest = SHA256.hash(data: data)
         return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private func deleteManagedFile(atPath path: String?, within root: URL) {
+        guard let path, isConcreteManagedDirectory(root) else { return }
+        let candidate = URL(fileURLWithPath: path).standardizedFileURL.resolvingSymlinksInPath()
+        let canonicalRoot = root.standardizedFileURL.resolvingSymlinksInPath()
+        guard candidate.path.hasPrefix(canonicalRoot.path + "/") else { return }
+        try? fileManager.removeItem(atPath: path)
+    }
+
+    private func deleteContents(of root: URL) throws {
+        guard isConcreteManagedDirectory(root) else { return }
+        let files = try fileManager.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)
+        for file in files {
+            deleteManagedFile(atPath: file.path, within: root)
+        }
+    }
+
+    private func isConcreteManagedDirectory(_ root: URL) -> Bool {
+        guard let attributes = try? fileManager.attributesOfItem(atPath: root.path),
+              let fileType = attributes[.type] as? FileAttributeType else {
+            return false
+        }
+        return fileType == .typeDirectory
     }
 }

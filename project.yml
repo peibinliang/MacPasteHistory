@@ -51,6 +51,10 @@ targets:
     platform: macOS
     sources:
       - path: MacPasteHistoryTests
+        excludes:
+          - Fixtures
+      - path: MacPasteHistoryTests/Fixtures
+        buildPhase: resources
     dependencies:
       - target: MacPasteHistory
     settings:
