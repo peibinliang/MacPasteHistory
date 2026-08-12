@@ -86,7 +86,7 @@ verify_app_identity() {
     if [[ "$requirement" == cdhash\ * || "$requirement" != *"identifier"* ]]; then
         fail "$label designated requirement is CDHash-only and changes between builds"
     fi
-    [[ "$requirement" == *"$expected_team_id"* ]] \
+    [[ "$requirement" == *"certificate leaf[subject.OU] = \"$expected_team_id\""* ]] \
         || fail "$label designated requirement does not bind the expected Team ID"
 
     printf '%s' "$requirement"
@@ -137,7 +137,11 @@ candidate_requirement="$(verify_app_identity "Candidate" "$candidate_app")"
 [[ "$candidate_requirement" == "$previous_requirement" ]] \
     || fail "candidate designated requirement is incompatible with the previous release"
 
-spctl --assess --type execute --verbose=2 "$candidate_app" >/dev/null 2>&1 \
+set +e
+notarization_result="$(spctl --assess --type execute --verbose=2 "$candidate_app" 2>&1)"
+notarization_status=$?
+set -e
+[[ "$notarization_status" -eq 0 && "$notarization_result" == *"source=Notarized Developer ID"* ]] \
     || fail "candidate app is not accepted as a notarized Developer ID application"
 
 cat <<EOF
