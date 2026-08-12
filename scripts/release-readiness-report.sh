@@ -18,6 +18,7 @@ expected_team_id=""
 openspec_change="stabilize-accessibility-permission-across-updates"
 readiness_extract_dir=""
 formal_app_path=""
+formal_archive_verified=0
 
 usage() {
     cat <<'EOF'
@@ -502,9 +503,11 @@ else
         --formal-update \
         "$formal_update_archive"; then
         add_blocker "Formal update ZIP failed checksum, identity, signature, notarization, or bundle validation."
+    else
+        formal_archive_verified=1
     fi
 
-    if [[ -f "$formal_update_archive" ]]; then
+    if [[ "$formal_archive_verified" -eq 1 && -f "$formal_update_archive" ]]; then
         readiness_extract_dir="$(mktemp -d /private/tmp/macpastehistory-readiness-update.XXXXXX)"
         case "$readiness_extract_dir" in
             /private/tmp/macpastehistory-readiness-update.*) ;;
@@ -518,7 +521,7 @@ else
         fi
     fi
 
-    if [[ -d "$formal_app_path" ]]; then
+    if [[ "$formal_archive_verified" -eq 1 && -d "$formal_app_path" && ! -L "$formal_app_path" ]]; then
         if ! run_capture \
             "Embedded Sparkle framework and XPC services" \
             "$REPO_ROOT/scripts/verify-sparkle-release-bundle.sh" \
@@ -531,11 +534,15 @@ else
         if ! run_capture "Apple notarization" verify_notarized_app "$formal_app_path"; then
             add_blocker "Formal update app is not accepted by spctl as notarized."
         fi
-    else
+    elif [[ "$formal_archive_verified" -eq 1 ]]; then
         add_check_row "Embedded Sparkle framework and XPC services" "FAIL" "Formal update app could not be extracted."
         add_check_row "Developer ID signature" "FAIL" "Formal update app could not be extracted."
         add_check_row "Apple notarization" "FAIL" "Formal update app could not be extracted."
         add_blocker "Formal update archive does not contain the expected 粘易.app bundle."
+    else
+        add_check_row "Embedded Sparkle framework and XPC services" "SKIP" "Formal update ZIP verification failed."
+        add_check_row "Developer ID signature" "SKIP" "Formal update ZIP verification failed."
+        add_check_row "Apple notarization" "SKIP" "Formal update ZIP verification failed."
     fi
 fi
 

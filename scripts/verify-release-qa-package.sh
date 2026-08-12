@@ -355,6 +355,10 @@ fi
 
 notarization="not checked"
 if [[ "$formal_update" -eq 1 ]]; then
+    if [[ -z "$version" || "$version" == "unknown" || -z "$build_number" || "$build_number" == "unknown" ]]; then
+        echo "Formal update app must contain version and build metadata" >&2
+        exit 1
+    fi
     expected_archive_name="MacPasteHistory-$version-$build_number.zip"
     if [[ "$(basename "$zip_path")" != "$expected_archive_name" ]]; then
         echo "Formal update archive must be named $expected_archive_name to match the app version/build" >&2
