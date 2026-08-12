@@ -307,14 +307,14 @@ ditto -x -k "$zip_path" "$extract_dir"
 if [[ "$formal_update" -eq 1 ]]; then
     app_path="$extract_dir/粘易.app"
 else
-    if find "$extract_dir" -type l -name "*.app" -print -quit | grep -q .; then
+    if find "$extract_dir" -mindepth 1 -maxdepth 1 -type l -name "*.app" -print -quit | grep -q .; then
         echo "Extracted top-level application path must not be a symbolic link" >&2
         exit 1
     fi
     app_paths=()
     while IFS= read -r -d '' candidate; do
         app_paths+=("$candidate")
-    done < <(find "$extract_dir" -type d -name "*.app" -print0)
+    done < <(find "$extract_dir" -mindepth 1 -maxdepth 1 -type d -name "*.app" -print0)
     if [[ "${#app_paths[@]}" -ne 1 ]]; then
         echo "Package must contain exactly one physical .app bundle" >&2
         exit 1
