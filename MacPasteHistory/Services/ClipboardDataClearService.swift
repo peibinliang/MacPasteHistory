@@ -23,6 +23,7 @@ struct ClipboardDataClearService {
 
     func clearAllData() throws {
         var firstError: (any Error)?
+        var didDeleteAITokenUsage = false
 
         do {
             try repository.clearAllHistory()
@@ -30,7 +31,10 @@ struct ClipboardDataClearService {
             firstError = error
         }
         do {
-            try aiTokenUsageRepository?.deleteAll()
+            if let aiTokenUsageRepository {
+                try aiTokenUsageRepository.deleteAll()
+                didDeleteAITokenUsage = true
+            }
         } catch {
             firstError = firstError ?? error
         }
@@ -38,6 +42,10 @@ struct ClipboardDataClearService {
             try imageStorageService.deleteAllFiles()
         } catch {
             firstError = firstError ?? error
+        }
+
+        if didDeleteAITokenUsage {
+            NotificationCenter.default.post(name: .aiTokenUsageDidChange, object: nil)
         }
 
         if let firstError {

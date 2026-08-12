@@ -55,7 +55,7 @@ Stores provider-reported accounting metadata for successful AI responses. It nev
 | `id` | INTEGER | Yes | Auto-increment primary key. |
 | `request_id` | TEXT | Yes | Provider response ID; unique for exact-once accounting. |
 | `provider` | TEXT | Yes | Provider identifier, currently `deepseek`. |
-| `model_identifier` | TEXT | Yes | Model returned by the provider. |
+| `model_identifier` | TEXT | Yes | Configured model identifier captured when the provider request starts. |
 | `input_tokens` | INTEGER | Yes | Non-negative provider-reported input tokens. |
 | `output_tokens` | INTEGER | Yes | Non-negative provider-reported output tokens. |
 | `total_tokens` | INTEGER | Yes | Non-negative provider-reported total tokens. |
