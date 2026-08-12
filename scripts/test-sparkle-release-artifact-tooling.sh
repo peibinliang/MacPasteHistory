@@ -382,6 +382,19 @@ expect_failure_containing \
     --formal-update \
     "$archive_path"
 
+future_archive_path="$release_dir/MacPasteHistory-1.0.4-6.zip"
+cp "$archive_path" "$future_archive_path"
+(
+    cd "$release_dir"
+    /usr/bin/shasum -a 256 "$(basename "$future_archive_path")" >"$(basename "$future_archive_path").sha256"
+)
+expect_failure_containing \
+    "formal package verifier accepts future version naming before content validation" \
+    "unsafe archive entry path" \
+    "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
+    --formal-update \
+    "$future_archive_path"
+
 /usr/bin/python3 - "$archive_path" <<'PY'
 import sys
 import zipfile
