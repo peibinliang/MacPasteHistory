@@ -213,6 +213,39 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testAISettings_whenPolishingPersistsUsage_shouldRefreshExistingTotals() async throws {
+        let temporary = try TemporaryDatabase()
+        defer { temporary.remove() }
+        try MigrationManager(database: temporary.connection).migrate()
+        let repository = AITokenUsageRepository(database: temporary.connection)
+        let credentialStore = SettingsFakeAICredentialStore()
+        credentialStore.apiKey = "synthetic-key"
+        let response = DeepSeekPolishingResult(
+            requestID: "settings-refresh",
+            modelIdentifier: config.aiModelIdentifier,
+            polishedText: "Polished",
+            usage: DeepSeekTokenUsage(inputTokens: 7, outputTokens: 3, totalTokens: 10, cachedInputTokens: nil)
+        )
+        let viewModel = makeViewModel(aiTokenUsageRepository: repository)
+        let service = AITextPolishingService(
+            config: config,
+            credentialStore: credentialStore,
+            client: SettingsTokenUsageClientFake(response: response),
+            usageRepository: repository
+        )
+        viewModel.loadSettings()
+        XCTAssertEqual(viewModel.allModelsAIUsage, .zero)
+
+        _ = try await service.polish("draft")
+        for _ in 0..<100 where viewModel.allModelsAIUsage.totalTokens == 0 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        XCTAssertEqual(viewModel.selectedModelAIUsage.totalTokens, 10)
+        XCTAssertEqual(viewModel.allModelsAIUsage.totalTokens, 10)
+    }
+
+    @MainActor
     func testAddBlockedAppFromFields_shouldPersistBlockedAppEntry() {
         let viewModel = makeViewModel()
         viewModel.blockedAppBundleID = "com.apple.Safari"
@@ -277,6 +310,18 @@ private final class SettingsFakeAICredentialStore: AICredentialStoring, @uncheck
     func hasAPIKey() throws -> Bool { apiKey != nil }
     func saveAPIKey(_ apiKey: String) throws { self.apiKey = apiKey }
     func deleteAPIKey() throws { apiKey = nil }
+}
+
+private final class SettingsTokenUsageClientFake: DeepSeekClientProtocol, @unchecked Sendable {
+    private let response: DeepSeekPolishingResult
+
+    init(response: DeepSeekPolishingResult) {
+        self.response = response
+    }
+
+    func polish(text: String, modelIdentifier: String, apiKey: String) async throws -> DeepSeekPolishingResult {
+        response
+    }
 }
 
 private final class SettingsFakeAccessibilityPermissionService: AccessibilityPermissionServing {

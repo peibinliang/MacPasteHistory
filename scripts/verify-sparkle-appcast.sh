@@ -3,10 +3,10 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_INFO_PLIST="$REPO_ROOT/MacPasteHistory/Resources/Info.plist"
-EXPECTED_ARCHIVE_NAME="MacPasteHistory-1.0.2-4.zip"
-EXPECTED_URL="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/MacPasteHistory-1.0.2-4.zip"
-EXPECTED_VERSION="1.0.2"
-EXPECTED_BUILD="4"
+expected_archive_name="MacPasteHistory-1.0.2-4.zip"
+expected_url="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/MacPasteHistory-1.0.2-4.zip"
+expected_version="1.0.2"
+expected_build="4"
 EXPECTED_BUNDLE_ID="com.peibin.MacPasteHistory"
 SPARKLE_NAMESPACE_URI="http://www.andymatuschak.org/xml-namespaces/sparkle"
 
@@ -20,10 +20,14 @@ usage() {
 Usage: scripts/verify-sparkle-appcast.sh \
   --appcast PATH \
   --archive PATH \
-  --expected-public-key PUBLIC_KEY
+  --expected-public-key PUBLIC_KEY \
+  [--expected-version VERSION] \
+  [--expected-build BUILD] \
+  [--expected-url URL]
 
-Verify the V1.0.2 Sparkle appcast, adjacent archive checksum, embedded app
-identity, and committed EdDSA public key. The public key is never printed.
+Verify a Sparkle appcast, adjacent archive checksum, embedded app identity,
+and committed EdDSA public key. Version options default to V1.0.2 for backward
+compatibility. The public key is never printed.
 EOF
 }
 
@@ -245,6 +249,22 @@ while [[ $# -gt 0 ]]; do
             expected_public_key="$2"
             shift
             ;;
+        --expected-version)
+            [[ $# -ge 2 ]] || { echo "--expected-version requires a value" >&2; exit 2; }
+            expected_version="$2"
+            shift
+            ;;
+        --expected-build)
+            [[ $# -ge 2 ]] || { echo "--expected-build requires a value" >&2; exit 2; }
+            expected_build="$2"
+            shift
+            ;;
+        --expected-url)
+            [[ $# -ge 2 ]] || { echo "--expected-url requires a value" >&2; exit 2; }
+            expected_url="$2"
+            expected_archive_name="$(basename "$expected_url")"
+            shift
+            ;;
         -h|--help)
             usage
             exit 0
@@ -261,6 +281,13 @@ done
 [[ -n "$appcast_path" ]] || { usage >&2; exit 2; }
 [[ -n "$archive_path" ]] || { usage >&2; exit 2; }
 [[ -n "$expected_public_key" ]] || { usage >&2; exit 2; }
+[[ "$expected_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+    || fail "expected version must use numeric major.minor.patch format"
+[[ "$expected_build" =~ ^[1-9][0-9]*$ ]] \
+    || fail "expected build must be a positive integer"
+[[ "$expected_url" == https://* ]] || fail "expected URL must use HTTPS"
+[[ "$expected_archive_name" == MacPasteHistory-*.zip ]] \
+    || fail "expected URL must end with a MacPasteHistory ZIP archive"
 
 require_command ditto
 require_command grep
@@ -274,8 +301,8 @@ require_command xmllint
 [[ -f "$archive_path" ]] || fail "archive file is missing"
 [[ -f "$archive_path.sha256" ]] || fail "adjacent SHA-256 file is missing"
 [[ -f "$SOURCE_INFO_PLIST" ]] || fail "source Info.plist is missing"
-[[ "$(basename "$archive_path")" == "$EXPECTED_ARCHIVE_NAME" ]] \
-    || fail "archive filename does not match the V1.0.2 release name"
+[[ "$(basename "$archive_path")" == "$expected_archive_name" ]] \
+    || fail "archive filename does not match the expected release name"
 
 if ! is_valid_public_key "$expected_public_key"; then
     fail "expected public key is not a valid 32-byte EdDSA public key"
@@ -313,9 +340,12 @@ enclosure_url="$(xml_value "$enclosure_xpath/@url")"
 enclosure_length="$(xml_value "$enclosure_xpath/@length")"
 enclosure_signature="$(xml_value "$signature_xpath")"
 
-[[ "$short_version" == "$EXPECTED_VERSION" ]] || fail "latest item short version is not 1.0.2"
-[[ "$build_version" == "$EXPECTED_BUILD" ]] || fail "latest item build version is not 3"
-[[ "$enclosure_url" == "$EXPECTED_URL" ]] || fail "enclosure URL does not match the fixed GitHub Release URL"
+[[ "$short_version" == "$expected_version" ]] \
+    || fail "latest item short version is not $expected_version"
+[[ "$build_version" == "$expected_build" ]] \
+    || fail "latest item build version is not $expected_build"
+[[ "$enclosure_url" == "$expected_url" ]] \
+    || fail "enclosure URL does not match the expected release URL"
 
 archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
 [[ "$enclosure_length" == "$archive_length" ]] || fail "enclosure length does not match archive byte size"
@@ -353,8 +383,10 @@ archive_version="$(plist_value "$archive_info_plist" CFBundleShortVersionString)
 archive_build="$(plist_value "$archive_info_plist" CFBundleVersion)"
 archive_bundle_id="$(plist_value "$archive_info_plist" CFBundleIdentifier)"
 archive_public_key="$(plist_value "$archive_info_plist" SUPublicEDKey)"
-[[ "$archive_version" == "$EXPECTED_VERSION" ]] || fail "archive short version is not 1.0.2"
-[[ "$archive_build" == "$EXPECTED_BUILD" ]] || fail "archive build version is not 3"
+[[ "$archive_version" == "$expected_version" ]] \
+    || fail "archive short version is not $expected_version"
+[[ "$archive_build" == "$expected_build" ]] \
+    || fail "archive build version is not $expected_build"
 [[ "$archive_bundle_id" == "$EXPECTED_BUNDLE_ID" ]] || fail "archive bundle identifier is not com.peibin.MacPasteHistory"
 [[ "$archive_public_key" == "$expected_public_key" ]] \
     || fail "archive public key does not match source Info.plist"

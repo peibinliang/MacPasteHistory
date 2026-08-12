@@ -63,8 +63,10 @@ final class ClipboardDataClearServiceTests: XCTestCase {
             cachedInputTokens: nil,
             createdAt: Date()
         ))
+        let usageChange = expectation(forNotification: .aiTokenUsageDidChange, object: nil)
 
         try service.clearAllData()
+        wait(for: [usageChange], timeout: 1)
 
         XCTAssertTrue(try repository.fetchHistory(query: HistoryQuery()).isEmpty)
         XCTAssertFalse(FileManager.default.fileExists(atPath: filePath))
@@ -83,8 +85,11 @@ final class ClipboardDataClearServiceTests: XCTestCase {
             imageStorageService: imageStorageService,
             aiTokenUsageRepository: FailingAITokenUsageDeleter()
         )
+        let usageChange = expectation(forNotification: .aiTokenUsageDidChange, object: nil)
+        usageChange.isInverted = true
 
         XCTAssertThrowsError(try service.clearAllData())
+        wait(for: [usageChange], timeout: 0.1)
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: filePath))
         XCTAssertFalse(FileManager.default.fileExists(atPath: thumbnailPath))

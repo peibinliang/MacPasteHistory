@@ -34,11 +34,12 @@ final class AITextPolishingService: AITextPolishingServing, @unchecked Sendable 
         guard let apiKey = try credentialStore.readAPIKey() else {
             throw ContentActionError.invalidInput(messageKey: "ai.error.missing-api-key")
         }
+        let requestedModelIdentifier = config.aiModelIdentifier
         let response: DeepSeekPolishingResult
         do {
             response = try await client.polish(
                 text: text,
-                modelIdentifier: config.aiModelIdentifier,
+                modelIdentifier: requestedModelIdentifier,
                 apiKey: apiKey
             )
         } catch is CancellationError {
@@ -50,16 +51,19 @@ final class AITextPolishingService: AITextPolishingServing, @unchecked Sendable 
         var persistenceFailed = false
         if let usage = response.usage, let usageRepository {
             do {
-                _ = try usageRepository.insert(AITokenUsageRecord(
+                let didInsert = try usageRepository.insert(AITokenUsageRecord(
                     requestID: response.requestID,
                     provider: Self.providerIdentifier,
-                    modelIdentifier: response.modelIdentifier,
+                    modelIdentifier: requestedModelIdentifier,
                     inputTokens: usage.inputTokens,
                     outputTokens: usage.outputTokens,
                     totalTokens: usage.totalTokens,
                     cachedInputTokens: usage.cachedInputTokens,
                     createdAt: Date()
                 ))
+                if didInsert {
+                    NotificationCenter.default.post(name: .aiTokenUsageDidChange, object: nil)
+                }
             } catch {
                 persistenceFailed = true
             }

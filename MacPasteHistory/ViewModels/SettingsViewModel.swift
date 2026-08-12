@@ -53,6 +53,7 @@ final class SettingsViewModel: ObservableObject {
     private let accessibilityPermissionService: any AccessibilityPermissionServing
     private let aiCredentialStore: any AICredentialStoring
     private let aiTokenUsageRepository: AITokenUsageRepository?
+    private var aiTokenUsageDidChangeCancellable: AnyCancellable?
 
     init(
         config: UserDefaultsConfig = UserDefaultsConfig(),
@@ -79,6 +80,11 @@ final class SettingsViewModel: ObservableObject {
         self.selectedLanguage = languageManager.currentLanguage
         self.selectedAppearance = config.appAppearance
         self.shortcutConfiguration = config.shortcutConfiguration
+        aiTokenUsageDidChangeCancellable = NotificationCenter.default.publisher(for: .aiTokenUsageDidChange)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.refreshAITokenUsage()
+            }
     }
 
     func loadSettings() {
@@ -346,4 +352,5 @@ final class SettingsViewModel: ObservableObject {
 
 extension Notification.Name {
     static let clearAllDataRequested = Notification.Name("clearAllDataRequested")
+    static let aiTokenUsageDidChange = Notification.Name("aiTokenUsageDidChange")
 }

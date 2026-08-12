@@ -8,7 +8,7 @@
 
 > **增强功能边界**: 结构化搜索、内容动作和 Vision OCR 均在本机执行。OCR 必须由用户逐张触发；JWT 检查不会验证签名或信任关系。
 
-> **更新网络边界**: 自动检查或用户点击“检查更新…”时，Sparkle 会请求 GitHub Pages 上的固定 appcast，并可能请求 GitHub Releases 上的发布说明和更新包。更新请求不包含剪贴板历史、图片、内容哈希或设置；主应用本身继续禁用 network client/server，由 Sparkle Downloader XPC 负责下载。
+> **网络边界**: 主应用仅为用户明确触发并确认远程处理的 DeepSeek 文本润色启用 network client；不会上传剪贴板历史、图片、内容哈希、设置或本地 token 汇总。Sparkle 更新由其 Downloader XPC 请求固定 GitHub Pages/Release 资源。主应用与 XPC 均不启用 network server。
 
 ---
 
@@ -66,9 +66,9 @@
         <string>$(PRODUCT_BUNDLE_IDENTIFIER)-spki</string>
     </array>
 
-    <!-- 网络由 Sparkle Downloader XPC 隔离处理，主应用保持关闭 -->
+    <!-- 主应用网络仅用于用户主动触发的 DeepSeek 文本润色；Sparkle 下载由其 XPC 处理 -->
     <key>com.apple.security.network.client</key>
-    <false/>
+    <true/>
     <key>com.apple.security.network.server</key>
     <false/>
 
@@ -79,15 +79,15 @@
 </plist>
 ```
 
-主应用不得直接开启 `com.apple.security.network.client` 或
-`com.apple.security.network.server`；appcast、发布说明和更新包由 Sparkle
-Downloader XPC 获取。与此同时，`com.apple.coreaudio`、
+主应用必须仅为用户主动触发且已确认远程处理边界的 DeepSeek 文本润色开启
+`com.apple.security.network.client`，不得开启 `com.apple.security.network.server`；
+appcast、发布说明和更新包仍由 Sparkle Downloader XPC 获取。与此同时，`com.apple.coreaudio`、
 `$(PRODUCT_BUNDLE_IDENTIFIER)-spks` 和
 `$(PRODUCT_BUNDLE_IDENTIFIER)-spki` 三个 Mach lookup exception 都是当前
-V1.0.2 沙盒配置的必需项，必须各保留一次。不得因为主应用网络 entitlement
-保持关闭而删除 Sparkle 的 XPC 例外。
+V1.0.3 沙盒配置的必需项，必须各保留一次。不得因为主应用已有受限网络能力而删除
+Sparkle 的 XPC 例外，也不得将 network client 用于未经用户触发的内容上传。
 
-可用以下脚本校验 `project.yml` 已绑定正确 entitlements 文件、App Sandbox 已开启，主应用网络、USB、用户选择文件读写权限保持关闭，并且三项 Mach lookup exception 各存在一次：
+可用以下脚本校验 `project.yml` 已绑定正确 entitlements 文件、App Sandbox 和 network client 已按上述边界开启，network server、USB、用户选择文件读写权限保持关闭，并且三项 Mach lookup exception 各存在一次：
 
 ```bash
 scripts/verify-release-entitlements.sh
@@ -537,6 +537,10 @@ scripts/verify-sparkle-appcast.sh \
   --archive /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-4.zip \
   --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)"
 ```
+
+校验器为兼容既有流程默认检查 `1.0.2 (4)`。验证后续版本时，发布者必须显式传入
+`--expected-version`、`--expected-build` 和 `--expected-url`；archive 文件名会从该 URL
+推导并与本地 ZIP 严格匹配，避免旧版本常量导致误报或误验。
 
 4. 发布顺序必须是先在获得用户明确授权后创建 GitHub Release `V1.0.2` 并上传
 ZIP、SHA-256 和发布说明，确认固定 enclosure URL 已可下载，再在另一次明确授权下

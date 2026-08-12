@@ -45,6 +45,34 @@ final class AITextPolishingTests: XCTestCase {
         XCTAssertEqual(try repository.summary().totalTokens, 11)
     }
 
+    func testService_whenProviderReturnsModelAlias_shouldAttributeUsageToRequestedModel() async throws {
+        let temporary = try TemporaryDatabase()
+        defer { temporary.remove() }
+        try MigrationManager(database: temporary.connection).migrate()
+        let repository = AITokenUsageRepository(database: temporary.connection)
+        let defaultsName = "AITextPolishingTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: defaultsName) ?? .standard
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+        var config = UserDefaultsConfig(defaults: defaults)
+        config.aiModelIdentifier = "configured-model"
+        let response = DeepSeekPolishingResult(
+            requestID: "aliased-response",
+            modelIdentifier: "provider-model-alias",
+            polishedText: "Polished",
+            usage: DeepSeekTokenUsage(inputTokens: 8, outputTokens: 3, totalTokens: 11, cachedInputTokens: nil)
+        )
+        let service = AITextPolishingService(
+            config: config,
+            credentialStore: PolishingCredentialFake(apiKey: "synthetic-key"),
+            client: PolishingClientFake(result: .success(response)),
+            usageRepository: repository
+        )
+
+        _ = try await service.polish("draft")
+
+        XCTAssertEqual(try repository.summary(modelIdentifier: "configured-model").totalTokens, 11)
+    }
+
     func testAction_whenProviderOmitsUsage_shouldKeepUsableOutputAndUnavailableState() async throws {
         let service = PolishingServiceFake(outcomes: [
             .success(AITextPolishingOutcome(text: "Better", usage: nil, usagePersistenceFailed: false))
