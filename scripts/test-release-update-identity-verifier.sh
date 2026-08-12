@@ -75,7 +75,17 @@ cat >"$TEST_ROOT/bin/spctl" <<'FAKE_SPCTL'
 #!/usr/bin/env bash
 set -euo pipefail
 app="${@: -1}"
-[[ "$(<"$app/.fixture-notarized")" == "yes" ]]
+case "$(<"$app/.fixture-notarized")" in
+    yes)
+        printf 'source=Notarized Developer ID\n' >&2
+        ;;
+    accepted-unnotarized)
+        printf 'source=Developer ID\n' >&2
+        ;;
+    *)
+        exit 1
+        ;;
+esac
 FAKE_SPCTL
 chmod +x "$TEST_ROOT/bin/spctl"
 
@@ -104,6 +114,13 @@ expect_failure_containing "mismatched candidate Team ID" "Team ID" "${verifier[@
 
 make_app "$candidate_app" "$EXPECTED_BUNDLE_ID" "$EXPECTED_TEAM_ID" "Developer ID" 'cdhash H"1234567890"' yes
 expect_failure_containing "CDHash-only candidate" "CDHash" "${verifier[@]}"
+
+malformed_team_requirement='identifier "com.peibin.MacPasteHistory" and info[team-note] = "ABCDE12345"'
+make_app "$candidate_app" "$EXPECTED_BUNDLE_ID" "$EXPECTED_TEAM_ID" "Developer ID" "$malformed_team_requirement" yes
+expect_failure_containing "Team ID text without certificate binding" "bind the expected Team ID" "${verifier[@]}"
+
+make_app "$candidate_app" "$EXPECTED_BUNDLE_ID" "$EXPECTED_TEAM_ID" "Developer ID" "$stable_requirement" accepted-unnotarized
+expect_failure_containing "accepted but unnotarized candidate" "notarized" "${verifier[@]}"
 
 make_app "$candidate_app" "$EXPECTED_BUNDLE_ID" "$EXPECTED_TEAM_ID" "Developer ID" "$stable_requirement" no
 expect_failure_containing "candidate without notarization" "notarized" "${verifier[@]}"
