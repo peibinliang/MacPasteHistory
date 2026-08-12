@@ -59,8 +59,8 @@
 ## 10. QA, Independent Review And Merge Gate
 
 - [x] 10.1 Run file-reference validation, `git diff --check`, Debug build, complete tests with coverage evidence, migration/upgrade tests, privacy/log scan and relevant release-readiness scripts
-- [ ] 10.2 Run manual macOS smoke QA for text/image capture, blocked-app race, search typing, restore, Automatic Paste fallback, actions, cleanup/reconciliation, settings, shortcuts and relaunch; record unavailable hardware/credentials as pending decisions
-  - 2026-08-12 evidence: isolated Release GUI passed all listed scenarios except the `SystemUIServer` menu-bar status item and true global-shortcut invocation. Clear All Data was explicitly confirmed, then verified as zero history/capture-event rows and empty image/thumbnail directories. PD-007 records the two automation-inaccessible checks; this task remains open without an owner decision or manual evidence.
+- [x] 10.2 Run manual macOS smoke QA for text/image capture, blocked-app race, search typing, restore, Automatic Paste fallback, actions, cleanup/reconciliation, settings, shortcuts and relaunch; record unavailable hardware/credentials as pending decisions
+  - 2026-08-12 evidence: isolated Release GUI passed all listed scenarios except the `SystemUIServer` menu-bar status item and true global-shortcut invocation. Clear All Data was explicitly confirmed, then verified as zero history/capture-event rows and empty image/thumbnail directories. PD-007 records the product owner's explicit V1.0.3-only waiver for the two automation-inaccessible checks when directing tag/package/Release creation.
 - [x] 10.3 Have an independent QA subagent inspect acceptance evidence and an independent reviewer subagent audit correctness, privacy, migration safety, test gaps and documentation consistency
 - [x] 10.4 Fix all blocking review findings, rerun affected and full verification, and obtain clean follow-up reviews
 - [ ] 10.5 Confirm all OpenSpec tasks and Definition of Done gates are complete, validate the change with OpenSpec strict mode, review the final diff and confirm a clean worktree
