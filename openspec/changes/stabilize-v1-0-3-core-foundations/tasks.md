@@ -64,4 +64,4 @@
 - [x] 10.3 Have an independent QA subagent inspect acceptance evidence and an independent reviewer subagent audit correctness, privacy, migration safety, test gaps and documentation consistency
 - [x] 10.4 Fix all blocking review findings, rerun affected and full verification, and obtain clean follow-up reviews
 - [x] 10.5 Confirm all OpenSpec tasks and Definition of Done gates are complete, validate the change with OpenSpec strict mode, review the final diff and confirm a clean worktree
-- [ ] 10.6 Merge `release/v1.0.3` back to local `main` only after every non-release gate passes; do not push, tag, publish, sign or notarize without the corresponding external-action approval
+- [x] 10.6 Merge `release/v1.0.3` back to local `main` only after every non-release gate passes; do not push, tag, publish, sign or notarize without the corresponding external-action approval
