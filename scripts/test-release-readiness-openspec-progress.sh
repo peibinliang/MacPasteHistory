@@ -122,7 +122,7 @@ PY
 
 default_json="$TEST_ROOT/default.json"
 run_readiness "default" "$default_json" --strict-final
-assert_progress "default" "$default_json" "$CURRENT_CHANGE" 8 14 6
+assert_progress "default" "$default_json" "$CURRENT_CHANGE" 9 14 5
 
 if [[ -s "$default_json" ]] && ! /usr/bin/python3 - "$default_json" <<'PY'
 import json
@@ -163,7 +163,7 @@ run_readiness \
     "explicit-current" \
     "$explicit_current_json" \
     --openspec-change "$CURRENT_CHANGE"
-assert_progress "explicit-current" "$explicit_current_json" "$CURRENT_CHANGE" 8 14 6
+assert_progress "explicit-current" "$explicit_current_json" "$CURRENT_CHANGE" 9 14 5
 
 legacy_json="$TEST_ROOT/legacy.json"
 run_readiness \
@@ -256,7 +256,7 @@ echo
 echo "| Field | Value |"
 echo "|---|---|"
 echo "| Default change | \`$CURRENT_CHANGE\` |"
-echo "| Default Markdown progress | \`8/14; 6 remaining\` |"
+echo "| Default Markdown progress | \`9/14; 5 remaining\` |"
 echo "| Explicit legacy progress | \`4/19; 15 remaining\` |"
 echo "| JSON escaping/injection fixtures | \`expected inert round-trip\` |"
 echo "| Fenced checkbox fixture | \`2/3; 1 remaining\` |"
