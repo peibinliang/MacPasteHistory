@@ -15,7 +15,7 @@ formal_update_archive=""
 appcast_path=""
 previous_release_app=""
 expected_team_id=""
-openspec_change="add-v1-0-1-sensitive-filter-and-updates"
+openspec_change="stabilize-accessibility-permission-across-updates"
 readiness_extract_dir=""
 formal_app_path=""
 
@@ -44,7 +44,7 @@ Options:
   --expected-team-id ID Expected Apple Developer Team ID for both releases.
   --openspec-change NAME
                         Read progress from openspec/changes/NAME/tasks.md.
-                        Defaults to add-v1-0-1-sensitive-filter-and-updates.
+                        Defaults to stabilize-accessibility-permission-across-updates.
   --strict-final        Treat warnings as blockers for final distribution approval.
   -h, --help            Show this help.
 EOF
