@@ -533,10 +533,31 @@ set -euo pipefail
 : "${SPARKLE_ARGS_RECORD:?}"
 printf '%s\n' "$@" >"$SPARKLE_ARGS_RECORD"
 release_directory=""
-for argument in "$@"; do
-    release_directory="$argument"
+download_url_prefix=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --download-url-prefix)
+            download_url_prefix="$2"
+            shift 2
+            ;;
+        --maximum-versions)
+            shift 2
+            ;;
+        *)
+            release_directory="$1"
+            shift
+            ;;
+    esac
 done
 archive_path="$release_directory/MacPasteHistory-1.0.2-4.zip"
+if [[ ! -f "$archive_path" ]]; then
+    archive_path="$(find "$release_directory" -maxdepth 1 -type f -name 'MacPasteHistory-*.zip' -print -quit)"
+fi
+archive_name="$(basename "$archive_path")"
+version_build="${archive_name#MacPasteHistory-}"
+version_build="${version_build%.zip}"
+build="${version_build##*-}"
+version="${version_build%-$build}"
 archive_length="$(/usr/bin/stat -f '%z' "$archive_path")"
 valid_signature_shape="$(
     /bin/dd if=/dev/zero bs=64 count=1 2>/dev/null \
@@ -552,9 +573,9 @@ cat >"$release_directory/appcast.xml" <<EOF
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
   <channel>
     <item>
-      <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
-      <sparkle:version>4</sparkle:version>
-      <enclosure url="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/MacPasteHistory-1.0.2-4.zip" length="$archive_length"$signature_attribute />
+      <sparkle:shortVersionString>$version</sparkle:shortVersionString>
+      <sparkle:version>$build</sparkle:version>
+      <enclosure url="$download_url_prefix$archive_name" length="$archive_length"$signature_attribute />
     </item>
   </channel>
 </rss>
@@ -592,7 +613,37 @@ if [[ "$(sed -n '1p' "$formal_gate_record")" != "--formal-update" \
     add_failure "generator did not verify the explicit archive through the formal update gate."
 fi
 
-cp "$fixture_repo/docs/appcast.xml" "$TEST_ROOT/verified-docs-appcast.xml"
+future_release_dir="$fixture_repo/future-release"
+future_archive_root="$TEST_ROOT/future-archive-root"
+future_app="$future_archive_root/粘易.app"
+mkdir -p "$future_release_dir" "$future_archive_root"
+/usr/bin/ditto "$archive_app" "$future_app"
+/usr/bin/plutil -replace CFBundleShortVersionString -string 1.0.4 "$future_app/Contents/Info.plist"
+/usr/bin/plutil -replace CFBundleVersion -string 6 "$future_app/Contents/Info.plist"
+future_archive="$future_release_dir/MacPasteHistory-1.0.4-6.zip"
+/usr/bin/ditto -c -k --sequesterRsrc --keepParent "$future_app" "$future_archive"
+(
+    cd "$future_release_dir"
+    /usr/bin/shasum -a 256 "$(basename "$future_archive")" >"$(basename "$future_archive").sha256"
+)
+export SPARKLE_ARGS_RECORD="$sparkle_args_record"
+export FORMAL_GATE_RECORD="$formal_gate_record"
+expect_success \
+    "appcast generator supports an explicit future version" \
+    "$fixture_repo/scripts/generate-sparkle-appcast.sh" \
+    --release-directory "$future_release_dir" \
+    --sparkle-bin-directory "$sparkle_bin" \
+    --expected-version 1.0.4 \
+    --expected-build 6 \
+    --download-url-prefix https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.4/
+unset SPARKLE_ARGS_RECORD FORMAL_GATE_RECORD
+
+if [[ -f "$fixture_repo/docs/appcast.xml" ]]; then
+    cp "$fixture_repo/docs/appcast.xml" "$TEST_ROOT/verified-docs-appcast.xml"
+else
+    add_failure "verified docs appcast was unavailable for the unsigned regression fixture."
+    : >"$TEST_ROOT/verified-docs-appcast.xml"
+fi
 export SPARKLE_ARGS_RECORD="$sparkle_args_record"
 export FORMAL_GATE_RECORD="$formal_gate_record"
 export SPARKLE_UNSIGNED_FIXTURE=1
