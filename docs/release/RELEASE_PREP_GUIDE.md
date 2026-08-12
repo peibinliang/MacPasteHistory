@@ -26,7 +26,7 @@
 
 已可在本地自动复核的内容包括版本 `1.0.5 (7)`、V1.0.3 核心稳定自动化矩阵、V1.0.4 跨版本代码身份门禁、V1.0.5 本地 AI 凭据与 AI 翻译自动化、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。真实 V1.0.2 build 4 应用生成并脱敏的数据库 fixture 已纳入仓库，checksum 与升级完整性门禁通过；来源和后处理边界见 fixture README 与 PD-006。
 
-以下项目没有真实证据时必须保持未完成：GUI 过滤开关回归、Developer ID Application 签名、Apple 公证、官方 `generate_appcast` 产生的真实 EdDSA 正式产物、本地 HTTPS V1.0.1 → V1.0.2 演练、无效签名安装拒绝、公共 feed 升级、Intel/多 macOS 版本验证和 GitHub 发布。`--strict-final` 在这些证据缺失时应退出非零，这是正确门禁结果。
+以下项目没有真实证据时必须保持未完成：GUI 过滤开关回归、Developer ID Application 签名、Apple 公证、官方 `generate_appcast` 产生的真实 EdDSA 更新产物、本地 HTTPS V1.0.4 → V1.0.5 演练、无效签名安装拒绝、公共 feed 升级、Intel/多 macOS 版本验证和 GitHub 发布。`--strict-final` 在这些证据缺失时应退出非零，这是正确门禁结果。PD-011 仅批准本版本以 ad-hoc 制品发布，不改变这些门禁的失败状态。
 
 任何 GitHub Release、GitHub Pages、push 或其他远程修改都必须在用户批准确切资产与动作后单独执行。本地构建、fixture 或结构正确的合成签名不能替代正式发布证据。
 
@@ -66,7 +66,7 @@
         <string>$(PRODUCT_BUNDLE_IDENTIFIER)-spki</string>
     </array>
 
-    <!-- 主应用网络仅用于用户主动触发的 DeepSeek 文本润色；Sparkle 下载由其 XPC 处理 -->
+    <!-- 主应用网络仅用于用户主动触发的 DeepSeek 文本润色或翻译；Sparkle 下载由其 XPC 处理 -->
     <key>com.apple.security.network.client</key>
     <true/>
     <key>com.apple.security.network.server</key>
@@ -79,7 +79,7 @@
 </plist>
 ```
 
-主应用必须仅为用户主动触发且已确认远程处理边界的 DeepSeek 文本润色开启
+主应用必须仅为用户主动触发且已确认远程处理边界的 DeepSeek 文本润色或翻译开启
 `com.apple.security.network.client`，不得开启 `com.apple.security.network.server`；
 appcast、发布说明和更新包仍由 Sparkle Downloader XPC 获取。与此同时，`com.apple.coreaudio`、
 `$(PRODUCT_BUNDLE_IDENTIFIER)-spks` 和
@@ -476,6 +476,12 @@ scripts/release-install-preflight.sh
 默认模式可保留 ad-hoc 内部测试；`--formal-update` 会拒绝 ad-hoc、Apple
 Development、Apple Distribution 等非 `Developer ID Application` 身份，并要求
 `spctl` 报告 `Notarized Developer ID`。不得把隔离 fixture 的正例当成正式发布证据。
+
+V1.0.5 的 PD-011 例外明确允许发布 ad-hoc 制品，但不允许伪造正式门禁通过：
+`--formal-update`、`--strict-final`、Developer ID、公证与跨版本身份检查必须继续失败或保持
+未完成。该版本的更新 ZIP 由发布者显式打包并使用非 `--formal-update` 模式校验归档、
+checksum、沙盒 entitlement 与代码签名完整性；appcast 仍必须由 Sparkle 官方
+`generate_appcast` 签名，并由仓库 verifier 核对版本、URL、长度、公钥和签名结构。
 
 辅助功能权限能否跨更新保留，取决于连续版本是否具有兼容的代码身份，而不只取决于
 Bundle ID。ad-hoc 签名的 designated requirement 会绑定构建特定的 CDHash；二进制
@@ -1019,10 +1025,10 @@ scripts/release-readiness-report.sh --output build/release-readiness-report.md
 ```
 
 报告默认从
-`openspec/changes/add-v1-0-1-sensitive-filter-and-updates/tasks.md` 读取 V1.0.2
+`openspec/changes/add-local-ai-credentials-and-translation/tasks.md` 读取 V1.0.5
 任务 checkbox，并在 Markdown 与 JSON 中输出同一个 change 名称、完成数、总数和
 剩余任务。诊断其他历史 change 时必须显式传入
-`--openspec-change prepare-release-testing-and-store-assets`；正式 V1.0.2 验收不要使用
+`--openspec-change prepare-release-testing-and-store-assets`；正式 V1.0.5 验收不要使用
 历史 change 代替默认值。即使本机缺少 `openspec` CLI，Markdown 统计仍会保留，
 同时产生明确 warning；`--strict-final` 会把该 warning 和任何未完成任务阻断为失败。
 
@@ -1032,14 +1038,14 @@ scripts/release-readiness-report.sh --output build/release-readiness-report.md
 scripts/release-readiness-report.sh \
   --manual-record build/manual-release-qa-session/<timestamp>-<commit>/manual-qa-record.md \
   --qa-session build/manual-release-qa-session/<timestamp>-<commit> \
-  --formal-update-archive /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-4.zip \
+  --formal-update-archive /absolute/path/to/v1.0.5-release/MacPasteHistory-1.0.5-7.zip \
   --appcast docs/appcast.xml \
   --output build/release-readiness-report.md \
   --json-output build/release-readiness-report.json \
   --strict-final
 ```
 
-该报告会汇总 Xcode 文件引用、日志隐私扫描、Info.plist 用途说明、支持 macOS 版本声明一致性、版本/构建号一致性、Release entitlements 配置、Bundle ID 和菜单栏应用身份、Sparkle 配置、嵌入 framework/XPC、正式 ZIP、appcast、Developer ID、公证、V1.0.1 → V1.0.2 升级证据、App Icon 素材、截图 PNG 尺寸、人工 QA 样本生成校验、人工 QA 会话目录完整性、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、Release app 实际签名、用户文档、隐私政策、人工 QA 记录、所选 OpenSpec change 的 Markdown 任务进度和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`，并使用 `--strict-final`；该模式在缺少 appcast、正式 ZIP、Developer ID、公证、升级证据、OpenSpec CLI 或所选 change 尚有未完成任务时必定阻断，也会把所有其他 warning 视为阻断项。JSON 摘要会包含 `status`、`checks`、`blockers`、`warnings`、人工 QA 记录路径、人工 QA 会话路径、正式更新路径、appcast 路径、`openSpecProgress`、`openSpecRemainingTasks` 和仍需人工证据的列表。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份和 ad-hoc app 签名降级为 `WARN`，不能作为最终分发验收依据。
+该报告会汇总 Xcode 文件引用、日志隐私扫描、Info.plist 用途说明、支持 macOS 版本声明一致性、版本/构建号一致性、Release entitlements 配置、Bundle ID 和菜单栏应用身份、Sparkle 配置、嵌入 framework/XPC、正式 ZIP、appcast、Developer ID、公证、V1.0.4 → V1.0.5 升级证据、App Icon 素材、截图 PNG 尺寸、人工 QA 样本生成校验、人工 QA 会话目录完整性、Release 冒烟测试、Release 安装副本预检、Xcode 授权、签名身份、Release app 实际签名、用户文档、隐私政策、人工 QA 记录、所选 OpenSpec change 的 Markdown 任务进度和 git 工作区状态。默认运行时会构建 Release 包，运行隔离数据的 synthetic smoke test（文本/图片捕获、重启持久化、大文本/大图、超限跳过、启动清理），再复制到临时安装目录、启动副本、验证隔离 SQLite 本地存储初始化并退出应用。正式分发前报告必须无 `Blockers`，并使用 `--strict-final`；该模式在缺少 appcast、正式 ZIP、Developer ID、公证、升级证据、OpenSpec CLI 或所选 change 尚有未完成任务时必定阻断，也会把所有其他 warning 视为阻断项。JSON 摘要会包含 `status`、`checks`、`blockers`、`warnings`、人工 QA 记录路径、人工 QA 会话路径、正式更新路径、appcast 路径、`openSpecProgress`、`openSpecRemainingTasks` 和仍需人工证据的列表。如果只是内部 QA、尚未安装分发证书，可临时加入 `--allow-adhoc`，但该模式只会把缺失签名身份和 ad-hoc app 签名降级为 `WARN`，不能作为最终分发验收依据。
 
 如果只需要临时检查静态材料，可使用 `--skip-release-smoke` 和 `--skip-install-preflight` 跳过启动类检查；最终发布验收不得跳过：
 
@@ -1093,7 +1099,7 @@ scripts/validate-manual-qa-record.sh --allow-adhoc docs/release/manual-qa-record
 | 17 | 最终 readiness report 默认安装副本预检通过 | 4.4 | ⬜ |
 | 18 | 最终 readiness report 默认 Release smoke test 通过 | 4.4 | ⬜ |
 | 19 | Developer ID 签名、公证、正式 ZIP 与 appcast 全部验证 | 1.5 | ⬜ |
-| 20 | V1.0.1 → V1.0.2 手动与自动升级证据完整 | 1.5 | ⬜ |
+| 20 | V1.0.4 → V1.0.5 手动与自动升级证据完整 | 1.5 | ⬜ |
 | 21 | V1.0.2 敏感过滤开启/关闭 GUI 回归完整 | 3.0 | ⬜ |
 
 ### 发布决策
@@ -1102,7 +1108,7 @@ scripts/validate-manual-qa-record.sh --allow-adhoc docs/release/manual-qa-record
 
 - **应用名称**: MacPasteHistory
 - **Bundle ID**: `com.peibin.MacPasteHistory`
-- **版本**: 1.0.2 (4)
+- **版本**: 1.0.5 (7)
 - **最低 macOS 版本**: 14.0 Sonoma
 - **分发渠道**: ☐ App Store  /  ⚩ 自有网站 + DMG
 - **截图规范**: 当前仓库提供 4 张 5760 × 3600 PNG 截图素材；最终上传前按目标渠道裁切或导出目标尺寸

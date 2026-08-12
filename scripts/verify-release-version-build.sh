@@ -48,8 +48,20 @@ if ! grep -Fq "版本号为 \`$EXPECTED_VERSION_BUILD\`" "$RELEASE_GUIDE"; then
     add_violation "Release guide acceptance checklist does not mention version $EXPECTED_VERSION_BUILD."
 fi
 
+if ! grep -Fq -- "--formal-update-archive /absolute/path/to/v$EXPECTED_VERSION-release/MacPasteHistory-$EXPECTED_VERSION-$EXPECTED_BUILD.zip" "$RELEASE_GUIDE"; then
+    add_violation "Release guide readiness command does not use the current version/build archive."
+fi
+
+if ! grep -Fq -- "- **版本**: $EXPECTED_VERSION_BUILD" "$RELEASE_GUIDE"; then
+    add_violation "Release guide final decision does not use version $EXPECTED_VERSION_BUILD."
+fi
+
 if ! grep -Fq "| Version / build | \`$EXPECTED_VERSION_BUILD\` |" "$MANUAL_QA_RECORD"; then
     add_violation "Manual QA record template does not use Version / build '$EXPECTED_VERSION_BUILD'."
+fi
+
+if ! grep -Fq "MacPasteHistory-$EXPECTED_VERSION-$EXPECTED_BUILD.zip" "$MANUAL_QA_RECORD"; then
+    add_violation "Manual QA record template does not name the current update archive."
 fi
 
 echo "# Release Version And Build Verification"

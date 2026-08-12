@@ -15,7 +15,7 @@ formal_update_archive=""
 appcast_path=""
 previous_release_app=""
 expected_team_id=""
-openspec_change="stabilize-accessibility-permission-across-updates"
+openspec_change="add-local-ai-credentials-and-translation"
 readiness_extract_dir=""
 formal_app_path=""
 formal_archive_verified=0
@@ -45,7 +45,7 @@ Options:
   --expected-team-id ID Expected Apple Developer Team ID for both releases.
   --openspec-change NAME
                         Read progress from openspec/changes/NAME/tasks.md.
-                        Defaults to stabilize-accessibility-permission-across-updates.
+                        Defaults to add-local-ai-credentials-and-translation.
   --strict-final        Treat warnings as blockers for final distribution approval.
   -h, --help            Show this help.
 EOF

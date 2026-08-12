@@ -70,17 +70,25 @@ scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
 ```
 
 The formal Sparkle update is a separate artifact. It must be named
-`MacPasteHistory-1.0.2-4.zip`, have an adjacent `.sha256`, and pass the strict verifier:
+`MacPasteHistory-1.0.5-7.zip`, have an adjacent `.sha256`, and pass the strict verifier:
+
+PD-011 allows the public V1.0.5 artifact to remain ad-hoc. For that explicitly
+waived artifact, run the package verifier without `--formal-update` and record
+the expected Developer ID/notarization failure separately; do not mark the
+formal gate as passed.
 
 ```bash
 scripts/verify-release-qa-package.sh \
   --formal-update \
-  /path/to/MacPasteHistory-1.0.2-4.zip
+  /path/to/MacPasteHistory-1.0.5-7.zip
 
 scripts/verify-sparkle-appcast.sh \
   --appcast /path/to/appcast.xml \
-  --archive /path/to/MacPasteHistory-1.0.2-4.zip \
-  --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)"
+  --archive /path/to/MacPasteHistory-1.0.5-7.zip \
+  --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)" \
+  --expected-version 1.0.5 \
+  --expected-build 7 \
+  --expected-url https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.5/MacPasteHistory-1.0.5-7.zip
 ```
 
 The verifiers reject unsafe archive paths, a top-level app symlink, and bundle
@@ -238,9 +246,9 @@ fixtures. Unit tests and fixture hashes do not replace these GUI/manual results.
 | Manual OCR | Synthetic English/简体/繁體 image is only recognized after click, remains editable, then searchable after Save. | ⬜ Not run | TBD |
 | Derived origin | Deleting an origin retains the derived summary and indicates missing source. | ⬜ Not run | TBD |
 
-## V1.0.1 → V1.0.2 Upgrade Evidence
+## V1.0.4 → V1.0.5 Upgrade Evidence
 
-Use a real V1.0.0 installation and the Developer ID signed, notarized, EdDSA-signed
+Use a real V1.0.4 installation and the Developer ID signed, notarized, EdDSA-signed
 formal update. A synthetic fixture, direct app replacement, or ad-hoc build is not
 valid evidence for this section. Record the source installation path, pre/post
 counts, timestamps, screenshots or logs that contain no clipboard payloads, and
@@ -248,24 +256,24 @@ the tester for every passed row.
 
 | Scenario | Expected Result | Result | Evidence / Notes |
 |---|---|---|---|
-| V1.0.0 baseline captured | Installed app reports V1.0.0 and pre-upgrade history, favorites, settings, and shortcut values are recorded. | ⬜ Not run | TBD |
-| Manual update check | Check for Updates reaches the fixed HTTPS appcast and offers V1.0.2 (4). | ⬜ Not run | TBD |
-| Automatic update prompt | Sparkle's scheduled check offers the same signed V1.0.2 update without a second updater instance. | ⬜ Not run | TBD |
-| Download, install, and restart | Sparkle downloads, verifies, replaces, and restarts the app as V1.0.2 (4). | ⬜ Not run | TBD |
-| History and favorites preserved | Post-upgrade history count and favorite state match the recorded V1.0.0 baseline. | ⬜ Not run | TBD |
-| Settings and shortcut preserved | Sensitive-filter preference, other settings, and configured shortcut match the recorded V1.0.0 baseline. | ⬜ Not run | TBD |
+| V1.0.4 baseline captured | Installed app reports V1.0.4 and pre-upgrade history, favorites, settings, and shortcut values are recorded. | ⬜ Not run | TBD |
+| Manual update check | Check for Updates reaches the fixed HTTPS appcast and offers V1.0.5 (7). | ⬜ Not run | TBD |
+| Automatic update prompt | Sparkle's scheduled check offers the same signed V1.0.5 update without a second updater instance. | ⬜ Not run | TBD |
+| Download, install, and restart | Sparkle downloads, verifies, replaces, and restarts the app as V1.0.5 (7). | ⬜ Not run | TBD |
+| History and favorites preserved | Post-upgrade history count and favorite state match the recorded V1.0.4 baseline. | ⬜ Not run | TBD |
+| Settings and shortcut preserved | Sensitive-filter preference, other settings, and configured shortcut match the recorded V1.0.4 baseline. | ⬜ Not run | TBD |
 
 ### Update Failure And Cancellation Evidence
 
-Run these cases only with a real installed V1.0.0 and controlled update inputs.
+Run these cases only with a real installed V1.0.4 and controlled update inputs.
 Synthetic XML/archive fixtures used by shell tests are not release evidence.
 
 | Scenario | Expected Result | Result | Evidence / Notes |
 |---|---|---|---|
-| Network unavailable | Update check reports a recoverable failure. | ⬜ Not run | V1.0.0 remains usable and data is unchanged. |
+| Network unavailable | Update check reports a recoverable failure. | ⬜ Not run | V1.0.4 remains usable and data is unchanged. |
 | HTTP 404 | Missing appcast or enclosure is reported without replacement. | ⬜ Not run | Record controlled HTTPS URL and redacted evidence path. |
-| Malformed appcast | Sparkle rejects invalid XML/metadata. | ⬜ Not run | V1.0.0 remains installed. |
-| Invalid EdDSA signature | Sparkle refuses installation. | ⬜ Not run | V1.0.0 remains usable; no bundle replacement occurs. |
+| Malformed appcast | Sparkle rejects invalid XML/metadata. | ⬜ Not run | V1.0.4 remains installed. |
+| Invalid EdDSA signature | Sparkle refuses installation. | ⬜ Not run | V1.0.4 remains usable; no bundle replacement occurs. |
 | Invalid code signature | Sparkle refuses installation. | ⬜ Not run | History and settings remain unchanged. |
 | User cancellation | Cancel download or installation. | ⬜ Not run | Current app and data remain unchanged. |
 
@@ -274,6 +282,6 @@ Synthetic XML/archive fixtures used by shell tests are not release evidence.
 | Item | Value |
 |---|---|
 | Ready for distribution? | ⬜ No |
-| Blocking issues | Developer ID signing, notarization, genuine EdDSA formal artifacts, GUI/manual QA, real V1.0.1 → V1.0.2 upgrade, cross-device coverage, and public-feed evidence are not yet recorded. |
+| Blocking issues | Developer ID signing and notarization are explicitly waived for V1.0.5 by PD-011; genuine EdDSA artifact verification, remaining GUI/manual QA, real V1.0.4 → V1.0.5 upgrade, cross-device coverage, and public-feed evidence are not yet recorded. |
 | Follow-up issues | Obtain explicit user approval for the exact release assets and each remote GitHub publication action after all local gates pass. |
 | Approver | TBD |
