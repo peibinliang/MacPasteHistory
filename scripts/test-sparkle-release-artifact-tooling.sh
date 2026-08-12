@@ -542,7 +542,13 @@ set -euo pipefail
 
 : "${FORMAL_GATE_RECORD:?}"
 printf '%s\n' "$@" >"$FORMAL_GATE_RECORD"
-[[ "$#" -eq 2 && "$1" == "--formal-update" && -f "$2" ]]
+if [[ "$#" -eq 2 ]]; then
+    [[ "$1" == "--formal-update" && -f "$2" ]]
+elif [[ "$#" -eq 1 ]]; then
+    [[ -f "$1" ]]
+else
+    exit 1
+fi
 FAKE_FORMAL_GATE
 chmod +x "$fixture_repo/scripts/verify-release-qa-package.sh"
 cat >"$sparkle_bin/generate_appcast" <<'FAKE_GENERATE_APPCAST'
@@ -630,6 +636,20 @@ fi
 if [[ "$(sed -n '1p' "$formal_gate_record")" != "--formal-update" \
     || "$(sed -n '2p' "$formal_gate_record")" != "$archive_path" ]]; then
     add_failure "generator did not verify the explicit archive through the formal update gate."
+fi
+
+export SPARKLE_ARGS_RECORD="$sparkle_args_record"
+export FORMAL_GATE_RECORD="$formal_gate_record"
+expect_success \
+    "appcast generator supports an explicit ad-hoc waiver" \
+    "$fixture_repo/scripts/generate-sparkle-appcast.sh" \
+    --release-directory "$release_dir" \
+    --sparkle-bin-directory "$sparkle_bin" \
+    --allow-adhoc
+unset SPARKLE_ARGS_RECORD FORMAL_GATE_RECORD
+if [[ "$(wc -l <"$formal_gate_record" | tr -d '[:space:]')" != "1" \
+    || "$(sed -n '1p' "$formal_gate_record")" != "$archive_path" ]]; then
+    add_failure "ad-hoc waiver did not use the non-formal package verifier path."
 fi
 
 future_release_dir="$fixture_repo/future-release"

@@ -306,7 +306,7 @@ verify_upgrade_evidence() {
     local record_path="$1"
     local section_text scenario
     local required_scenarios=(
-        "V1.0.0 baseline captured"
+        "V1.0.4 baseline captured"
         "Manual update check"
         "Automatic update prompt"
         "Download, install, and restart"
@@ -320,7 +320,7 @@ verify_upgrade_evidence() {
         return 1
     fi
     section_text="$(awk '
-        /^## V1\.0\.0 → V1\.0\.1 Upgrade Evidence$/ {in_section=1; next}
+        /^## V1\.0\.4 → V1\.0\.5 Upgrade Evidence$/ {in_section=1; next}
         in_section && /^## / {exit}
         in_section {print}
     ' "$record_path")"
@@ -340,7 +340,7 @@ verify_upgrade_evidence() {
         fi
     done
 
-    echo "All required V1.0.1 → V1.0.2 upgrade scenarios contain direct pass evidence."
+    echo "All required V1.0.4 → V1.0.5 upgrade scenarios contain direct pass evidence."
     echo "Status: PASS"
 }
 
@@ -701,8 +701,8 @@ if ! run_capture "Manual QA record" "${manual_args[@]}"; then
     add_blocker "Manual QA record is incomplete or still contains release blockers."
 fi
 
-if ! run_capture "V1.0.1 → V1.0.2 upgrade evidence" verify_upgrade_evidence "$manual_record"; then
-    add_warning "V1.0.1 → V1.0.2 upgrade evidence is incomplete; final release approval is blocked in --strict-final mode."
+if ! run_capture "V1.0.4 → V1.0.5 upgrade evidence" verify_upgrade_evidence "$manual_record"; then
+    add_warning "V1.0.4 → V1.0.5 upgrade evidence is incomplete; final release approval is blocked in --strict-final mode."
 fi
 
 git_status="$(git status --short)"
@@ -824,7 +824,7 @@ EOF
 
 - Signed Release build with the intended distribution certificate and Team ID.
 - Developer ID notarization and a verified Sparkle appcast/formal ZIP pair.
-- Direct V1.0.1 → V1.0.2 manual and automatic update evidence, including restart and data preservation.
+- Direct V1.0.4 → V1.0.5 manual and automatic update evidence, including restart and data preservation.
 - Menu bar, history window, restore, delete, clear-all, pause, blacklist, and launch-at-login manual QA.
 - Apple Silicon, Intel, and supported macOS version coverage or explicit release decision records.
 - Final reviewer decision in the manual QA record.
@@ -997,7 +997,7 @@ payload = {
     "manualEvidenceStillRequired": [
         "Signed Release build with the intended distribution certificate and Team ID.",
         "Developer ID notarization and a verified Sparkle appcast/formal ZIP pair.",
-        "Direct V1.0.1 to V1.0.2 manual and automatic update evidence, including restart and data preservation.",
+        "Direct V1.0.4 to V1.0.5 manual and automatic update evidence, including restart and data preservation.",
         "Menu bar, history window, restore, delete, clear-all, pause, blacklist, and launch-at-login manual QA.",
         "Apple Silicon, Intel, and supported macOS version coverage or explicit release decision records.",
         "Final reviewer decision in the manual QA record.",

@@ -539,7 +539,8 @@ scripts/generate-sparkle-appcast.sh \
   --sparkle-bin-directory /absolute/path/to/Sparkle/bin \
   --expected-version 1.0.5 \
   --expected-build 7 \
-  --download-url-prefix https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.5/
+  --download-url-prefix https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.5/ \
+  --allow-adhoc
 ```
 
 生成脚本只接受上述两个目录参数，不接受、读取或打印私钥参数。EdDSA 私钥必须

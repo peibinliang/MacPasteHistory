@@ -165,6 +165,30 @@ run_readiness \
     --openspec-change "$CURRENT_CHANGE"
 assert_progress "explicit-current" "$explicit_current_json" "$CURRENT_CHANGE" 19 20 1
 
+current_upgrade_record="$TEST_ROOT/current-upgrade-record.md"
+sed 's/| ⬜ Not run | TBD |/| ✅ Pass | synthetic current-version fixture |/g' \
+    "$REPO_ROOT/docs/release/manual-qa-record.md" >"$current_upgrade_record"
+current_upgrade_json="$TEST_ROOT/current-upgrade.json"
+run_readiness \
+    "current-upgrade" \
+    "$current_upgrade_json" \
+    --manual-record "$current_upgrade_record"
+if [[ -s "$current_upgrade_json" ]] && ! /usr/bin/python3 - "$current_upgrade_json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    payload = json.load(handle)
+checks = [row for row in payload["checks"] if row["name"] == "V1.0.4 → V1.0.5 upgrade evidence"]
+if len(checks) != 1 or checks[0]["status"] != "PASS":
+    raise SystemExit(f"current upgrade evidence parser did not pass: {checks}")
+if any("V1.0.1" in warning or "V1.0.2 upgrade evidence" in warning for warning in payload["warnings"]):
+    raise SystemExit(f"stale upgrade evidence warning remains: {payload['warnings']}")
+PY
+then
+    add_failure "current-upgrade: readiness did not recognize the V1.0.4 → V1.0.5 matrix."
+fi
+
 legacy_json="$TEST_ROOT/legacy.json"
 run_readiness \
     "legacy" \
@@ -260,6 +284,7 @@ echo "| Default Markdown progress | \`19/20; 1 remaining\` |"
 echo "| Explicit legacy progress | \`4/19; 15 remaining\` |"
 echo "| JSON escaping/injection fixtures | \`expected inert round-trip\` |"
 echo "| Fenced checkbox fixture | \`2/3; 1 remaining\` |"
+echo "| Current upgrade evidence fixture | \`V1.0.4 → V1.0.5 recognized\` |"
 echo "| openspec CLI fixture | \`intentionally unavailable\` |"
 echo "| Failures | \`${#failures[@]}\` |"
 echo

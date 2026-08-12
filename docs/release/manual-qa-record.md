@@ -77,6 +77,16 @@ waived artifact, run the package verifier without `--formal-update` and record
 the expected Developer ID/notarization failure separately; do not mark the
 formal gate as passed.
 
+Actual V1.0.5 waived-artifact verification:
+
+```bash
+scripts/verify-release-qa-package.sh \
+  /path/to/MacPasteHistory-1.0.5-7.zip
+```
+
+The following formal command is retained as expected-failure evidence for the
+missing Developer ID identity and notarization:
+
 ```bash
 scripts/verify-release-qa-package.sh \
   --formal-update \
