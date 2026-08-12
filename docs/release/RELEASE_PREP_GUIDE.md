@@ -538,6 +538,10 @@ scripts/verify-sparkle-appcast.sh \
   --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)"
 ```
 
+校验器为兼容既有流程默认检查 `1.0.2 (4)`。验证后续版本时，发布者必须显式传入
+`--expected-version`、`--expected-build` 和 `--expected-url`；archive 文件名会从该 URL
+推导并与本地 ZIP 严格匹配，避免旧版本常量导致误报或误验。
+
 4. 发布顺序必须是先在获得用户明确授权后创建 GitHub Release `V1.0.2` 并上传
 ZIP、SHA-256 和发布说明，确认固定 enclosure URL 已可下载，再在另一次明确授权下
 发布 `docs/appcast.xml` 到 GitHub Pages。仅执行本地脚本不授权 push、Release、Pages

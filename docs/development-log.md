@@ -1,5 +1,15 @@
 # Development Log
 
+## 2026-08-12
+
+### V1.0.3 appcast verification compatibility fix
+
+- Bug: the committed Sparkle appcast verifier was locked to V1.0.2 metadata, so a valid V1.0.3 feed and update archive failed the release-readiness gate.
+- Root cause: archive name, download URL, semantic version, and build number were fixed constants instead of explicit release inputs.
+- Fix: added validated `--expected-version`, `--expected-build`, and `--expected-url` options while retaining V1.0.2 defaults for existing release procedures. The expected archive name is derived from the HTTPS URL and matched against the local ZIP.
+- Regression: the original V1.0.2 fixture suite remains green, and a new V1.0.3 fixture plus the real `MacPasteHistory-1.0.3-5.zip` and `docs/appcast.xml` all pass.
+- Compatibility: no application runtime behavior, database data, system permission, or clipboard content is changed.
+
 ## 2026-08-11
 
 ### V1.0.2 DMG and GitHub formal release
