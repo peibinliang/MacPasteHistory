@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.4 - 2026-08-12
+
 ### Added
 
 - Added a cross-version Developer ID identity gate for bundle ID, Team ID, designated requirement, hardened runtime, and notarization before public updates.
@@ -9,6 +11,7 @@
 ### Fixed
 
 - Prevented release readiness from treating ad-hoc builds as evidence that macOS Accessibility permission can survive an application update.
+- Parameterized formal update packaging and appcast generation so new version/build pairs no longer inherit V1.0.2-specific gates.
 
 ## 1.0.3 - 2026-08-12
 

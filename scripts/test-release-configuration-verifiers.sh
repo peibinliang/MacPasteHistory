@@ -134,7 +134,7 @@ expect_failure \
     "$CURRENT_FIXTURE/scripts/verify-release-entitlements.sh"
 
 create_fixture
-perl -pi -e 's/1\.0\.3/1x0x3/g' \
+perl -pi -e 's/1\.0\.4/1x0x4/g' \
     "$CURRENT_FIXTURE/docs/release/RELEASE_PREP_GUIDE.md" \
     "$CURRENT_FIXTURE/docs/release/manual-qa-record.md"
 expect_failure \
