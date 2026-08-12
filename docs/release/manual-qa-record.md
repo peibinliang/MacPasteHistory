@@ -154,7 +154,7 @@ scripts/verify-release-screenshot-assets.sh
 | Tester | TBD |
 | Git commit | TBD |
 | App path | TBD |
-| Version / build | `1.0.3 (5)` |
+| Version / build | `1.0.4 (6)` |
 | Signing identity | TBD |
 | Package SHA-256 | TBD |
 | Package manifest | TBD |

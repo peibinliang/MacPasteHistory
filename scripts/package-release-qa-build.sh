@@ -134,8 +134,8 @@ package_formal_update() {
     version="$(plist_value "$info_plist" CFBundleShortVersionString)"
     build_number="$(plist_value "$info_plist" CFBundleVersion)"
     bundle_id="$(plist_value "$info_plist" CFBundleIdentifier)"
-    [[ "$version" == "1.0.2" && "$build_number" == "4" ]] || {
-        echo "Formal update app must report version 1.0.2 (4)" >&2
+    [[ -n "$version" && "$version" != "unknown" && -n "$build_number" && "$build_number" != "unknown" ]] || {
+        echo "Formal update app must report a version and build number" >&2
         exit 1
     }
     [[ "$bundle_id" == "com.peibin.MacPasteHistory" ]] || {
@@ -178,10 +178,10 @@ package_formal_update() {
         exit 1
     }
 
-    archive_name="MacPasteHistory-1.0.2-4.zip"
+    archive_name="MacPasteHistory-$version-$build_number.zip"
     archive_path="$OUTPUT_DIR/$archive_name"
     checksum_path="$archive_path.sha256"
-    release_notes_name="MacPasteHistory-1.0.2-4-release-notes.md"
+    release_notes_name="MacPasteHistory-$version-$build_number-release-notes.md"
     release_notes_output="$OUTPUT_DIR/$release_notes_name"
     mkdir -p "$OUTPUT_DIR"
     canonical_output="$(canonical_path "$OUTPUT_DIR")"

@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d /private/tmp/macpastehistory-readiness-openspec.XXXXXX)"
-CURRENT_CHANGE="add-v1-0-1-sensitive-filter-and-updates"
+CURRENT_CHANGE="stabilize-accessibility-permission-across-updates"
 LEGACY_CHANGE="prepare-release-testing-and-store-assets"
 FENCED_FIXTURE="$REPO_ROOT/scripts/fixtures/release-readiness-openspec-fenced-tasks.md"
 FENCED_CHANGE="test-readiness-fences-${TEST_ROOT##*.}"
@@ -122,7 +122,28 @@ PY
 
 default_json="$TEST_ROOT/default.json"
 run_readiness "default" "$default_json" --strict-final
-assert_progress "default" "$default_json" "$CURRENT_CHANGE" 24 32 8
+assert_progress "default" "$default_json" "$CURRENT_CHANGE" 9 14 5
+
+if [[ -s "$default_json" ]] && ! /usr/bin/python3 - "$default_json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    payload = json.load(handle)
+
+checks = [row for row in payload["checks"] if row["name"] == "Update identity continuity"]
+if len(checks) != 1 or checks[0]["status"] != "SKIP":
+    raise SystemExit(f"expected one skipped update identity check, got {checks}")
+if not any("Accessibility permission continuity" in warning for warning in payload["warnings"]):
+    raise SystemExit("missing Accessibility permission continuity warning")
+PY
+then
+    add_failure "default: missing update identity continuity release gate."
+fi
+
+if ! rg -q 'formal_archive_verified.*-eq 1' "$REPO_ROOT/scripts/release-readiness-report.sh"; then
+    add_failure "default: follow-on formal candidate checks are not gated on successful archive verification."
+fi
 
 if [[ -s "$default_json" ]] && ! /usr/bin/python3 - "$default_json" <<'PY'
 import json
@@ -142,7 +163,7 @@ run_readiness \
     "explicit-current" \
     "$explicit_current_json" \
     --openspec-change "$CURRENT_CHANGE"
-assert_progress "explicit-current" "$explicit_current_json" "$CURRENT_CHANGE" 24 32 8
+assert_progress "explicit-current" "$explicit_current_json" "$CURRENT_CHANGE" 9 14 5
 
 legacy_json="$TEST_ROOT/legacy.json"
 run_readiness \
@@ -235,7 +256,7 @@ echo
 echo "| Field | Value |"
 echo "|---|---|"
 echo "| Default change | \`$CURRENT_CHANGE\` |"
-echo "| Default Markdown progress | \`24/32; 8 remaining\` |"
+echo "| Default Markdown progress | \`9/14; 5 remaining\` |"
 echo "| Explicit legacy progress | \`4/19; 15 remaining\` |"
 echo "| JSON escaping/injection fixtures | \`expected inert round-trip\` |"
 echo "| Fenced checkbox fixture | \`2/3; 1 remaining\` |"

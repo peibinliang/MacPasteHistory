@@ -1,6 +1,6 @@
 # 粘易发布准备操作指引
 
-> **版本**: v1.0.3 | **目标**: Apple Silicon / Intel macOS 14.0+ | **最后更新**: 2026-08-12
+> **版本**: v1.0.4 | **目标**: Apple Silicon / Intel macOS 14.0+ | **最后更新**: 2026-08-12
 
 本手册覆盖从代码冻结到 App Store 提交之前的全部发布准备步骤，按阶段顺序执行。每个阶段末尾有验收检查清单（✅ 全部打勾才能进入下一阶段）。
 
@@ -22,9 +22,9 @@
 
 ---
 
-## V1.0.3 当前交接边界
+## V1.0.4 当前交接边界
 
-已可在本地自动复核的内容包括版本 `1.0.3 (5)`、V1.0.3 核心稳定自动化矩阵、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。真实 V1.0.2 build 4 应用生成并脱敏的数据库 fixture 已纳入仓库，checksum 与升级完整性门禁通过；来源和后处理边界见 fixture README 与 PD-006。
+已可在本地自动复核的内容包括版本 `1.0.4 (6)`、V1.0.3 核心稳定自动化矩阵、V1.0.4 跨版本代码身份门禁、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。真实 V1.0.2 build 4 应用生成并脱敏的数据库 fixture 已纳入仓库，checksum 与升级完整性门禁通过；来源和后处理边界见 fixture README 与 PD-006。
 
 以下项目没有真实证据时必须保持未完成：GUI 过滤开关回归、Developer ID Application 签名、Apple 公证、官方 `generate_appcast` 产生的真实 EdDSA 正式产物、本地 HTTPS V1.0.1 → V1.0.2 演练、无效签名安装拒绝、公共 feed 升级、Intel/多 macOS 版本验证和 GitHub 发布。`--strict-final` 在这些证据缺失时应退出非零，这是正确门禁结果。
 
@@ -307,8 +307,8 @@ scripts/verify-release-app-signature.sh --build --allow-adhoc
 | `COMPILE_SOURCES_WITH_NORMAL_ENTITLEMENTS` | `YES` | 使用普通 entitlements |
 
 3. **版本号确认**:
-   - `CFBundleShortVersionString`: `1.0.3`
-   - `CFBundleVersion`: `5`
+   - `CFBundleShortVersionString`: `1.0.4`
+   - `CFBundleVersion`: `6`
 
 4. 校验 Info.plist、发布指南和人工 QA 模板中的版本/构建号声明一致：
 
@@ -329,7 +329,7 @@ scripts/verify-release-version-build.sh
 - [x] Release 配置构建成功
 - [x] `SWIFT_OPTIMIZATION_LEVEL = -O`
 - [x] `ENABLE_DEBUG_DYLIB_SUPPORT = NO`
-- [x] 版本号为 `1.0.3 (5)`
+- [x] 版本号为 `1.0.4 (6)`
 - [x] `LSUIElement = true`
 
 ---
@@ -470,12 +470,31 @@ scripts/release-install-preflight.sh
 ### 1.5 生成并验证 Sparkle 正式更新产物
 
 **目标**: 从一个显式指定的 Developer ID 签名且已公证的 `粘易.app`
-生成唯一命名的 V1.0.2 更新 ZIP、相邻 SHA-256、发布说明和已验证 appcast。
+生成唯一命名的 V1.0.4 更新 ZIP、相邻 SHA-256、发布说明和已验证 appcast。
 
 内部 QA 包与正式更新包是两条不同路径。`scripts/package-release-qa-build.sh`
 默认模式可保留 ad-hoc 内部测试；`--formal-update` 会拒绝 ad-hoc、Apple
 Development、Apple Distribution 等非 `Developer ID Application` 身份，并要求
 `spctl` 报告 `Notarized Developer ID`。不得把隔离 fixture 的正例当成正式发布证据。
+
+辅助功能权限能否跨更新保留，取决于连续版本是否具有兼容的代码身份，而不只取决于
+Bundle ID。ad-hoc 签名的 designated requirement 会绑定构建特定的 CDHash；二进制
+更新后 CDHash 改变，macOS TCC 会要求重新授权。正式发布前必须使用同一个 Developer
+ID Team 的应用身份，并比较上一个公开版本与候选版本：
+
+```bash
+scripts/verify-release-update-identity.sh \
+  --previous-app /absolute/path/to/previous/粘易.app \
+  --candidate-app /absolute/path/to/candidate/粘易.app \
+  --expected-bundle-id com.peibin.MacPasteHistory \
+  --expected-team-id YOUR_TEAM_ID
+```
+
+`release-readiness-report.sh` 的正式调用还必须同时提供
+`--previous-release-app` 与 `--expected-team-id`。没有这两项时报告会明确跳过权限连续性
+检查，并在 `--strict-final` 下阻断。V1.0.3 及更早版本均为 ad-hoc；首次迁移到
+Developer ID 签名版本时，用户仍可能需要最后一次辅助功能授权。后续版本只有在保持
+兼容 Developer ID designated requirement 并通过真实升级 smoke 后，才可宣称无需重授。
 
 1. 准备非空 Markdown 发布说明，然后使用显式输入和输出路径打包：
 
@@ -483,8 +502,8 @@ Development、Apple Distribution 等非 `Developer ID Application` 身份，并�
 scripts/package-release-qa-build.sh \
   --formal-update \
   --app /absolute/path/to/粘易.app \
-  --output-dir /absolute/path/to/V1.0.2-release \
-  --release-notes /absolute/path/to/V1.0.2-release-notes.md
+  --output-dir /absolute/path/to/v1.0.4-release \
+  --release-notes /absolute/path/to/V1.0.4-release-notes.md
 ```
 
 该命令不搜索其他 `.app`，不会修改输入应用，也拒绝覆盖已经存在的正式产物。
@@ -493,16 +512,16 @@ app bundle 内（包括经符号链接解析后的别名）。正式产物先写
 通过正式 ZIP verifier 后才移动到最终名称。
 输出必须包括：
 
-- `MacPasteHistory-1.0.2-4.zip`
-- `MacPasteHistory-1.0.2-4.zip.sha256`
-- `MacPasteHistory-1.0.2-4-release-notes.md`
+- `MacPasteHistory-1.0.4-6.zip`
+- `MacPasteHistory-1.0.4-6.zip.sha256`
+- `MacPasteHistory-1.0.4-6-release-notes.md`
 
 2. 在传递给 Sparkle 前独立验证正式 ZIP：
 
 ```bash
 scripts/verify-release-qa-package.sh \
   --formal-update \
-  /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-4.zip
+  /absolute/path/to/v1.0.4-release/MacPasteHistory-1.0.4-6.zip
 ```
 
 3. 找到 Sparkle 2.9.2 的 `bin` 目录（其中必须有可执行的
@@ -510,13 +529,16 @@ scripts/verify-release-qa-package.sh \
 
 ```bash
 scripts/generate-sparkle-appcast.sh \
-  --release-directory /absolute/path/to/V1.0.2-release \
-  --sparkle-bin-directory /absolute/path/to/Sparkle/bin
+  --release-directory /absolute/path/to/v1.0.4-release \
+  --sparkle-bin-directory /absolute/path/to/Sparkle/bin \
+  --expected-version 1.0.4 \
+  --expected-build 6 \
+  --download-url-prefix https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.4/
 ```
 
 生成脚本只接受上述两个目录参数，不接受、读取或打印私钥参数。EdDSA 私钥必须
 仅保存在发布者钥匙串或受保护的发布环境中。脚本运行 Sparkle 官方工具后，会严格
-验证 XML、Sparkle namespace URI、`1.0.2 (4)`、固定 URL、ZIP 字节长度、
+验证 XML、Sparkle namespace URI、`1.0.4 (6)`、固定 URL、ZIP 字节长度、
 64-byte Ed25519 签名的严格 Base64 结构、相邻 SHA-256、Bundle ID 和仓库内
 `SUPublicEDKey`，全部通过后才更新 `docs/appcast.xml`。两个 ZIP verifier 都会在
 解压前拒绝绝对路径与 `..` traversal 条目，解压后拒绝顶层 app symlink、逃出 app
@@ -534,29 +556,32 @@ Base64 fixture 只证明结构校验，不得作为正式签名或发布证据�
 ```bash
 scripts/verify-sparkle-appcast.sh \
   --appcast docs/appcast.xml \
-  --archive /absolute/path/to/V1.0.2-release/MacPasteHistory-1.0.2-4.zip \
-  --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)"
+  --archive /absolute/path/to/v1.0.4-release/MacPasteHistory-1.0.4-6.zip \
+  --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)" \
+  --expected-version 1.0.4 \
+  --expected-build 6 \
+  --expected-url https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.4/MacPasteHistory-1.0.4-6.zip
 ```
 
-校验器为兼容既有流程默认检查 `1.0.2 (4)`。验证后续版本时，发布者必须显式传入
+校验器为兼容既有流程默认检查 `1.0.2 (4)`。发布 V1.0.4 时必须显式传入
 `--expected-version`、`--expected-build` 和 `--expected-url`；archive 文件名会从该 URL
 推导并与本地 ZIP 严格匹配，避免旧版本常量导致误报或误验。
 
-4. 发布顺序必须是先在获得用户明确授权后创建 GitHub Release `V1.0.2` 并上传
+4. 发布顺序必须是先在获得用户明确授权后创建 GitHub Release `v1.0.4` 并上传
 ZIP、SHA-256 和发布说明，确认固定 enclosure URL 已可下载，再在另一次明确授权下
 发布 `docs/appcast.xml` 到 GitHub Pages。仅执行本地脚本不授权 push、Release、Pages
 或任何远程修改。
 
-5. 从真实安装的 V1.0.1 分别完成手动检查和自动提示，下载、安装、重启后确认
-V1.0.2 (4)，并把历史、收藏、设置和快捷键保留证据填写到
+5. 从真实安装的 V1.0.3 分别完成手动检查和自动提示，下载、安装、重启后确认
+V1.0.4 (6)，并把历史、收藏、设置和快捷键保留证据填写到
 `docs/release/manual-qa-record.md` 的升级章节。
 
 #### ✅ 验收清单
 
 - [ ] 正式 ZIP 由 Developer ID Application 签名并通过 `spctl` 公证检查
-- [ ] `MacPasteHistory-1.0.2-4.zip.sha256` 与 ZIP 一致
+- [ ] `MacPasteHistory-1.0.4-6.zip.sha256` 与 ZIP 一致
 - [ ] appcast 由官方 `generate_appcast` 生成，并通过固定 URL、长度、签名结构、版本、Bundle ID 和公钥校验
-- [ ] V1.0.1 → V1.0.2 手动与自动升级证据完整
+- [ ] V1.0.3 → V1.0.4 手动与自动升级证据完整
 - [ ] 私钥、令牌和凭据未进入参数、日志、文档或 Git
 
 ---

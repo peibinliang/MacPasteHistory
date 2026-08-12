@@ -3,8 +3,9 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_INFO_PLIST="$REPO_ROOT/MacPasteHistory/Resources/Info.plist"
-EXPECTED_ARCHIVE_NAME="MacPasteHistory-1.0.2-4.zip"
-DOWNLOAD_URL_PREFIX="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/"
+expected_version="1.0.2"
+expected_build="4"
+download_url_prefix="https://github.com/peibinliang/MacPasteHistory/releases/download/V1.0.2/"
 
 release_directory=""
 sparkle_bin_directory=""
@@ -13,11 +14,15 @@ usage() {
     cat <<'EOF'
 Usage: scripts/generate-sparkle-appcast.sh \
   --release-directory DIR \
-  --sparkle-bin-directory DIR
+  --sparkle-bin-directory DIR \
+  [--expected-version VERSION] \
+  [--expected-build BUILD] \
+  [--download-url-prefix URL_PREFIX]
 
-Generate a V1.0.2 appcast from an explicit formal-release directory, verify it,
-then copy the verified XML to docs/appcast.xml. This command accepts no key
-arguments; Sparkle accesses its signing key through its protected environment.
+Generate an appcast from an explicit formal-release directory, verify it, then
+copy the verified XML to docs/appcast.xml. Version options default to V1.0.2
+for backward compatibility. This command accepts no key arguments; Sparkle
+accesses its signing key through its protected environment.
 EOF
 }
 
@@ -36,6 +41,21 @@ while [[ $# -gt 0 ]]; do
         --sparkle-bin-directory)
             [[ $# -ge 2 ]] || { echo "--sparkle-bin-directory requires a path" >&2; exit 2; }
             sparkle_bin_directory="$2"
+            shift
+            ;;
+        --expected-version)
+            [[ $# -ge 2 ]] || { echo "--expected-version requires a value" >&2; exit 2; }
+            expected_version="$2"
+            shift
+            ;;
+        --expected-build)
+            [[ $# -ge 2 ]] || { echo "--expected-build requires a value" >&2; exit 2; }
+            expected_build="$2"
+            shift
+            ;;
+        --download-url-prefix)
+            [[ $# -ge 2 ]] || { echo "--download-url-prefix requires a value" >&2; exit 2; }
+            download_url_prefix="$2"
             shift
             ;;
         -h|--help)
@@ -57,7 +77,9 @@ done
 [[ -d "$sparkle_bin_directory" ]] || fail "Sparkle bin directory does not exist"
 
 generate_appcast="$sparkle_bin_directory/generate_appcast"
-archive_path="$release_directory/$EXPECTED_ARCHIVE_NAME"
+expected_archive_name="MacPasteHistory-$expected_version-$expected_build.zip"
+expected_url="$download_url_prefix$expected_archive_name"
+archive_path="$release_directory/$expected_archive_name"
 generated_appcast="$release_directory/appcast.xml"
 destination_appcast="$REPO_ROOT/docs/appcast.xml"
 
@@ -71,7 +93,7 @@ destination_appcast="$REPO_ROOT/docs/appcast.xml"
     "$archive_path" >/dev/null
 
 "$generate_appcast" \
-    --download-url-prefix "$DOWNLOAD_URL_PREFIX" \
+    --download-url-prefix "$download_url_prefix" \
     --maximum-versions 10 \
     "$release_directory"
 
@@ -84,7 +106,10 @@ expected_public_key="$(
 "$REPO_ROOT/scripts/verify-sparkle-appcast.sh" \
     --appcast "$generated_appcast" \
     --archive "$archive_path" \
-    --expected-public-key "$expected_public_key"
+    --expected-public-key "$expected_public_key" \
+    --expected-version "$expected_version" \
+    --expected-build "$expected_build" \
+    --expected-url "$expected_url"
 
 mkdir -p "$(dirname "$destination_appcast")"
 temporary_destination="$destination_appcast.tmp.$$"

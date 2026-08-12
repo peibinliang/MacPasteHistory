@@ -13,9 +13,12 @@ skip_release_smoke=0
 strict_final=0
 formal_update_archive=""
 appcast_path=""
-openspec_change="add-v1-0-1-sensitive-filter-and-updates"
+previous_release_app=""
+expected_team_id=""
+openspec_change="stabilize-accessibility-permission-across-updates"
 readiness_extract_dir=""
 formal_app_path=""
+formal_archive_verified=0
 
 usage() {
     cat <<'EOF'
@@ -35,11 +38,14 @@ Options:
                         Skip launching a copied Release app during readiness checks.
   --skip-release-smoke  Skip the synthetic Release smoke test during readiness checks.
   --formal-update-archive PATH
-                        Verify an explicit MacPasteHistory-1.0.2-4.zip formal update.
+                        Verify an explicit version/build-matched formal update ZIP.
   --appcast PATH        Verify an explicit appcast against the formal update archive.
+  --previous-release-app PATH
+                        Compare the prior public app identity with the candidate.
+  --expected-team-id ID Expected Apple Developer Team ID for both releases.
   --openspec-change NAME
                         Read progress from openspec/changes/NAME/tasks.md.
-                        Defaults to add-v1-0-1-sensitive-filter-and-updates.
+                        Defaults to stabilize-accessibility-permission-across-updates.
   --strict-final        Treat warnings as blockers for final distribution approval.
   -h, --help            Show this help.
 EOF
@@ -131,6 +137,22 @@ while [[ $# -gt 0 ]]; do
                 exit 2
             fi
             appcast_path="$2"
+            shift
+            ;;
+        --previous-release-app)
+            if [[ $# -lt 2 ]]; then
+                echo "--previous-release-app requires a path" >&2
+                exit 2
+            fi
+            previous_release_app="$2"
+            shift
+            ;;
+        --expected-team-id)
+            if [[ $# -lt 2 ]]; then
+                echo "--expected-team-id requires a value" >&2
+                exit 2
+            fi
+            expected_team_id="$2"
             shift
             ;;
         --openspec-change)
@@ -481,9 +503,11 @@ else
         --formal-update \
         "$formal_update_archive"; then
         add_blocker "Formal update ZIP failed checksum, identity, signature, notarization, or bundle validation."
+    else
+        formal_archive_verified=1
     fi
 
-    if [[ -f "$formal_update_archive" ]]; then
+    if [[ "$formal_archive_verified" -eq 1 && -f "$formal_update_archive" ]]; then
         readiness_extract_dir="$(mktemp -d /private/tmp/macpastehistory-readiness-update.XXXXXX)"
         case "$readiness_extract_dir" in
             /private/tmp/macpastehistory-readiness-update.*) ;;
@@ -497,7 +521,7 @@ else
         fi
     fi
 
-    if [[ -d "$formal_app_path" ]]; then
+    if [[ "$formal_archive_verified" -eq 1 && -d "$formal_app_path" && ! -L "$formal_app_path" ]]; then
         if ! run_capture \
             "Embedded Sparkle framework and XPC services" \
             "$REPO_ROOT/scripts/verify-sparkle-release-bundle.sh" \
@@ -510,12 +534,35 @@ else
         if ! run_capture "Apple notarization" verify_notarized_app "$formal_app_path"; then
             add_blocker "Formal update app is not accepted by spctl as notarized."
         fi
-    else
+    elif [[ "$formal_archive_verified" -eq 1 ]]; then
         add_check_row "Embedded Sparkle framework and XPC services" "FAIL" "Formal update app could not be extracted."
         add_check_row "Developer ID signature" "FAIL" "Formal update app could not be extracted."
         add_check_row "Apple notarization" "FAIL" "Formal update app could not be extracted."
         add_blocker "Formal update archive does not contain the expected 粘易.app bundle."
+    else
+        add_check_row "Embedded Sparkle framework and XPC services" "SKIP" "Formal update ZIP verification failed."
+        add_check_row "Developer ID signature" "SKIP" "Formal update ZIP verification failed."
+        add_check_row "Apple notarization" "SKIP" "Formal update ZIP verification failed."
     fi
+fi
+
+if [[ -z "$previous_release_app" && -z "$expected_team_id" ]]; then
+    add_check_row "Update identity continuity" "SKIP" "No previous release app and expected Team ID were provided."
+    add_warning "Accessibility permission continuity across updates was not validated."
+elif [[ -z "$previous_release_app" || -z "$expected_team_id" ]]; then
+    add_check_row "Update identity continuity" "FAIL" "Both --previous-release-app and --expected-team-id are required."
+    add_blocker "Update identity validation requires the previous release app and expected Team ID together."
+elif [[ ! -d "$formal_app_path" ]]; then
+    add_check_row "Update identity continuity" "FAIL" "The formal candidate app could not be extracted."
+    add_blocker "Update identity continuity requires an extracted formal update candidate."
+elif ! run_capture \
+    "Update identity continuity" \
+    "$REPO_ROOT/scripts/verify-release-update-identity.sh" \
+    --previous-app "$previous_release_app" \
+    --candidate-app "$formal_app_path" \
+    --expected-bundle-id "com.peibin.MacPasteHistory" \
+    --expected-team-id "$expected_team_id"; then
+    add_blocker "Consecutive releases do not have a compatible Developer ID identity or notarized candidate."
 fi
 
 if [[ -z "$appcast_path" ]]; then

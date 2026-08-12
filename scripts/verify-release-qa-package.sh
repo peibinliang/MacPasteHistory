@@ -17,8 +17,9 @@ Verify a MacPasteHistory Release QA package before manual testing.
 Options:
   --checksum FILE  Use an explicit SHA-256 checksum file.
   --keep           Keep the extracted app and print its path.
-  --formal-update  Require the exact V1.0.2 archive name, Developer ID
-                   signature, notarization, bundle identity, and Sparkle XPCs.
+  --formal-update  Require an archive name matching its app version/build,
+                   Developer ID signature, notarization, bundle identity,
+                   and Sparkle XPCs.
   -h, --help       Show this help.
 EOF
 }
@@ -257,10 +258,6 @@ if [[ ! -f "$zip_path" ]]; then
     exit 1
 fi
 
-if [[ "$formal_update" -eq 1 && "$(basename "$zip_path")" != "MacPasteHistory-1.0.2-4.zip" ]]; then
-    echo "Formal update archive must be named MacPasteHistory-1.0.2-4.zip" >&2
-    exit 1
-fi
 if [[ "$formal_update" -eq 1 && "$checksum_explicit" -eq 1 ]]; then
     echo "Formal update verification requires the adjacent <archive>.sha256 file" >&2
     exit 2
@@ -358,8 +355,13 @@ fi
 
 notarization="not checked"
 if [[ "$formal_update" -eq 1 ]]; then
-    if [[ "$version" != "1.0.2" || "$build_number" != "4" ]]; then
-        echo "Formal update app must report version 1.0.2 (4)" >&2
+    if [[ -z "$version" || "$version" == "unknown" || -z "$build_number" || "$build_number" == "unknown" ]]; then
+        echo "Formal update app must contain version and build metadata" >&2
+        exit 1
+    fi
+    expected_archive_name="MacPasteHistory-$version-$build_number.zip"
+    if [[ "$(basename "$zip_path")" != "$expected_archive_name" ]]; then
+        echo "Formal update archive must be named $expected_archive_name to match the app version/build" >&2
         exit 1
     fi
     if [[ "$bundle_id" != "com.peibin.MacPasteHistory" ]]; then
