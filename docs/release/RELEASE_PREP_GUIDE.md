@@ -477,6 +477,25 @@ scripts/release-install-preflight.sh
 Development、Apple Distribution 等非 `Developer ID Application` 身份，并要求
 `spctl` 报告 `Notarized Developer ID`。不得把隔离 fixture 的正例当成正式发布证据。
 
+辅助功能权限能否跨更新保留，取决于连续版本是否具有兼容的代码身份，而不只取决于
+Bundle ID。ad-hoc 签名的 designated requirement 会绑定构建特定的 CDHash；二进制
+更新后 CDHash 改变，macOS TCC 会要求重新授权。正式发布前必须使用同一个 Developer
+ID Team 的应用身份，并比较上一个公开版本与候选版本：
+
+```bash
+scripts/verify-release-update-identity.sh \
+  --previous-app /absolute/path/to/previous/粘易.app \
+  --candidate-app /absolute/path/to/candidate/粘易.app \
+  --expected-bundle-id com.peibin.MacPasteHistory \
+  --expected-team-id YOUR_TEAM_ID
+```
+
+`release-readiness-report.sh` 的正式调用还必须同时提供
+`--previous-release-app` 与 `--expected-team-id`。没有这两项时报告会明确跳过权限连续性
+检查，并在 `--strict-final` 下阻断。V1.0.3 及更早版本均为 ad-hoc；首次迁移到
+Developer ID 签名版本时，用户仍可能需要最后一次辅助功能授权。后续版本只有在保持
+兼容 Developer ID designated requirement 并通过真实升级 smoke 后，才可宣称无需重授。
+
 1. 准备非空 Markdown 发布说明，然后使用显式输入和输出路径打包：
 
 ```bash

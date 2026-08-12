@@ -390,3 +390,13 @@
 - History experience still needs manual GUI verification for large-list scroll smoothness and detail interaction polish.
 - Image history still needs manual GUI verification for screenshot capture, browser-copied images, and pasting restored images into real apps.
 - Release preparation still needs Apple Developer signing certificates, manual sandbox runtime QA, compatibility, common-app QA, and screenshot verification.
+
+## 2026-08-12 — Stable Accessibility Identity Across Updates
+
+- Reproduced the permission reset using immutable release artifacts: V1.0.0 and V1.0.3 keep `com.peibin.MacPasteHistory` but are ad-hoc signed, have no Team ID, and use different CDHash-only designated requirements.
+- Confirmed `AccessibilityPermissionService` and `PasteCommandService` correctly query live TCC trust; no application-side TCC reset or permission bypass was added.
+- Added `stabilize-accessibility-permission-across-updates` OpenSpec artifacts and PD-009 for the externally managed Developer ID/notarization prerequisites.
+- Added a TDD-tested cross-version verifier that requires matching production bundle ID, expected Team ID, Developer ID authority, stable non-CDHash designated requirements, hardened runtime, and a notarized candidate.
+- Integrated identity continuity into release readiness. Missing previous-release/Team evidence remains a warning for internal QA and blocks strict final approval.
+- Restored the release configuration verifier matrix by updating its stale V1.0.2 mutation fixture to the current V1.0.3 baseline.
+- Known migration boundary: moving from historical ad-hoc releases to the first Developer ID release may require one final Accessibility authorization; continuity can only be promised after a signed baseline and real Sparkle upgrade smoke exist.

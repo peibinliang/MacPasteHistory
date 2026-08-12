@@ -6,10 +6,10 @@
 
 ## 2. Cross-Version Release Gate
 
-- [ ] 2.1 Add a failing fixture-driven test for compatible and incompatible previous/candidate identities.
-- [ ] 2.2 Implement a verifier for bundle ID, Team ID, Developer ID authority, non-CDHash designated requirements, hardened runtime, and candidate notarization.
-- [ ] 2.3 Integrate the verifier into final release readiness while preserving explicit internal ad-hoc QA mode.
-- [ ] 2.4 Run the release tooling self-tests and strict OpenSpec validation.
+- [x] 2.1 Add a failing fixture-driven test for compatible and incompatible previous/candidate identities.
+- [x] 2.2 Implement a verifier for bundle ID, Team ID, Developer ID authority, non-CDHash designated requirements, hardened runtime, and candidate notarization.
+- [x] 2.3 Integrate the verifier into final release readiness while preserving explicit internal ad-hoc QA mode.
+- [x] 2.4 Run the release tooling self-tests and strict OpenSpec validation.
 
 ## 3. Formal Distribution Setup
 
@@ -19,7 +19,7 @@
 
 ## 4. Upgrade QA and Release Review
 
-- [ ] 4.1 Document that V1.0.3 ad-hoc users may need one final Accessibility authorization when moving to V1.0.4.
+- [x] 4.1 Document that V1.0.3 ad-hoc users may need one final Accessibility authorization when moving to V1.0.4.
 - [ ] 4.2 Install the previous stable-identity baseline, grant Accessibility, update through Sparkle, and record that trust and Automatic Paste survive the update.
 - [ ] 4.3 Run full unit/build/release QA and obtain an independent code and release review.
 - [ ] 4.4 Merge `release/v1.0.4` to `main` only after all formal identity and upgrade gates pass.
