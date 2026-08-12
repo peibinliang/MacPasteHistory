@@ -45,6 +45,33 @@ final class DeepSeekClientTests: XCTestCase {
         XCTAssertNil(result.usage)
     }
 
+    func testTranslate_shouldSendClosedTargetInstructionAndPreserveUserTextAsUserMessage() async throws {
+        var capturedRequest: URLRequest?
+        DeepSeekMockURLProtocol.handler = { request in
+            capturedRequest = request
+            return Self.response(status: 200, body: """
+            {"id":"translation-1","model":"deepseek-v4-flash","choices":[{"message":{"role":"assistant","content":"Hello, world"}}],"usage":{"prompt_tokens":10,"completion_tokens":3,"total_tokens":13}}
+            """)
+        }
+
+        let result = try await makeClient().translate(
+            text: "你好，世界",
+            target: .english,
+            modelIdentifier: "deepseek-v4-flash",
+            apiKey: "fake-api-key"
+        )
+
+        XCTAssertEqual(result.polishedText, "Hello, world")
+        XCTAssertEqual(result.usage?.totalTokens, 13)
+        let body = try XCTUnwrap(Self.bodyData(from: capturedRequest))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let messages = try XCTUnwrap(json["messages"] as? [[String: String]])
+        XCTAssertEqual(messages.last?["role"], "user")
+        XCTAssertEqual(messages.last?["content"], "你好，世界")
+        XCTAssertTrue(messages.first?["content"]?.contains(AITranslationTarget.english.promptLabel) == true)
+        XCTAssertTrue(messages.first?["content"]?.contains("Return only the translated text") == true)
+    }
+
     func testPolish_shouldMapAuthenticationRateLimitAndNetworkErrors() async {
         await assertError(status: 401, expected: .authenticationFailed)
         await assertError(status: 429, expected: .rateLimited)
