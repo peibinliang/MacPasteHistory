@@ -13,9 +13,9 @@ flowchart LR
     VM --> PANEL[History panel]
     PANEL --> ACTION[Content action session]
     ACTION --> REP
-    ACTION -->|explicit AI polishing only| AI[DeepSeek HTTPS]
+    ACTION -->|explicit AI polishing / translation| AI[DeepSeek HTTPS]
     AI --> TOKEN[(Token usage only)]
-    ACTION --> KEY[macOS Keychain]
+    ACTION --> KEY[Owner-only local AI credential file]
     PANEL --> OCR[Manual Vision OCR]
     OCR --> REP
 ```
@@ -29,14 +29,14 @@ flowchart LR
 | `Database` | Schema migration, transactional writes, local history metadata and capture events. |
 | `Search` | Parse structured input, merge controls, issue read-only candidate queries and rank results. |
 | `ContentActions` | Classification, deterministic local transforms, session history and syntax tokens. |
-| `Services` | Automatic-paste policy, Keychain credential boundary, and explicit DeepSeek polishing client. |
+| `Services` | Automatic-paste policy, local AI credential boundary, and explicit DeepSeek text-processing client. |
 | `OCR` | Explicit user-triggered Vision request for one managed image at a time. |
 | `Services` | Shared application services, including the testable Sparkle update boundary. |
 | `ViewModels` / `Views` | Main-actor state and SwiftUI/AppKit presentation. |
 
 ## Data and concurrency
 
-`DatabaseInitializer` opens the writer connection. `SearchCandidateProvider` is an actor that opens, uses and closes a read-only connection per request. SQLite remains in default `DELETE` journal mode with a 1,000 ms busy timeout and `BEGIN IMMEDIATE` write transactions; WAL was tested with the same correctness matrix but rejected for V1.0.3 because its sidecars remained after the tested shutdown lifecycle. After synchronous retention cleanup, startup dispatches storage reconciliation to a utility queue with its own read-only SQLite connection, so history opening and clipboard monitoring do not wait for image decoding. Reconciliation inventories canonical `images`, `thumbnails`, and `temporary` roots, reports drift using counts, retains ordinary orphaned or uncertain files, and mutates only a safely referenced missing thumbnail or an unreferenced `mph-image-*.tmp` file older than 24 hours. Clipboard capture, search, deterministic actions, OCR, and reconciliation remain local. The sole network path is an explicitly selected AI Polishing action: after first-use disclosure, the current action text is sent over HTTPS to DeepSeek. The API key stays in macOS Keychain. SQLite stores provider/model/token counts only, never prompts, source text, responses, or credentials.
+`DatabaseInitializer` opens the writer connection. `SearchCandidateProvider` is an actor that opens, uses and closes a read-only connection per request. SQLite remains in default `DELETE` journal mode with a 1,000 ms busy timeout and `BEGIN IMMEDIATE` write transactions; WAL was tested with the same correctness matrix but rejected for V1.0.3 because its sidecars remained after the tested shutdown lifecycle. After synchronous retention cleanup, startup dispatches storage reconciliation to a utility queue with its own read-only SQLite connection, so history opening and clipboard monitoring do not wait for image decoding. Reconciliation inventories canonical `images`, `thumbnails`, and `temporary` roots, reports drift using counts, retains ordinary orphaned or uncertain files, and mutates only a safely referenced missing thumbnail or an unreferenced `mph-image-*.tmp` file older than 24 hours. Clipboard capture, search, deterministic actions, OCR, and reconciliation remain local. The sole network path is an explicitly selected AI polishing or translation action: after first-use disclosure, the current action text is sent over HTTPS to DeepSeek. The API key is stored in an owner-only plaintext file under Application Support instead of the default Keychain runtime path, trading weaker at-rest protection for no Keychain access after relaunch. SQLite stores provider/model/token counts only, never prompts, source text, responses, or credentials.
 
 Automatic paste is controlled by a persisted default-off preference and live Accessibility trust. `PasteCoordinator` is the single MainActor orchestration boundary for history items and content-action output: it writes the clipboard, evaluates the shared policy, prepares the panel for dispatch, activates the captured target app, waits for focus transfer, sends `Command-V`, and records exactly one paste or reuse outcome. The policy returns clipboard-only, permission-required, or ready; every path writes the clipboard first, while only ready may activate and dispatch. Cancellation and target/command failure keep a typed clipboard-available fallback instead of retrying or double-counting.
 

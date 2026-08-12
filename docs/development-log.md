@@ -400,3 +400,16 @@
 - Integrated identity continuity into release readiness. Missing previous-release/Team evidence remains a warning for internal QA and blocks strict final approval.
 - Restored the release configuration verifier matrix by updating its stale V1.0.2 mutation fixture to the current V1.0.3 baseline.
 - Known migration boundary: moving from historical ad-hoc releases to the first Developer ID release may require one final Accessibility authorization; continuity can only be promised after a signed baseline and real Sparkle upgrade smoke exist.
+
+## 2026-08-12 — Local AI Credential Store and Translation
+
+- Replaced the default AI API-key runtime path with `LocalFileAICredentialStore`, an Application Support credential file written through a temporary sibling replacement and restricted to owner-only permissions.
+- Added explicit DeepSeek AI translation as a remote content action, with a configurable target language and the same first-use disclosure, cancellation, editable preview, copy/save/paste result flow, and provider-reported token accounting used by AI polishing.
+- Clarified Automatic Paste boundaries: clipboard restore and manual `Command-V` do not require Accessibility, but universal cross-application paste injection still requires macOS Accessibility permission.
+- Added focused coverage for local credential persistence, permissions, invalid/symlink/non-regular credential rejection, translation prompt construction, remote disclosure, and exact-once token persistence.
+
+### Risks
+
+- Local API-key storage intentionally avoids Keychain prompts but is plaintext and weaker than Keychain; users relying on stronger at-rest secret protection should avoid saving the key locally.
+- Existing historical Keychain entries are not migrated or deleted automatically.
+- Universal Automatic Paste still cannot be implemented without Accessibility permission using public macOS APIs.
