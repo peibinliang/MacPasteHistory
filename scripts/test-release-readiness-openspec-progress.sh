@@ -252,7 +252,7 @@ echo
 echo "| Field | Value |"
 echo "|---|---|"
 echo "| Default change | \`$CURRENT_CHANGE\` |"
-echo "| Default Markdown progress | \`24/32; 8 remaining\` |"
+echo "| Default Markdown progress | \`8/14; 6 remaining\` |"
 echo "| Explicit legacy progress | \`4/19; 15 remaining\` |"
 echo "| JSON escaping/injection fixtures | \`expected inert round-trip\` |"
 echo "| Fenced checkbox fixture | \`2/3; 1 remaining\` |"
