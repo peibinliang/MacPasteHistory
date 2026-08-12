@@ -395,6 +395,25 @@ expect_failure_containing \
     --formal-update \
     "$future_archive_path"
 
+unknown_archive_path="$release_dir/MacPasteHistory-unknown-unknown.zip"
+unknown_archive_root="$TEST_ROOT/unknown-archive-root"
+unknown_app="$unknown_archive_root/粘易.app"
+mkdir -p "$unknown_archive_root"
+/usr/bin/ditto "$archive_app" "$unknown_app"
+/usr/bin/plutil -remove CFBundleShortVersionString "$unknown_app/Contents/Info.plist"
+/usr/bin/plutil -remove CFBundleVersion "$unknown_app/Contents/Info.plist"
+/usr/bin/ditto -c -k --sequesterRsrc --keepParent "$unknown_app" "$unknown_archive_path"
+(
+    cd "$release_dir"
+    /usr/bin/shasum -a 256 "$(basename "$unknown_archive_path")" >"$(basename "$unknown_archive_path").sha256"
+)
+expect_failure_containing \
+    "formal package verifier rejects missing version metadata" \
+    "version and build metadata" \
+    "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
+    --formal-update \
+    "$unknown_archive_path"
+
 /usr/bin/python3 - "$archive_path" <<'PY'
 import sys
 import zipfile

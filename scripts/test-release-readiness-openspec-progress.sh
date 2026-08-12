@@ -141,6 +141,10 @@ then
     add_failure "default: missing update identity continuity release gate."
 fi
 
+if ! rg -q 'formal_archive_verified.*-eq 1' "$REPO_ROOT/scripts/release-readiness-report.sh"; then
+    add_failure "default: follow-on formal candidate checks are not gated on successful archive verification."
+fi
+
 if [[ -s "$default_json" ]] && ! /usr/bin/python3 - "$default_json" <<'PY'
 import json
 import sys
