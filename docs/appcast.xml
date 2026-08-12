@@ -3,12 +3,12 @@
     <channel>
         <title>粘易</title>
         <item>
-            <title>1.0.4</title>
-            <pubDate>Wed, 12 Aug 2026 13:53:32 +0800</pubDate>
-            <sparkle:version>6</sparkle:version>
-            <sparkle:shortVersionString>1.0.4</sparkle:shortVersionString>
+            <title>1.0.5</title>
+            <pubDate>Wed, 12 Aug 2026 15:43:33 +0800</pubDate>
+            <sparkle:version>7</sparkle:version>
+            <sparkle:shortVersionString>1.0.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.4/MacPasteHistory-1.0.4-6.zip" length="4478944" type="application/octet-stream" sparkle:edSignature="U6UVF3Poh6ele8B6+geythfUwqdxSq3ZhqNA5TFwHPjQEf/z3G63JQLLkB8OoFvPrDp8H4g4/5hF2KurRZLIBg=="/>
+            <enclosure url="https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.5/MacPasteHistory-1.0.5-7.zip" length="4495225" type="application/octet-stream" sparkle:edSignature="VaKSbHVehCUg+rP+LRTMB6o9BBSE/4MEFSXWwFDM0+BGXGcqH1d86IqXsKzPEPHXOGyU3DcPYB0CDrfR3quICA=="/>
         </item>
     </channel>
 </rss>
