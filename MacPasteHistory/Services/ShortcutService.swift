@@ -21,6 +21,10 @@ final class ShortcutService {
     private let registrationManager: ShortcutRegistrationManaging
     private(set) var registrationState: ShortcutRegistrationState = .unregistered
 
+    var usesSystemRegistration: Bool {
+        registrationManager is CarbonShortcutRegistrationManager
+    }
+
     init(
         config: UserDefaultsConfig = UserDefaultsConfig(),
         registrationManager: ShortcutRegistrationManaging = CarbonShortcutRegistrationManager()
@@ -99,6 +103,11 @@ final class ShortcutService {
     deinit {
         unregister()
     }
+}
+
+final class IsolatedQAShortcutRegistrationManager: ShortcutRegistrationManaging {
+    func register(keyCode: UInt32, modifiers: UInt32) -> OSStatus { noErr }
+    func unregister() {}
 }
 
 final class CarbonShortcutRegistrationManager: ShortcutRegistrationManaging {

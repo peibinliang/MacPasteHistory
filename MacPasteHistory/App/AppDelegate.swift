@@ -2,9 +2,36 @@ import AppKit
 import Combine
 import SwiftUI
 
+enum AppLaunchPolicy {
+    static let appSupportOverrideEnvironmentKey = "MACPASTEHISTORY_APP_SUPPORT_DIR"
+    static let openHistoryEnvironmentKey = "MACPASTEHISTORY_OPEN_HISTORY_ON_LAUNCH"
+    static let userDefaultsSuiteEnvironmentKey = "MACPASTEHISTORY_USER_DEFAULTS_SUITE"
+    private static let qaSuitePrefix = "com.peibin.MacPasteHistory.qa."
+
+    static func shouldOpenHistory(environment: [String: String]) -> Bool {
+        guard let appSupportPath = environment[appSupportOverrideEnvironmentKey],
+              appSupportPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+              let requestedValue = environment[openHistoryEnvironmentKey]?.lowercased() else {
+            return false
+        }
+        return ["1", "true", "yes"].contains(requestedValue)
+    }
+
+    static func isolatedUserDefaultsSuiteName(environment: [String: String]) -> String? {
+        guard let appSupportPath = environment[appSupportOverrideEnvironmentKey],
+              appSupportPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+              let suiteName = environment[userDefaultsSuiteEnvironmentKey],
+              suiteName.hasPrefix(qaSuitePrefix),
+              suiteName.count <= 255,
+              suiteName.range(of: #"^[A-Za-z0-9.-]+$"#, options: .regularExpression) != nil else {
+            return nil
+        }
+        return suiteName
+    }
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private static let appSupportOverrideEnvironmentKey = "MACPASTEHISTORY_APP_SUPPORT_DIR"
     private static let xctestConfigurationEnvironmentKey = "XCTestConfigurationFilePath"
 
     private let logger = Logger(category: "AppDelegate")
@@ -36,7 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var updateService = UpdateService(driver: SparkleUpdateDriver())
 
     override init() {
-        shortcutService = ShortcutService()
+        shortcutService = Self.makeRuntimeShortcutService()
         accessibilityPermissionService = AccessibilityPermissionService()
         super.init()
     }
@@ -47,8 +74,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         super.init()
     }
 
+    static func makeRuntimeShortcutService(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> ShortcutService {
+        let config = UserDefaultsConfig(environment: environment)
+        if config.isIsolatedQASession {
+            return ShortcutService(
+                config: config,
+                registrationManager: IsolatedQAShortcutRegistrationManager()
+            )
+        }
+        return ShortcutService(config: config)
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
-        LanguageManager().applyCurrentLanguage()
+        LanguageManager(defaults: UserDefaultsConfig().backingDefaults).applyCurrentLanguage()
         configureApplication()
         initializeLocalStorage()
         guard Self.isRunningUnderXCTest == false else {
@@ -59,11 +99,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboardMonitor?.start()
         setupClearDataObserver()
         setupShortcut()
+        if AppLaunchPolicy.shouldOpenHistory(environment: ProcessInfo.processInfo.environment) {
+            openMainPanel()
+        }
     }
 
     private static func applicationSupportOverrideURL() -> URL? {
         let processInfo = ProcessInfo.processInfo
-        if let path = processInfo.environment[appSupportOverrideEnvironmentKey],
+        if let path = processInfo.environment[AppLaunchPolicy.appSupportOverrideEnvironmentKey],
            path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
             return URL(fileURLWithPath: path, isDirectory: true)
         }
@@ -197,7 +240,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 imageStorageService: imageStorageService,
                 captureEventAggregationService: CaptureEventAggregationService(
                     repository: repository,
-                    preferences: CaptureEventAggregationPreferences(defaults: .standard)
+                    preferences: makeCaptureEventAggregationPreferences()
                 )
             )
             cleanupService.performStartupCleanup()
@@ -298,12 +341,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ) -> SettingsViewModel {
         SettingsViewModel(
             config: config,
+            loginItemService: makeLoginItemService(config: config),
+            languageManager: LanguageManager(defaults: config.backingDefaults),
             appearanceService: AppearanceService(config: config),
-            shortcutService: shortcutService,
+            shortcutService: makeSettingsShortcutService(config: config),
             accessibilityPermissionService: accessibilityPermissionService,
             aiCredentialStore: KeychainAICredentialStore(),
             aiTokenUsageRepository: aiTokenUsageRepository
         )
+    }
+
+    func makeLoginItemService(config: UserDefaultsConfig = UserDefaultsConfig()) -> LoginItemService {
+        if config.isIsolatedQASession {
+            return LoginItemService(manager: IsolatedQALoginItemManager(), config: config)
+        }
+        return LoginItemService(manager: SystemLoginItemManager(), config: config)
+    }
+
+    func makeSettingsShortcutService(config: UserDefaultsConfig = UserDefaultsConfig()) -> ShortcutService {
+        if config.isIsolatedQASession {
+            return ShortcutService(
+                config: config,
+                registrationManager: IsolatedQAShortcutRegistrationManager()
+            )
+        }
+        return shortcutService
+    }
+
+    func makeCaptureEventAggregationPreferences(
+        config: UserDefaultsConfig = UserDefaultsConfig()
+    ) -> CaptureEventAggregationPreferences {
+        CaptureEventAggregationPreferences(defaults: config.backingDefaults)
     }
 
     func makeUpdateService() -> UpdateService {

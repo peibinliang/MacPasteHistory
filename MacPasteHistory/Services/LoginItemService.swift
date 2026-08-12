@@ -16,9 +16,18 @@ struct SystemLoginItemManager: LoginItemManaging {
     }
 }
 
+struct IsolatedQALoginItemManager: LoginItemManaging {
+    func register() throws {}
+    func unregister() throws {}
+}
+
 final class LoginItemService {
     private let manager: LoginItemManaging
     private var config: UserDefaultsConfig
+
+    var usesSystemRegistration: Bool {
+        manager is SystemLoginItemManager
+    }
 
     init(manager: LoginItemManaging = SystemLoginItemManager(), config: UserDefaultsConfig = UserDefaultsConfig()) {
         self.manager = manager

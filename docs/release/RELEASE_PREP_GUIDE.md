@@ -433,6 +433,14 @@ scripts/preview-release-app.sh --seed-preview-data
 
 该命令会调用 `scripts/seed-preview-data.sh`，写入 4 条合成文本记录和 2 条合成图片记录到临时 App Support 目录，不会修改真实历史数据库。
 
+自动化工具无法点击 `SystemUIServer` 托管的菜单栏状态项时，可使用下面的 QA 专用入口直接打开历史窗口：
+
+```bash
+scripts/preview-release-app.sh --seed-preview-data --open-history
+```
+
+隔离预览会同时使用 `com.peibin.MacPasteHistory.qa.*` 命名的独立 UserDefaults suite，因此修改 Automatic Paste、Blocked Apps 等设置不会写入真实用户偏好；其中“开机启动”只更新隔离偏好，不注册或注销真实 macOS Login Item，快捷键编辑也只验证配置、不改动真实全局 Hot Key。`MACPASTEHISTORY_OPEN_HISTORY_ON_LAUNCH` 只有在 `MACPASTEHISTORY_APP_SUPPORT_DIR` 同时存在时才生效；自定义偏好 suite 还必须使用上述 QA 前缀和安全字符。该入口仅用于内部 QA，不替代菜单栏状态项、全局快捷键和真实开机启动注册的人工验证。脚本会打印隔离数据目录与 suite 名，QA 后应仅清理这两个精确目标。
+
 确认以下行为：
 - 菜单栏出现剪贴板图标
 - 点击图标可打开历史窗口

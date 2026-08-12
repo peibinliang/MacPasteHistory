@@ -5,8 +5,27 @@ import Foundation
 struct UserDefaultsConfig {
     private let defaults: UserDefaults
 
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
+    var backingDefaults: UserDefaults {
+        defaults
+    }
+
+    let isIsolatedQASession: Bool
+
+    init(
+        defaults: UserDefaults? = nil,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) {
+        if let defaults {
+            self.defaults = defaults
+            self.isIsolatedQASession = false
+        } else if let suiteName = AppLaunchPolicy.isolatedUserDefaultsSuiteName(environment: environment),
+                  let isolatedDefaults = UserDefaults(suiteName: suiteName) {
+            self.defaults = isolatedDefaults
+            self.isIsolatedQASession = true
+        } else {
+            self.defaults = .standard
+            self.isIsolatedQASession = false
+        }
     }
 
     // MARK: - Keys
