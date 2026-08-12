@@ -20,11 +20,11 @@ The internal storage directory retains the legacy `MacPasteHistory` name so an a
 
 Text and metadata are stored in SQLite. Image originals and thumbnails are stored as local files. Clipboard capture, structured search, deterministic content actions, JWT parsing, and manual OCR are processed locally. OCR runs only after a user explicitly selects it for one image; the app does not automatically scan historical images. JWT parsing is a format inspection aid and never verifies a signature or trust claim.
 
-## Optional AI Polishing
+## Optional AI Text Tools
 
-AI Polishing is an explicit, user-initiated network feature. Before its first request, the app discloses that the currently selected text will be sent over HTTPS to DeepSeek and may be subject to DeepSeek's terms and charges. Declining sends nothing and does not affect local clipboard features. The app never invokes AI during clipboard monitoring and does not send images or bulk history.
+AI Polishing and AI Translation are explicit, user-initiated network features. Before the first request, the app discloses that the currently selected text will be sent over HTTPS to DeepSeek and may be subject to DeepSeek's terms and charges. Declining sends nothing and does not affect local clipboard features. The app never invokes AI during clipboard monitoring and does not send images or bulk history.
 
-The DeepSeek API key is stored in macOS Keychain and is not saved in UserDefaults or SQLite. For successful responses, SQLite may store only provider, model, request identifier, and provider-reported token counts. It does not store the request text, fixed polishing instruction, response text, or API key in the usage table. Users can remove the credential separately in AI Settings. Clear All Data removes local token-usage records but does not silently remove the Keychain credential.
+The DeepSeek API key is stored as a plaintext file in the app's Application Support directory with owner-only (`0600`) permissions. It is not stored in Keychain, UserDefaults, SQLite, logs, or history. This avoids Keychain access after relaunch but is less secure than Keychain and remains readable to the signed-in user or software with equivalent access. Existing Keychain items are not read, migrated, or deleted. For successful responses, SQLite may store only provider, model, request identifier, and provider-reported Token counts; it does not store request or response bodies. Clear All Data removes Token records but does not silently remove the separately managed API-key file.
 
 The current release does not encrypt the local SQLite database or app-managed image files. Local database encryption is planned as a future P2 capability and should not be treated as available until a dedicated encrypted-storage release is implemented and verified.
 
@@ -58,7 +58,7 @@ Users can change the automatic-check preference under **About & Updates** and ca
 
 ## Third Parties
 
-The app does not use third-party analytics, advertising SDKs, cloud sync, or remote clipboard storage. GitHub hosts update metadata and artifacts, Sparkle performs the update workflow described above, and DeepSeek is contacted only for an explicit AI Polishing request.
+The app does not use third-party analytics, advertising SDKs, cloud sync, or remote clipboard storage. GitHub hosts update metadata and artifacts, Sparkle performs the update workflow described above, and DeepSeek is contacted only for an explicit AI Polishing or AI Translation request.
 
 ## Contact And Review
 

@@ -1,11 +1,11 @@
 import Foundation
 
-struct AITextPolishingAction: RemoteAIContentAction {
-    static let actionID = ContentActionID(rawValue: "ai.polish-text")
+struct AITextTranslationAction: RemoteAIContentAction {
+    static let actionID = ContentActionID(rawValue: "ai.translate-text")
 
-    let service: any AITextPolishingServing
+    let service: any AITextTranslationServing
     let id = actionID
-    let titleKey = "ai.action.polish"
+    let titleKey = "ai.action.translate"
     let category: ContentActionCategory = .text
     let supportedTypes: Set<DetectedContentType> = [
         .plainText, .json, .url, .base64, .jwt, .timestamp, .sql, .shell
@@ -22,11 +22,10 @@ struct AITextPolishingAction: RemoteAIContentAction {
     }
 
     func executeAsync(input: String) async throws -> ContentActionResult {
-        let outcome = try await service.polish(input)
-        var notices: [ContentActionNotice] = []
-        if outcome.usagePersistenceFailed {
-            notices.append(ContentActionNotice(messageKey: "ai.usage.persistence-failed"))
-        }
+        let outcome = try await service.translate(input)
+        let notices = outcome.usagePersistenceFailed
+            ? [ContentActionNotice(messageKey: "ai.usage.persistence-failed")]
+            : []
         return ContentActionResult(
             output: outcome.text,
             syntax: .plainText,

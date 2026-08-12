@@ -108,6 +108,55 @@ final class AITextPolishingTests: XCTestCase {
     }
 }
 
+final class AITextTranslationTests: XCTestCase {
+    func testService_shouldUseConfiguredTargetAndPersistProviderUsageExactlyOnce() async throws {
+        let temporary = try TemporaryDatabase()
+        defer { temporary.remove() }
+        try MigrationManager(database: temporary.connection).migrate()
+        let repository = AITokenUsageRepository(database: temporary.connection)
+        let defaultsName = "AITextTranslationTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: defaultsName) ?? .standard
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+        var config = UserDefaultsConfig(defaults: defaults)
+        config.aiTranslationTarget = .japanese
+        let usage = DeepSeekTokenUsage(inputTokens: 7, outputTokens: 5, totalTokens: 12, cachedInputTokens: nil)
+        let client = TranslationClientFake(result: DeepSeekPolishingResult(
+            requestID: "same-translation",
+            modelIdentifier: "provider-alias",
+            polishedText: "翻訳",
+            usage: usage
+        ))
+        let service = AITextTranslationService(
+            config: config,
+            credentialStore: PolishingCredentialFake(apiKey: "synthetic-key"),
+            client: client,
+            usageRepository: repository
+        )
+
+        _ = try await service.translate("translation source")
+        _ = try await service.translate("translation source")
+
+        XCTAssertEqual(client.targets, [.japanese, .japanese])
+        XCTAssertEqual(try repository.summary(modelIdentifier: config.aiModelIdentifier).requestCount, 1)
+        XCTAssertEqual(try repository.summary(modelIdentifier: config.aiModelIdentifier).totalTokens, 12)
+    }
+
+    func testAction_shouldExposeTranslationAsRemoteAIEditableResult() async throws {
+        let usage = DeepSeekTokenUsage(inputTokens: 2, outputTokens: 3, totalTokens: 5, cachedInputTokens: nil)
+        let action = AITextTranslationAction(service: TranslationServiceFake(
+            outcome: AITextTranslationOutcome(text: "Translated", usage: usage, usagePersistenceFailed: false)
+        ))
+
+        let result = try await action.executeAsync(input: "Source")
+
+        XCTAssertEqual(action.id, AITextTranslationAction.actionID)
+        XCTAssertTrue(action is any RemoteAIContentAction)
+        XCTAssertFalse(action.supportedTypes.contains(.image))
+        XCTAssertEqual(result.output, "Translated")
+        XCTAssertEqual(result.aiTokenUsage, usage)
+    }
+}
+
 @MainActor
 final class AITextPolishingViewModelTests: XCTestCase {
     func testPolishingIsAvailableForPlainTextButNotRecommendedForURL() {
@@ -177,6 +226,32 @@ final class AITextPolishingViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.editedOutput, "Accepted")
     }
 
+    func testFirstTranslationUse_shouldRequireSameRemoteDisclosureAndThenPublishResult() async {
+        let defaults = isolatedDefaults()
+        defer { defaults.defaults.removePersistentDomain(forName: defaults.name) }
+        let config = UserDefaultsConfig(defaults: defaults.defaults)
+        let translationService = TranslationServiceFake(
+            outcome: AITextTranslationOutcome(text: "你好", usage: nil, usagePersistenceFailed: false)
+        )
+        let translationAction = AITextTranslationAction(service: translationService)
+        let viewModel = ContentActionPanelViewModel(
+            registry: ContentActionRegistry(actions: [translationAction]),
+            config: config
+        )
+        viewModel.present(for: makeItem())
+
+        viewModel.execute(actionID: AITextTranslationAction.actionID)
+        XCTAssertTrue(viewModel.isAIRemoteProcessingConsentRequired)
+        XCTAssertEqual(translationService.callCount, 0)
+
+        viewModel.acceptAIRemoteProcessing()
+        await waitUntil { viewModel.state == .previewing }
+
+        XCTAssertTrue(config.hasAcknowledgedAIRemoteProcessing)
+        XCTAssertEqual(translationService.callCount, 1)
+        XCTAssertEqual(viewModel.editedOutput, "你好")
+    }
+
     func testSupersededRequest_shouldIgnoreLateResult() async {
         let defaults = isolatedDefaults()
         defer { defaults.defaults.removePersistentDomain(forName: defaults.name) }
@@ -243,6 +318,10 @@ private final class PolishingClientFake: DeepSeekClientProtocol, @unchecked Send
         callCount += 1
         return try result.get()
     }
+
+    func translate(text: String, target: AITranslationTarget, modelIdentifier: String, apiKey: String) async throws -> DeepSeekPolishingResult {
+        try await polish(text: text, modelIdentifier: modelIdentifier, apiKey: apiKey)
+    }
 }
 
 private final class PolishingServiceFake: AITextPolishingServing, @unchecked Sendable {
@@ -265,5 +344,33 @@ private final class PolishingServiceFake: AITextPolishingServing, @unchecked Sen
             throw DeepSeekClientError.serviceUnavailable
         }
         return try outcomes[index].get()
+    }
+}
+
+private final class TranslationClientFake: DeepSeekClientProtocol, @unchecked Sendable {
+    let result: DeepSeekPolishingResult
+    private(set) var targets: [AITranslationTarget] = []
+
+    init(result: DeepSeekPolishingResult) { self.result = result }
+
+    func polish(text: String, modelIdentifier: String, apiKey: String) async throws -> DeepSeekPolishingResult {
+        result
+    }
+
+    func translate(text: String, target: AITranslationTarget, modelIdentifier: String, apiKey: String) async throws -> DeepSeekPolishingResult {
+        targets.append(target)
+        return result
+    }
+}
+
+private final class TranslationServiceFake: AITextTranslationServing, @unchecked Sendable {
+    let outcome: AITextTranslationOutcome
+    private(set) var callCount = 0
+
+    init(outcome: AITextTranslationOutcome) { self.outcome = outcome }
+
+    func translate(_ text: String) async throws -> AITextTranslationOutcome {
+        callCount += 1
+        return outcome
     }
 }

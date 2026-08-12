@@ -11,7 +11,7 @@
 
 `derived_from_history_id` is a self-reference with `ON DELETE SET NULL`; its action summary remains after the origin is deleted. Capture events are separate rows that can be aggregated for display. The content hash deduplicates normalized values but is not encryption; the SQLite database and app-managed image files remain unencrypted at application level.
 
-`ai_token_usage` stores a unique provider request ID, provider/model identifiers, non-negative input/output/total token counts, optional cached-input tokens, and insertion time. Model/time indexes support settings summaries. It deliberately has no history reference and stores no prompt, source text, response text, or API key. Clear All Data deletes these rows; the separately managed Keychain credential requires explicit removal.
+`ai_token_usage` stores a unique provider request ID, provider/model identifiers, non-negative input/output/total token counts, optional cached-input tokens, and insertion time. Model/time indexes support settings summaries. It deliberately has no history reference and stores no prompt, source text, response text, or API key. Clear All Data deletes these rows; the separately managed local AI credential file requires explicit removal.
 
 ## Image storage reconciliation
 

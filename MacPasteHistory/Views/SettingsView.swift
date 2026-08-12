@@ -265,6 +265,14 @@ struct SettingsView: View {
                     .onSubmit { viewModel.updateAIModelIdentifier(viewModel.aiModelIdentifier) }
                 Button(L10n.string("Reset")) { viewModel.resetAIModelIdentifier() }
             }
+            Picker(L10n.string("ai.settings.translation-target"), selection: $viewModel.aiTranslationTarget) {
+                ForEach(AITranslationTarget.allCases) { target in
+                    Text(L10n.string(target.titleKey)).tag(target)
+                }
+            }
+            .onChange(of: viewModel.aiTranslationTarget) { _, target in
+                viewModel.updateAITranslationTarget(target)
+            }
             SecureField(L10n.string("ai.settings.api-key-placeholder"), text: $viewModel.aiAPIKeyEntry)
             HStack {
                 Button(L10n.string(viewModel.hasStoredAIAPIKey ? "ai.settings.replace-key" : "ai.settings.save-key")) {
@@ -272,7 +280,7 @@ struct SettingsView: View {
                 }
                 .disabled(viewModel.aiAPIKeyEntry.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 if viewModel.hasStoredAIAPIKey {
-                    Label(L10n.string("ai.settings.key-stored"), systemImage: "checkmark.shield")
+                    Label(L10n.string("ai.settings.key-stored"), systemImage: "checkmark.circle")
                         .foregroundStyle(.secondary)
                     Button(L10n.string("Remove"), role: .destructive) {
                         showRemoveAIKeyConfirmation = true

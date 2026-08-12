@@ -9,6 +9,7 @@ download_url_prefix="https://github.com/peibinliang/MacPasteHistory/releases/dow
 
 release_directory=""
 sparkle_bin_directory=""
+allow_adhoc=0
 
 usage() {
     cat <<'EOF'
@@ -17,12 +18,16 @@ Usage: scripts/generate-sparkle-appcast.sh \
   --sparkle-bin-directory DIR \
   [--expected-version VERSION] \
   [--expected-build BUILD] \
-  [--download-url-prefix URL_PREFIX]
+  [--download-url-prefix URL_PREFIX] \
+  [--allow-adhoc]
 
 Generate an appcast from an explicit formal-release directory, verify it, then
 copy the verified XML to docs/appcast.xml. Version options default to V1.0.2
 for backward compatibility. This command accepts no key arguments; Sparkle
 accesses its signing key through its protected environment.
+--allow-adhoc is an explicit release waiver: it validates archive safety,
+checksum, sandbox entitlements, and signature integrity without requiring a
+Developer ID identity or notarization. It does not make formal gates pass.
 EOF
 }
 
@@ -58,6 +63,9 @@ while [[ $# -gt 0 ]]; do
             download_url_prefix="$2"
             shift
             ;;
+        --allow-adhoc)
+            allow_adhoc=1
+            ;;
         -h|--help)
             usage
             exit 0
@@ -88,9 +96,14 @@ destination_appcast="$REPO_ROOT/docs/appcast.xml"
 [[ -f "$archive_path.sha256" ]] || fail "adjacent SHA-256 file is missing"
 [[ -f "$SOURCE_INFO_PLIST" ]] || fail "source Info.plist is missing"
 
-"$REPO_ROOT/scripts/verify-release-qa-package.sh" \
-    --formal-update \
-    "$archive_path" >/dev/null
+if [[ "$allow_adhoc" -eq 1 ]]; then
+    "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
+        "$archive_path" >/dev/null
+else
+    "$REPO_ROOT/scripts/verify-release-qa-package.sh" \
+        --formal-update \
+        "$archive_path" >/dev/null
+fi
 
 "$generate_appcast" \
     --download-url-prefix "$download_url_prefix" \

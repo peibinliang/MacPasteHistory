@@ -14,6 +14,96 @@ protocol AICredentialStoring: Sendable {
     func deleteAPIKey() throws
 }
 
+final class LocalFileAICredentialStore: AICredentialStoring, @unchecked Sendable {
+    static let defaultMaximumCredentialSizeInBytes = 16 * 1024
+
+    private let explicitFileURL: URL?
+    private let applicationSupportService: ApplicationSupportService
+    private let fileManager: FileManager
+    private let maximumCredentialSizeInBytes: Int
+
+    init(
+        fileURL: URL? = nil,
+        maximumCredentialSizeInBytes: Int = defaultMaximumCredentialSizeInBytes,
+        applicationSupportService: ApplicationSupportService = ApplicationSupportService(),
+        fileManager: FileManager = .default
+    ) {
+        self.explicitFileURL = fileURL
+        self.maximumCredentialSizeInBytes = maximumCredentialSizeInBytes
+        self.applicationSupportService = applicationSupportService
+        self.fileManager = fileManager
+    }
+
+    func readAPIKey() throws -> String? {
+        let fileURL = try resolvedFileURL()
+        guard fileManager.fileExists(atPath: fileURL.path) else { return nil }
+        try validateRegularFile(at: fileURL)
+        let attributes = try fileManager.attributesOfItem(atPath: fileURL.path)
+        guard let size = attributes[.size] as? NSNumber,
+              size.intValue <= maximumCredentialSizeInBytes else {
+            throw AICredentialStoreError.invalidStoredData
+        }
+        let data = try Data(contentsOf: fileURL, options: .uncached)
+        guard data.count <= maximumCredentialSizeInBytes,
+              let decoded = String(data: data, encoding: .utf8) else {
+            throw AICredentialStoreError.invalidStoredData
+        }
+        let value = decoded.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard value.isEmpty == false else { throw AICredentialStoreError.invalidStoredData }
+        return value
+    }
+
+    func hasAPIKey() throws -> Bool { try readAPIKey() != nil }
+
+    func saveAPIKey(_ apiKey: String) throws {
+        let value = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard value.isEmpty == false,
+              let data = value.data(using: .utf8),
+              data.count <= maximumCredentialSizeInBytes else {
+            throw AICredentialStoreError.invalidCredential
+        }
+        let fileURL = try resolvedFileURL()
+        if fileManager.fileExists(atPath: fileURL.path) {
+            try validateRegularFile(at: fileURL)
+        }
+        let parentURL = fileURL.deletingLastPathComponent()
+        try fileManager.createDirectory(
+            at: parentURL,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        let temporaryURL = parentURL.appendingPathComponent(".\(fileURL.lastPathComponent).\(UUID().uuidString).tmp")
+        defer { try? fileManager.removeItem(at: temporaryURL) }
+        try data.write(to: temporaryURL, options: .withoutOverwriting)
+        try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: temporaryURL.path)
+        if fileManager.fileExists(atPath: fileURL.path) {
+            _ = try fileManager.replaceItemAt(fileURL, withItemAt: temporaryURL)
+        } else {
+            try fileManager.moveItem(at: temporaryURL, to: fileURL)
+        }
+        try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
+    }
+
+    func deleteAPIKey() throws {
+        let fileURL = try resolvedFileURL()
+        guard fileManager.fileExists(atPath: fileURL.path) else { return }
+        try validateRegularFile(at: fileURL)
+        try fileManager.removeItem(at: fileURL)
+    }
+
+    private func resolvedFileURL() throws -> URL {
+        if let explicitFileURL { return explicitFileURL }
+        return try applicationSupportService.aiCredentialURL
+    }
+
+    private func validateRegularFile(at url: URL) throws {
+        let attributes = try fileManager.attributesOfItem(atPath: url.path)
+        guard attributes[.type] as? FileAttributeType == .typeRegular else {
+            throw AICredentialStoreError.invalidStoredData
+        }
+    }
+}
+
 protocol KeychainCredentialBackend: Sendable {
     func read(service: String, account: String) throws -> Data?
     func add(_ data: Data, service: String, account: String) throws

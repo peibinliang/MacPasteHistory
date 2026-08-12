@@ -40,3 +40,6 @@ protocol BinaryContentAction: ContentAction {
 protocol AsyncContentAction: ContentAction {
     func executeAsync(input: String) async throws -> ContentActionResult
 }
+
+/// Marks actions that transmit their input to a remote AI provider and therefore require disclosure.
+protocol RemoteAIContentAction: AsyncContentAction {}

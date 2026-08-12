@@ -151,4 +151,16 @@ final class UserDefaultsConfigTests: XCTestCase {
 
         XCTAssertEqual(config.aiModelIdentifier, DefaultSettings.aiModelIdentifier)
     }
+
+    func testAITranslationTarget_shouldDefaultPersistAndRejectUnknownValues() {
+        var config = UserDefaultsConfig(defaults: defaults)
+
+        XCTAssertEqual(config.aiTranslationTarget, .simplifiedChinese)
+
+        config.aiTranslationTarget = .english
+        XCTAssertEqual(UserDefaultsConfig(defaults: defaults).aiTranslationTarget, .english)
+
+        defaults.set("unknown-language", forKey: UserDefaultsConfig.Key.aiTranslationTarget.rawValue)
+        XCTAssertEqual(UserDefaultsConfig(defaults: defaults).aiTranslationTarget, .simplifiedChinese)
+    }
 }

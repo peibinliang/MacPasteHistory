@@ -61,11 +61,12 @@
 - Supports clipboard-only restore plus favorite, paste, and delete actions from details or the More Actions menu
 - Does not request Accessibility access at launch; guidance appears only after Automatic Paste is enabled
 
-### AI text polishing
+### AI text polishing and translation
 
 - Adds an explicitly initiated AI Polishing action with configurable model and `deepseek-v4-flash` as the default
+- Adds AI Translation with Simplified Chinese, Traditional Chinese, English, Japanese, and Korean targets
 - Discloses DeepSeek remote processing before the first request; declining leaves all local features available
-- Stores the API key in macOS Keychain and reuses the editable copy/save/paste result flow
+- Stores the API key as an owner-only local plaintext configuration file so relaunches do not access Keychain, and reuses the editable copy/save/paste result flow
 - Displays and aggregates provider-reported input, output, and total tokens without storing source or response text in usage records
 
 ### Privacy and security controls

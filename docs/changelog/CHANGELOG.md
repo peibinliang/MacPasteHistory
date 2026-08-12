@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 1.0.5 - 2026-08-12
+
+### Added
+
+- Added explicit DeepSeek AI Translation with persisted Simplified Chinese, Traditional Chinese, English, Japanese, and Korean targets, shared disclosure, editable results, cancellation, and provider-reported Token accounting.
+
+### Changed
+
+- Replaced the default Keychain AI credential path with an atomic owner-only Application Support file so relaunches do not access Keychain; the local file is plaintext and existing Keychain items are not migrated or deleted.
+- Clarified that clipboard restore is permission-free while universal cross-application Automatic Paste still requires macOS Accessibility authorization.
+
 ## 1.0.4 - 2026-08-12
 
 ### Added

@@ -20,7 +20,7 @@ final class AITextPolishingService: AITextPolishingServing, @unchecked Sendable 
 
     init(
         config: UserDefaultsConfig = UserDefaultsConfig(),
-        credentialStore: any AICredentialStoring = KeychainAICredentialStore(),
+        credentialStore: any AICredentialStoring = LocalFileAICredentialStore(),
         client: any DeepSeekClientProtocol = DeepSeekClient(),
         usageRepository: AITokenUsageRepository? = nil
     ) {
@@ -45,7 +45,7 @@ final class AITextPolishingService: AITextPolishingServing, @unchecked Sendable 
         } catch is CancellationError {
             throw CancellationError()
         } catch let error as DeepSeekClientError {
-            throw map(error)
+            throw AIServiceErrorMapper.map(error)
         }
 
         var persistenceFailed = false
@@ -75,24 +75,4 @@ final class AITextPolishingService: AITextPolishingServing, @unchecked Sendable 
         )
     }
 
-    private func map(_ error: DeepSeekClientError) -> ContentActionError {
-        switch error {
-        case .authenticationFailed:
-            .parseFailed(messageKey: "ai.error.authentication")
-        case .rateLimited:
-            .parseFailed(messageKey: "ai.error.rate-limited")
-        case .networkUnavailable:
-            .parseFailed(messageKey: "ai.error.offline")
-        case .timedOut:
-            .parseFailed(messageKey: "ai.error.timeout")
-        case .responseTooLarge:
-            .parseFailed(messageKey: "ai.error.response-too-large")
-        case .emptyResult:
-            .emptyResult(messageKey: "ai.error.empty-result")
-        case .invalidInput:
-            .invalidInput(messageKey: "ai.error.invalid-input")
-        case .invalidRequest, .invalidResponse, .serviceUnavailable:
-            .parseFailed(messageKey: "ai.error.service-unavailable")
-        }
-    }
 }
