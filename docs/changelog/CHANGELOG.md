@@ -21,6 +21,7 @@
 
 - Prevented superseded or released ViewModel searches from overwriting newer or repository-refreshed results.
 - Prevented same-second duplicate recaptures from remaining below newer IDs because of timestamp truncation.
+- Refreshed AI token totals immediately after a newly persisted polishing response and attributed usage to the configured request model even when the provider returns a model alias.
 
 ## 1.0.2 - 2026-08-11
 

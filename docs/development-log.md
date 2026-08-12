@@ -2,6 +2,14 @@
 
 ## 2026-08-12
 
+### AI token usage summary refresh fix
+
+- Bug: after successful AI polishing, an already-open Settings view could continue showing zero token totals; a provider-returned model alias could also leave Current Model at zero.
+- Root cause: usage persistence had no change notification for the existing `SettingsViewModel`, and records used the provider response model rather than the configured request model used by Settings filtering.
+- Fix: successful new usage inserts publish a local change notification, Settings refreshes aggregates on the main run loop, and records are attributed to the captured configured request model. Duplicate provider request IDs remain exact-once and do not emit a false change.
+- Regression: targeted service and Settings tests reproduced both zero-total paths before the fix and passed 23/23 after it. No existing token rows are rewritten.
+- Compatibility: no schema migration, remote telemetry, credential change, clipboard-data change, or new permission is introduced.
+
 ### V1.0.3 appcast verification compatibility fix
 
 - Bug: the committed Sparkle appcast verifier was locked to V1.0.2 metadata, so a valid V1.0.3 feed and update archive failed the release-readiness gate.
