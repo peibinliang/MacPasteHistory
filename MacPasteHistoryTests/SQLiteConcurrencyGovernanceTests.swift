@@ -1,3 +1,4 @@
+import CryptoKit
 import SQLite3
 import XCTest
 
@@ -9,7 +10,12 @@ final class SQLiteConcurrencyGovernanceTests: XCTestCase {
         defer { temporary.remove() }
         try MigrationManager(database: temporary.connection).migrate()
         let repository = ClipboardHistoryRepository(database: temporary.connection)
-        _ = try repository.saveText("committed search row", sourceApp: nil, sourceBundleID: nil)
+        _ = try repository.saveText(
+            "committed search row",
+            sourceApp: nil,
+            sourceBundleID: nil,
+            capturedAt: Date(timeIntervalSince1970: 1_786_463_999)
+        )
         let provider = SearchCandidateProvider(databaseURL: temporary.url)
 
         try temporary.connection.execute("BEGIN IMMEDIATE TRANSACTION;")
@@ -82,11 +88,18 @@ final class SQLiteConcurrencyGovernanceTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: temporary.url.path + "-shm"))
     }
 
-    func testSyntheticV102Build4Fixture_whenReopenedAndMigrated_shouldRetainHistoryAndUsage() throws {
+    func testAppCreatedV102Build4Fixture_whenReopenedAndMigrated_shouldRetainHistoryAndUsage() throws {
+        let fixtureURL = try v102Build4FixtureURL()
+        let fixtureDigest = SHA256.hash(data: try Data(contentsOf: fixtureURL))
+            .map { String(format: "%02x", $0) }
+            .joined()
+        XCTAssertEqual(fixtureDigest, "f4bb3d0d099068e455d6caa935365474278350e4311931701120b94a8581c55a")
+
         let temporary = try TemporaryDatabase()
         defer { temporary.remove() }
-        try createRepresentativeV102Build4Fixture(at: temporary)
         try temporary.connection.close()
+        try FileManager.default.removeItem(at: temporary.url)
+        try FileManager.default.copyItem(at: fixtureURL, to: temporary.url)
 
         let reopened = try DatabaseConnection(databaseURL: temporary.url)
         defer { try? reopened.close() }
@@ -95,9 +108,24 @@ final class SQLiteConcurrencyGovernanceTests: XCTestCase {
         let tokenUsage = AITokenUsageRepository(database: reopened)
 
         XCTAssertEqual(try migrationVersions(in: reopened), [1, 2, 3, 4])
+        XCTAssertEqual(try integrityCheck(in: reopened), "ok")
+        XCTAssertFalse(try foreignKeyCheckHasRows(in: reopened))
+        XCTAssertEqual(try journalMode(in: reopened), "delete")
+        let items = try repository.fetchHistory(query: HistoryQuery())
+        XCTAssertEqual(items.map(\.textContent), [
+            "V1.0.2 build 4 fixture derived",
+            "V1.0.2 build 4 fixture source"
+        ])
+        XCTAssertEqual(Set(items.compactMap(\.sourceApp)), ["Fixture Source"])
+        XCTAssertEqual(Set(items.compactMap(\.sourceBundleID)), ["com.example.fixture-source"])
+        XCTAssertTrue(items.allSatisfy { $0.filePath == nil && $0.thumbnailPath == nil && $0.ocrText == nil })
+        XCTAssertEqual(try scalarInt("SELECT COUNT(*) FROM clipboard_capture_events;", in: reopened), 2)
         XCTAssertEqual(
-            try repository.fetchHistory(query: HistoryQuery()).map(\.textContent),
-            ["fixture derived", "fixture text"]
+            try scalarInt(
+                "SELECT COUNT(*) FROM clipboard_capture_events WHERE source_bundle_id = 'com.example.fixture-source';",
+                in: reopened
+            ),
+            2
         )
         XCTAssertEqual(try tokenUsage.summary().totalTokens, 12)
     }
@@ -155,34 +183,17 @@ final class SQLiteConcurrencyGovernanceTests: XCTestCase {
         case rollback
     }
 
-    private func createRepresentativeV102Build4Fixture(at temporary: TemporaryDatabase) throws {
-        try MigrationManager(database: temporary.connection).migrate()
-        let repository = ClipboardHistoryRepository(database: temporary.connection)
-        let source = try repository.saveText(
-            "fixture text",
-            sourceApp: "Notes",
-            sourceBundleID: "com.apple.Notes",
-            capturedAt: Date(timeIntervalSince1970: 1_754_000_000)
-        )
-        _ = try repository.saveDerivedText(DerivedClipboardRecordRequest(
-            text: "fixture derived",
-            sourceHistoryID: source.id,
-            actionID: "text.uppercase",
-            actionSummary: "Uppercase",
-            sourcePreview: "fixture text",
-            sourceHash: source.contentHash,
-            detection: ContentClassifier().classifyFast("fixture derived")
-        ))
-        try AITokenUsageRepository(database: temporary.connection).insert(AITokenUsageRecord(
-            requestID: "fixture-request",
-            provider: "deepseek",
-            modelIdentifier: "deepseek-v4-flash",
-            inputTokens: 5,
-            outputTokens: 7,
-            totalTokens: 12,
-            cachedInputTokens: nil,
-            createdAt: Date(timeIntervalSince1970: 1_754_000_001)
-        ))
+    private func v102Build4FixtureURL() throws -> URL {
+        let bundle = Bundle(for: Self.self)
+        guard let url = bundle.url(forResource: "v1-0-2-build4-clipboard", withExtension: "db"),
+              url.standardizedFileURL.path.hasPrefix(bundle.bundleURL.standardizedFileURL.path + "/") else {
+            throw FixtureError.missingV102Build4Database
+        }
+        return url
+    }
+
+    private enum FixtureError: Error {
+        case missingV102Build4Database
     }
 
     private func insertRawText(_ text: String, hash: String, into database: DatabaseConnection) throws {
@@ -220,6 +231,31 @@ final class SQLiteConcurrencyGovernanceTests: XCTestCase {
             throw DatabaseError.stepFailed(database.lastErrorMessage)
         }
         return String(cString: value)
+    }
+
+    private func integrityCheck(in database: DatabaseConnection) throws -> String {
+        let statement = try database.prepare("PRAGMA integrity_check;")
+        defer { sqlite3_finalize(statement) }
+        guard sqlite3_step(statement) == SQLITE_ROW,
+              let value = sqlite3_column_text(statement, 0) else {
+            throw DatabaseError.stepFailed(database.lastErrorMessage)
+        }
+        return String(cString: value)
+    }
+
+    private func foreignKeyCheckHasRows(in database: DatabaseConnection) throws -> Bool {
+        let statement = try database.prepare("PRAGMA foreign_key_check;")
+        defer { sqlite3_finalize(statement) }
+        return sqlite3_step(statement) == SQLITE_ROW
+    }
+
+    private func scalarInt(_ sql: String, in database: DatabaseConnection) throws -> Int {
+        let statement = try database.prepare(sql)
+        defer { sqlite3_finalize(statement) }
+        guard sqlite3_step(statement) == SQLITE_ROW else {
+            throw DatabaseError.stepFailed(database.lastErrorMessage)
+        }
+        return Int(sqlite3_column_int64(statement, 0))
     }
 
     private func setJournalMode(_ mode: String, in database: DatabaseConnection) throws {

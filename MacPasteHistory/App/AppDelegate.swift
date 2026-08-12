@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let appSupportOverrideEnvironmentKey = "MACPASTEHISTORY_APP_SUPPORT_DIR"
+    private static let xctestConfigurationEnvironmentKey = "XCTestConfigurationFilePath"
 
     private let logger = Logger(category: "AppDelegate")
     private lazy var applicationSupportService = ApplicationSupportService(
@@ -50,6 +51,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LanguageManager().applyCurrentLanguage()
         configureApplication()
         initializeLocalStorage()
+        guard Self.isRunningUnderXCTest == false else {
+            return
+        }
         createStatusItem()
         setupPasteTargetTracking()
         clipboardMonitor?.start()
@@ -58,11 +62,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private static func applicationSupportOverrideURL() -> URL? {
-        guard let path = ProcessInfo.processInfo.environment[appSupportOverrideEnvironmentKey],
-              path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+        let processInfo = ProcessInfo.processInfo
+        if let path = processInfo.environment[appSupportOverrideEnvironmentKey],
+           path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+            return URL(fileURLWithPath: path, isDirectory: true)
+        }
+        guard isRunningUnderXCTest else {
             return nil
         }
-        return URL(fileURLWithPath: path, isDirectory: true)
+        return FileManager.default.temporaryDirectory
+            .appendingPathComponent("MacPasteHistory-XCTest-\(processInfo.processIdentifier)", isDirectory: true)
+    }
+
+    private static var isRunningUnderXCTest: Bool {
+        ProcessInfo.processInfo.environment[xctestConfigurationEnvironmentKey] != nil
     }
 
     private func setupClearDataObserver() {

@@ -24,7 +24,7 @@
 
 ## V1.0.3 当前交接边界
 
-已可在本地自动复核的内容包括版本 `1.0.3 (5)`、V1.0.3 核心稳定自动化矩阵、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。真实 V1.0.2 build 4 数据库升级 fixture 仍由 PD-006 跟踪，缺失时不得宣称真实升级门禁完成。
+已可在本地自动复核的内容包括版本 `1.0.3 (5)`、V1.0.3 核心稳定自动化矩阵、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。真实 V1.0.2 build 4 应用生成并脱敏的数据库 fixture 已纳入仓库，checksum 与升级完整性门禁通过；来源和后处理边界见 fixture README 与 PD-006。
 
 以下项目没有真实证据时必须保持未完成：GUI 过滤开关回归、Developer ID Application 签名、Apple 公证、官方 `generate_appcast` 产生的真实 EdDSA 正式产物、本地 HTTPS V1.0.1 → V1.0.2 演练、无效签名安装拒绝、公共 feed 升级、Intel/多 macOS 版本验证和 GitHub 发布。`--strict-final` 在这些证据缺失时应退出非零，这是正确门禁结果。
 
