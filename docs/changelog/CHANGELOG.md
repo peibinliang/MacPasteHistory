@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.5 - 2026-08-12
+
 ### Added
 
 - Added explicit DeepSeek AI Translation with persisted Simplified Chinese, Traditional Chinese, English, Japanese, and Korean targets, shared disclosure, editable results, cancellation, and provider-reported Token accounting.
