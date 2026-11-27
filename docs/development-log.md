@@ -1,5 +1,36 @@
 # Development Log
 
+## 2026-11-27
+
+### 新增
+
+- 新增 `PreviewImageCache`，基于 `ImageIO` 按显示像素尺寸下采样并结合 `NSCache`（条数与字节上限）缓存缩略图、详情大图及来源应用图标。
+- 新增 `DatabaseHistoryListSnapshotLoader` 只读 SQLite 异步列表快照加载器与 `DynamicPasteTarget` 动态粘贴目标适配器。
+- 新增 `ClipboardMonitor` 运行期定期清理控制器（每累计 `50` 次捕获或间隔 `30` 分钟后台执行一次 `DataCleanupService`）与 `docs/development/crash-and-lag-hotfix.md` 修复记录。
+
+### 修改
+
+- 重构 `AppDelegate` 与 `ClipboardHistoryViewModel` 面板生命周期：复用单实例 ViewModel 与 `HistoryPanelWindow`，隐藏面板时抑制后台通知触发的 SQLite 重载，并在关闭面板时自动裁剪回首页大小。
+- 将 `HistoryTimelineView` 切换为 `LazyVStack`，修复多时间分组下的提前分页触发，缓存本地化 `.lproj` Bundle、共享日期/字节格式化器及推荐动作映射，并对超大文本预览截断做常数级扫描限制。
+- 将 `ClipboardMonitor` 定时采集的重度图片编解码、缩略图生成、Hash、敏感内容检测、内容分类与 SQLite 写入迁移至串行 `.utility` 后台队列；`ClipboardReader` 与 `ImageStorageService` 统一改为线程安全的 `ImageIO` 实现；`DatabaseConnection` 增加 `NSRecursiveLock` 连接级同步。
+
+### 修复
+
+- 修复搜索框快速编辑或清空时 `SearchToken` 旧 `Range<String.Index>` 切片新字符串导致的闪退，以及 `HistorySourceOption.title` 中的强制解包风险。
+- 修复 `ContentClassifier`（未锚定 `shellFlagRegex` 与贪婪 `shellEnvCommandRegex`）和 `SensitiveContentDetector` 在 `200 KB+` 超长单行文本上的灾难性正则回溯，消除长达数十秒的主线程卡死与 CPU 飙高。
+- 修复 App Sandbox 下语言切换“立即重启”因 `/bin/sh` 受限导致退出后无法重新拉起的问题（改为 `NSWorkspace.shared.openApplication` 新实例启动并保留回退）。
+- 修复模态确认框显示期间历史浮窗因 `resignKey()` 被提前隐藏，以及主面板空态“打开设置”按钮无效的问题。
+
+### 验证
+
+- `scripts/validate-xcode-file-references.sh` 通过（检查 `204` 个 Swift 文件引用，缺失 `0` 个）。
+- `scripts/scan-privacy-log-safety.sh`、版本构建、沙箱权限、应用标识与隐私描述静态检查全部 `PASS`。
+- 全量单元测试 `MacPasteHistoryTests` 执行 `412` 个测试，`0` 失败（含搜索词元越界、面板隐藏生命周期、末组分页、`220 KB` 正则回溯、异步采集与定期清理、`AppRelauncher` 回归测试）。
+
+### 风险
+
+- 无数据库表结构变更或迁移需求，保持 SQLite 默认 `DELETE` 日志模式与既有沙箱权限边界不变；长期运行积累的超限记录将在新版本启动及运行期定期清理中按现有配置上限自动收敛。
+
 ## 2026-08-12
 
 ### AI token usage summary refresh fix
