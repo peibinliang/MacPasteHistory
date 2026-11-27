@@ -202,6 +202,36 @@ final class SearchViewModelTests: XCTestCase {
         XCTAssertTrue(wasCancelled)
     }
 
+    func testSearchTokenDisplayTitle_whenInputShrinksBelowTokenRange_shouldReturnStoredRawTextWithoutTrapping() throws {
+        let parsed = SearchQueryParser().parse("keyword type:json")
+        let token = try XCTUnwrap(parsed.tokens.first)
+
+        XCTAssertEqual(token.displayTitle(in: ""), "type:json")
+        XCTAssertEqual(token.displayTitle(in: "short"), "type:json")
+    }
+
+    func testRemoveSearchToken_whenSearchTextDivergesFromParsedQuery_shouldSafelyRemoveMatchingTokenWithoutTrapping() throws {
+        let viewModel = ClipboardHistoryViewModel(
+            repository: try testRepository(),
+            writer: ClipboardWriter(restorationState: ClipboardRestorationState())
+        )
+        viewModel.updateSearchText("long prefix query type:json")
+        let staleToken = try XCTUnwrap(viewModel.searchTokens.first)
+
+        // Simulate SwiftUI TextField binding shrinking searchText before removeSearchToken runs.
+        viewModel.searchText = "type:json tail"
+        viewModel.removeSearchToken(staleToken)
+
+        XCTAssertEqual(viewModel.searchText, "tail")
+
+        viewModel.updateSearchText("long prefix query type:url")
+        let clearedToken = try XCTUnwrap(viewModel.searchTokens.first)
+        viewModel.searchText = ""
+        viewModel.removeSearchToken(clearedToken)
+
+        XCTAssertEqual(viewModel.searchText, "")
+    }
+
     private func waitUntil(
         attempts: Int = 1_000,
         _ condition: @escaping @MainActor () -> Bool

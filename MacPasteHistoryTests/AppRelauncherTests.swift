@@ -31,4 +31,53 @@ final class AppRelauncherTests: XCTestCase {
         let shellCommand = try XCTUnwrap(capturedArguments?.last)
         XCTAssertTrue(shellCommand.contains("'/Applications/Pei'\\''bin Paste.app'"))
     }
+
+    @MainActor
+    func testRelaunchAndTerminate_whenWorkspaceLauncherSucceeds_shouldTerminateOnceWithoutShellFallback() async {
+        var didRunShellFallback = false
+        var launchedURL: URL?
+        var terminateCount = 0
+        let relauncher = AppRelauncher(
+            launchCommand: { _, _ in
+                didRunShellFallback = true
+            },
+            workspaceLauncher: { url, completion in
+                launchedURL = url
+                completion(true)
+            }
+        )
+
+        relauncher.relaunchAndTerminate(
+            bundlePath: "/Applications/粘易.app",
+            terminate: { terminateCount += 1 }
+        )
+        for _ in 0..<5 { await Task.yield() }
+
+        XCTAssertEqual(launchedURL?.path, "/Applications/粘易.app")
+        XCTAssertFalse(didRunShellFallback)
+        XCTAssertEqual(terminateCount, 1)
+    }
+
+    @MainActor
+    func testRelaunchAndTerminate_whenWorkspaceLauncherFails_shouldFallbackToShellCommandAndTerminateOnce() async {
+        var didRunShellFallback = false
+        var terminateCount = 0
+        let relauncher = AppRelauncher(
+            launchCommand: { _, _ in
+                didRunShellFallback = true
+            },
+            workspaceLauncher: { _, completion in
+                completion(false)
+            }
+        )
+
+        relauncher.relaunchAndTerminate(
+            bundlePath: "/Applications/粘易.app",
+            terminate: { terminateCount += 1 }
+        )
+        for _ in 0..<5 { await Task.yield() }
+
+        XCTAssertTrue(didRunShellFallback)
+        XCTAssertEqual(terminateCount, 1)
+    }
 }

@@ -28,4 +28,20 @@ final class ContentClassifierTests: XCTestCase {
         XCTAssertEqual(classifier.classifyComplete("git log --oneline | head -5", at: date).type, .shell)
         XCTAssertEqual(classifier.classifyComplete("SELECT", at: date).type, .plainText)
     }
+
+    func testCompleteClassifier_whenSingleLineAssignmentIs220KB_shouldCompleteWithoutCatastrophicBacktracking() {
+        let withinSliceSingleLine = "config=" + String(repeating: "a", count: 25_000)
+            + "=" + String(repeating: "b", count: 25_000)
+        let largeSingleLine = "config=" + String(repeating: "a", count: 110_000)
+            + "=" + String(repeating: "b", count: 110_000)
+        let startedAt = Date()
+
+        let withinSliceResult = classifier.classifyComplete(withinSliceSingleLine, at: date)
+        let largeResult = classifier.classifyComplete(largeSingleLine, at: date)
+        let elapsed = Date().timeIntervalSince(startedAt)
+
+        XCTAssertEqual(withinSliceResult.type, .plainText)
+        XCTAssertEqual(largeResult.type, .plainText)
+        XCTAssertLessThan(elapsed, 0.25)
+    }
 }

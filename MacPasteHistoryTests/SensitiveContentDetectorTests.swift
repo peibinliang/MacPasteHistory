@@ -131,4 +131,16 @@ final class SensitiveContentDetectorTests: XCTestCase {
             )
         }
     }
+
+    func testIsSensitive_whenInputIs220KBLongIdentifier_shouldCompleteWithoutRegexBacktracking() {
+        let largeText = String(repeating: "a", count: 110_000)
+            + "_" + String(repeating: "b", count: 110_000)
+        let startedAt = Date()
+
+        let isSensitive = SensitiveContentDetector.isSensitive(largeText)
+        let elapsed = Date().timeIntervalSince(startedAt)
+
+        XCTAssertFalse(isSensitive)
+        XCTAssertLessThan(elapsed, 0.5)
+    }
 }
