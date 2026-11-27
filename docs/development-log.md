@@ -4,6 +4,7 @@
 
 ### 新增
 
+- 将应用版本与构建号升级为 `1.0.6 (8)`，新增 `docs/release/V1.0.6-release-notes.md` 发布说明。
 - 新增 `PreviewImageCache`，基于 `ImageIO` 按显示像素尺寸下采样并结合 `NSCache`（条数与字节上限）缓存缩略图、详情大图及来源应用图标。
 - 新增 `DatabaseHistoryListSnapshotLoader` 只读 SQLite 异步列表快照加载器与 `DynamicPasteTarget` 动态粘贴目标适配器。
 - 新增 `ClipboardMonitor` 运行期定期清理控制器（每累计 `50` 次捕获或间隔 `30` 分钟后台执行一次 `DataCleanupService`）与 `docs/development/crash-and-lag-hotfix.md` 修复记录。

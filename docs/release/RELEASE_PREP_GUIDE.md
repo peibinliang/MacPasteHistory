@@ -1,6 +1,6 @@
 # 粘易发布准备操作指引
 
-> **版本**: v1.0.5 | **目标**: Apple Silicon / Intel macOS 14.0+ | **最后更新**: 2026-08-12
+> **版本**: v1.0.6 | **目标**: Apple Silicon / Intel macOS 14.0+ | **最后更新**: 2026-11-27
 
 本手册覆盖从代码冻结到 App Store 提交之前的全部发布准备步骤，按阶段顺序执行。每个阶段末尾有验收检查清单（✅ 全部打勾才能进入下一阶段）。
 
@@ -22,9 +22,9 @@
 
 ---
 
-## V1.0.5 当前交接边界
+## V1.0.6 当前交接边界
 
-已可在本地自动复核的内容包括版本 `1.0.5 (7)`、V1.0.3 核心稳定自动化矩阵、V1.0.4 跨版本代码身份门禁、V1.0.5 本地 AI 凭据与 AI 翻译自动化、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。真实 V1.0.2 build 4 应用生成并脱敏的数据库 fixture 已纳入仓库，checksum 与升级完整性门禁通过；来源和后处理边界见 fixture README 与 PD-006。
+已可在本地自动复核的内容包括版本 `1.0.6 (8)`、V1.0.3 核心稳定自动化矩阵、V1.0.4 跨版本代码身份门禁、V1.0.5 本地 AI 凭据与 AI 翻译自动化、V1.0.6 崩溃与卡顿热修复回归测试、Bundle 版本显示、共享 updater、Sparkle 配置、沙盒 entitlement、Release framework/XPC 嵌入，以及 release/appcast 工具的正反向脚本测试。真实 V1.0.2 build 4 应用生成并脱敏的数据库 fixture 已纳入仓库，checksum 与升级完整性门禁通过；来源和后处理边界见 fixture README 与 PD-006。
 
 以下项目没有真实证据时必须保持未完成：GUI 过滤开关回归、Developer ID Application 签名、Apple 公证、官方 `generate_appcast` 产生的真实 EdDSA 更新产物、本地 HTTPS V1.0.4 → V1.0.5 演练、无效签名安装拒绝、公共 feed 升级、Intel/多 macOS 版本验证和 GitHub 发布。`--strict-final` 在这些证据缺失时应退出非零，这是正确门禁结果。PD-011 仅批准本版本以 ad-hoc 制品发布，不改变这些门禁的失败状态。
 
@@ -307,8 +307,8 @@ scripts/verify-release-app-signature.sh --build --allow-adhoc
 | `COMPILE_SOURCES_WITH_NORMAL_ENTITLEMENTS` | `YES` | 使用普通 entitlements |
 
 3. **版本号确认**:
-   - `CFBundleShortVersionString`: `1.0.5`
-   - `CFBundleVersion`: `7`
+   - `CFBundleShortVersionString`: `1.0.6`
+   - `CFBundleVersion`: `8`
 
 4. 校验 Info.plist、发布指南和人工 QA 模板中的版本/构建号声明一致：
 
@@ -329,7 +329,7 @@ scripts/verify-release-version-build.sh
 - [x] Release 配置构建成功
 - [x] `SWIFT_OPTIMIZATION_LEVEL = -O`
 - [x] `ENABLE_DEBUG_DYLIB_SUPPORT = NO`
-- [x] 版本号为 `1.0.5 (7)`
+- [x] 版本号为 `1.0.6 (8)`
 - [x] `LSUIElement = true`
 
 ---
@@ -502,17 +502,17 @@ scripts/verify-release-update-identity.sh \
 Developer ID 签名版本时，用户仍可能需要最后一次辅助功能授权。后续版本只有在保持
 兼容 Developer ID designated requirement 并通过真实升级 smoke 后，才可宣称无需重授。
 
-1. V1.0.5 按 PD-011 使用显式应用与输出目录打包 ad-hoc 更新包：
+1. V1.0.6 按 PD-011 使用显式应用与输出目录打包 ad-hoc 更新包：
 
 ```bash
-mkdir -p /absolute/path/to/v1.0.5-release
+mkdir -p /absolute/path/to/v1.0.6-release
 ditto -c -k --sequesterRsrc --keepParent \
   /absolute/path/to/粘易.app \
-  /absolute/path/to/v1.0.5-release/MacPasteHistory-1.0.5-7.zip
-cd /absolute/path/to/v1.0.5-release
-shasum -a 256 MacPasteHistory-1.0.5-7.zip >MacPasteHistory-1.0.5-7.zip.sha256
-cp /absolute/path/to/V1.0.5-release-notes.md \
-  MacPasteHistory-1.0.5-7-release-notes.md
+  /absolute/path/to/v1.0.6-release/MacPasteHistory-1.0.6-8.zip
+cd /absolute/path/to/v1.0.6-release
+shasum -a 256 MacPasteHistory-1.0.6-8.zip >MacPasteHistory-1.0.6-8.zip.sha256
+cp /absolute/path/to/V1.0.6-release-notes.md \
+  MacPasteHistory-1.0.6-8-release-notes.md
 ```
 
 上述路径必须由发布者逐项确认，且目标文件必须预先不存在。Developer ID 正式路径仍为
@@ -520,15 +520,15 @@ cp /absolute/path/to/V1.0.5-release-notes.md \
 失败，并作为 PD-011 没有放宽正式签名与公证门禁的预期失败证据。
 输出必须包括：
 
-- `MacPasteHistory-1.0.5-7.zip`
-- `MacPasteHistory-1.0.5-7.zip.sha256`
-- `MacPasteHistory-1.0.5-7-release-notes.md`
+- `MacPasteHistory-1.0.6-8.zip`
+- `MacPasteHistory-1.0.6-8.zip.sha256`
+- `MacPasteHistory-1.0.6-8-release-notes.md`
 
 2. 在传递给 Sparkle 前按本次豁免路径独立验证 ZIP：
 
 ```bash
 scripts/verify-release-qa-package.sh \
-  /absolute/path/to/v1.0.5-release/MacPasteHistory-1.0.5-7.zip
+  /absolute/path/to/v1.0.6-release/MacPasteHistory-1.0.6-8.zip
 ```
 
 另行执行带 `--formal-update` 的同一命令并记录其因缺少 Developer ID/公证而预期失败；
@@ -539,11 +539,11 @@ scripts/verify-release-qa-package.sh \
 
 ```bash
 scripts/generate-sparkle-appcast.sh \
-  --release-directory /absolute/path/to/v1.0.5-release \
+  --release-directory /absolute/path/to/v1.0.6-release \
   --sparkle-bin-directory /absolute/path/to/Sparkle/bin \
-  --expected-version 1.0.5 \
-  --expected-build 7 \
-  --download-url-prefix https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.5/ \
+  --expected-version 1.0.6 \
+  --expected-build 8 \
+  --download-url-prefix https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.6/ \
   --allow-adhoc
 ```
 
@@ -567,11 +567,11 @@ Base64 fixture 只证明结构校验，不得作为正式签名或发布证据�
 ```bash
 scripts/verify-sparkle-appcast.sh \
   --appcast docs/appcast.xml \
-  --archive /absolute/path/to/v1.0.5-release/MacPasteHistory-1.0.5-7.zip \
+  --archive /absolute/path/to/v1.0.6-release/MacPasteHistory-1.0.6-8.zip \
   --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)" \
-  --expected-version 1.0.5 \
-  --expected-build 7 \
-  --expected-url https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.5/MacPasteHistory-1.0.5-7.zip
+  --expected-version 1.0.6 \
+  --expected-build 8 \
+  --expected-url https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.6/MacPasteHistory-1.0.6-8.zip
 ```
 
 校验器为兼容既有流程默认检查 `1.0.2 (4)`。发布 V1.0.5 时必须显式传入
@@ -1043,7 +1043,7 @@ scripts/release-readiness-report.sh --output build/release-readiness-report.md
 scripts/release-readiness-report.sh \
   --manual-record build/manual-release-qa-session/<timestamp>-<commit>/manual-qa-record.md \
   --qa-session build/manual-release-qa-session/<timestamp>-<commit> \
-  --formal-update-archive /absolute/path/to/v1.0.5-release/MacPasteHistory-1.0.5-7.zip \
+  --formal-update-archive /absolute/path/to/v1.0.6-release/MacPasteHistory-1.0.6-8.zip \
   --appcast docs/appcast.xml \
   --output build/release-readiness-report.md \
   --json-output build/release-readiness-report.json \
@@ -1113,7 +1113,7 @@ scripts/validate-manual-qa-record.sh --allow-adhoc docs/release/manual-qa-record
 
 - **应用名称**: MacPasteHistory
 - **Bundle ID**: `com.peibin.MacPasteHistory`
-- **版本**: 1.0.5 (7)
+- **版本**: 1.0.6 (8)
 - **最低 macOS 版本**: 14.0 Sonoma
 - **分发渠道**: ☐ App Store  /  ⚩ 自有网站 + DMG
 - **截图规范**: 当前仓库提供 4 张 5760 × 3600 PNG 截图素材；最终上传前按目标渠道裁切或导出目标尺寸

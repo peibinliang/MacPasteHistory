@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.6 - 2026-11-27
+
 ### Added
 
 - Added downsampled `PreviewImageCache` (`ImageIO` + bounded `NSCache`), asynchronous read-only history snapshot loading, and periodic runtime retention cleanup for long-running menu bar sessions.
