@@ -7,6 +7,7 @@ struct MainPanelView: View {
     private let pasteCoordinator: PasteCoordinator
     private let accessibilityPermissionService: AccessibilityPermissionService
     private let dismissAction: (() -> Void)?
+    private let openSettingsAction: (() -> Void)?
 
     @State private var selectedItem: ClipboardHistoryItem?
     @State private var selectedFilter: HistoryContentFilter = .all
@@ -18,20 +19,20 @@ struct MainPanelView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openSettings) private var openSettings
 
-    private let timelineOrganizer = HistoryTimelineOrganizer()
-
     init(
         viewModel: ClipboardHistoryViewModel,
         accessibilityPermissionService: AccessibilityPermissionService = AccessibilityPermissionService(),
         actionViewModel: ContentActionPanelViewModel? = nil,
         pasteCoordinator: PasteCoordinator,
-        dismissAction: (() -> Void)? = nil
+        dismissAction: (() -> Void)? = nil,
+        openSettingsAction: (() -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _actionViewModel = StateObject(wrappedValue: actionViewModel ?? ContentActionPanelViewModel())
         self.pasteCoordinator = pasteCoordinator
         self.accessibilityPermissionService = accessibilityPermissionService
         self.dismissAction = dismissAction
+        self.openSettingsAction = openSettingsAction
     }
 
     var body: some View {
@@ -59,7 +60,9 @@ struct MainPanelView: View {
             .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         }
         .onAppear {
-            viewModel.loadHistory()
+            if viewModel.items.isEmpty {
+                viewModel.loadHistoryAsync()
+            }
             selectedKeyboardItem = viewModel.items.first?.id
             isListFocused = true
         }
@@ -138,7 +141,11 @@ struct MainPanelView: View {
 
             Button {
                 closePanel()
-                openSettings()
+                if let openSettingsAction {
+                    openSettingsAction()
+                } else {
+                    openSettings()
+                }
             } label: {
                 Image(systemName: "gearshape")
                     .font(.system(size: 15, weight: .medium))
@@ -407,11 +414,11 @@ struct MainPanelView: View {
     }
 
     private var timelineSections: [HistoryTimelineSection] {
-        timelineOrganizer.sections(for: viewModel.items)
+        viewModel.timelineSections
     }
 
     private var recentSources: [HistoryRecentSource] {
-        timelineOrganizer.recentSources(from: viewModel.items, limit: 6)
+        viewModel.recentSources
     }
 
     private var selectedItemFromKeyboard: ClipboardHistoryItem? {
@@ -427,9 +434,7 @@ struct MainPanelView: View {
     }
 
     private func relativeSourceTime(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: date, relativeTo: Date())
+        SharedHistoryDisplayFormatter.shared.relativeTime(for: date)
     }
 
     private func historyDetailSheet(_ item: ClipboardHistoryItem) -> some View {
@@ -617,8 +622,8 @@ private struct SourceRibbonButton: View {
     @ViewBuilder
     private var sourceIcon: some View {
         if let bundleID,
-           let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+           let icon = PreviewImageCache.shared.applicationIcon(forBundleIdentifier: bundleID) {
+            Image(nsImage: icon)
                 .resizable()
                 .frame(width: 27, height: 27)
         } else {
@@ -627,330 +632,5 @@ private struct SourceRibbonButton: View {
                 .foregroundStyle(isSelected ? Color.accentColor : .secondary)
                 .frame(width: 27, height: 27)
         }
-    }
-}
-
-private struct LegacyTimelineSectionView: View {
-    let section: HistoryTimelineSection
-    @Binding var selectedItemID: Int64?
-    let detailAction: (ClipboardHistoryItem) -> Void
-    let favoriteAction: (ClipboardHistoryItem) -> Void
-    let restoreAction: (ClipboardHistoryItem) -> Void
-    let pasteAction: (ClipboardHistoryItem) -> Void
-    let deleteAction: (ClipboardHistoryItem) -> Void
-    let loadMoreAction: (ClipboardHistoryItem) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Circle()
-                    .stroke(Color.secondary.opacity(0.55), lineWidth: 1.5)
-                    .frame(width: 9, height: 9)
-                Text(section.group.title)
-                    .font(.callout.weight(.semibold))
-            }
-            .foregroundStyle(.secondary)
-
-            VStack(spacing: 0) {
-                ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
-                    LegacyHistoryRowView(
-                        item: item,
-                        isSelected: selectedItemID == item.id,
-                        detailAction: { detailAction(item) },
-                        favoriteAction: { favoriteAction(item) },
-                        restoreAction: { restoreAction(item) },
-                        pasteAction: {
-                            selectedItemID = item.id
-                            pasteAction(item)
-                        },
-                        deleteAction: { deleteAction(item) }
-                    )
-                    .onHover { hovering in
-                        if hovering { selectedItemID = item.id }
-                    }
-                    .onAppear { loadMoreAction(item) }
-
-                    if index < section.items.count - 1 {
-                        Divider().padding(.leading, 78)
-                    }
-                }
-            }
-            .background(Color(nsColor: .controlBackgroundColor).opacity(0.62))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.primary.opacity(0.065), lineWidth: 1)
-            }
-            .padding(.leading, 16)
-        }
-        .overlay(alignment: .leading) {
-            Rectangle()
-                .fill(Color.secondary.opacity(0.16))
-                .frame(width: 1)
-                .padding(.top, 20)
-                .padding(.bottom, -14)
-                .offset(x: 4)
-        }
-    }
-}
-
-private struct LegacyHistoryRowView: View {
-    let item: ClipboardHistoryItem
-    let isSelected: Bool
-    let detailAction: () -> Void
-    let favoriteAction: () -> Void
-    let restoreAction: () -> Void
-    let pasteAction: () -> Void
-    let deleteAction: () -> Void
-
-    private let formatter = HistoryDisplayFormatter()
-
-    var body: some View {
-        HStack(spacing: 12) {
-            preview
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(metadataTitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Text(previewText)
-                    .font(.body.weight(isSelected ? .medium : .regular))
-                    .lineLimit(isSelected ? 2 : 1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if isSelected {
-                    Text(L10n.string("Click to paste into the previous app"))
-                        .font(.caption)
-                        .foregroundStyle(Color.accentColor)
-                        .transition(.opacity)
-                } else if item.contentType == .image {
-                    Text(sizeTitle)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-            }
-
-            if isSelected {
-                Label(L10n.string("Paste"), systemImage: "arrow.turn.down.left")
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(Color.accentColor)
-                    .labelStyle(.titleAndIcon)
-                    .padding(.horizontal, 10)
-                    .accessibilityHidden(true)
-            }
-
-            Button(action: favoriteAction) {
-                Image(systemName: item.isFavorite ? "star.fill" : "star")
-                    .foregroundStyle(item.isFavorite ? Color.accentColor : .secondary)
-                    .frame(width: 26, height: 26)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(favoriteTitle)
-            .help(favoriteTitle)
-
-            Menu {
-                Button(action: detailAction) {
-                    Label(L10n.string("Details"), systemImage: "info.circle")
-                }
-                Button(action: restoreAction) {
-                    Label(L10n.string("Restore"), systemImage: "doc.on.clipboard")
-                }
-                Divider()
-                Button(role: .destructive, action: deleteAction) {
-                    Label(L10n.string("Delete"), systemImage: "trash")
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .frame(width: 26, height: 26)
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .accessibilityLabel(L10n.string("More Actions"))
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, isSelected ? 11 : 9)
-        .background(isSelected ? Color.accentColor.opacity(0.075) : Color.clear)
-        .overlay {
-            if isSelected {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(Color.accentColor.opacity(0.8), lineWidth: 1.5)
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture(perform: pasteAction)
-        .animation(.easeOut(duration: 0.16), value: isSelected)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(metadataTitle), \(previewText)")
-        .accessibilityHint(L10n.string("Click to paste into the previous app"))
-    }
-
-    @ViewBuilder
-    private var preview: some View {
-        if item.contentType == .image {
-            HistoryImagePreview(
-                path: item.thumbnailPath,
-                size: NSSize(width: 54, height: 44)
-            )
-        } else {
-            Image(systemName: "doc.text")
-                .font(.system(size: 22, weight: .light))
-                .foregroundStyle(.secondary)
-                .frame(width: 54, height: 44)
-                .background(Color.primary.opacity(0.035))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        }
-    }
-
-    private var metadataTitle: String {
-        var parts = [item.contentType == .text ? L10n.string("Text") : L10n.string("Image")]
-        if let sourceApp = item.sourceApp, sourceApp.isEmpty == false {
-            parts.append(String(format: L10n.string("From %@"), sourceApp))
-        }
-        parts.append(formatter.displayTime(for: item.createdAt))
-        return parts.joined(separator: " · ")
-    }
-
-    private var previewText: String {
-        if item.contentType == .image {
-            guard let width = item.imageWidth, let height = item.imageHeight else {
-                return L10n.string("Image")
-            }
-            return String(format: L10n.string("Image %lldx%lld"), width, height)
-        }
-        guard item.textContent.isEmpty == false else { return L10n.string("Empty text") }
-        return formatter.preview(for: item.textContent)
-    }
-
-    private var favoriteTitle: String {
-        item.isFavorite ? L10n.string("Unfavorite") : L10n.string("Favorite")
-    }
-
-    private var sizeTitle: String {
-        guard let fileSize = item.fileSize else { return L10n.string("Image") }
-        return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
-    }
-}
-
-private struct LegacyHistoryDetailView: View {
-    let item: ClipboardHistoryItem
-    let restoreAction: () -> Void
-    let deleteAction: () -> Void
-    let favoriteAction: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    private let formatter = HistoryDisplayFormatter()
-
-    var body: some View {
-        VStack(spacing: 0) {
-            detailHeader
-            Divider()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    metadataCard
-                    detailContent
-                }
-                .padding(20)
-            }
-
-            Divider()
-            detailActions
-        }
-        .frame(width: 600, height: 520)
-        .background(.regularMaterial)
-    }
-
-    private var detailHeader: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(L10n.string("History Detail"))
-                    .font(.headline)
-                Text(formatter.displayTime(for: item.createdAt))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button(L10n.string("Done")) { dismiss() }
-                .keyboardShortcut(.cancelAction)
-        }
-        .padding(.horizontal, 20)
-        .frame(height: 62)
-    }
-
-    private var metadataCard: some View {
-        Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 9) {
-            metadataRow(L10n.string("Type"), item.contentType == .text ? L10n.string("Text") : L10n.string("Image"))
-            metadataRow(L10n.string("Size"), sizeTitle)
-            if let width = item.imageWidth, let height = item.imageHeight {
-                metadataRow(L10n.string("Dimensions"), "\(width)×\(height)")
-            }
-            if let imageFormat = item.imageFormat {
-                metadataRow(L10n.string("Format"), imageFormat.rawValue.uppercased())
-            }
-            if let sourceApp = item.sourceApp, sourceApp.isEmpty == false {
-                metadataRow(L10n.string("Source"), sourceApp)
-            }
-        }
-        .font(.callout)
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.primary.opacity(0.035))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private func metadataRow(_ label: String, _ value: String) -> some View {
-        GridRow {
-            Text(label).foregroundStyle(.secondary)
-            Text(value).textSelection(.enabled)
-        }
-    }
-
-    @ViewBuilder
-    private var detailContent: some View {
-        if item.contentType == .image {
-            HistoryImagePreview(
-                path: item.filePath,
-                size: NSSize(width: 540, height: 275)
-            )
-            .frame(maxWidth: .infinity)
-        } else {
-            Text(item.textContent)
-                .font(.body)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .background(Color(nsColor: .textBackgroundColor).opacity(0.72))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        }
-    }
-
-    private var detailActions: some View {
-        HStack {
-            Button(action: favoriteAction) {
-                Label(favoriteTitle, systemImage: item.isFavorite ? "star.fill" : "star")
-            }
-            Button(role: .destructive, action: deleteAction) {
-                Label(L10n.string("Delete"), systemImage: "trash")
-            }
-            Spacer()
-            Button(action: restoreAction) {
-                Label(L10n.string("Copy to Clipboard"), systemImage: "doc.on.clipboard")
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .padding(.horizontal, 20)
-        .frame(height: 64)
-    }
-
-    private var favoriteTitle: String {
-        item.isFavorite ? L10n.string("Unfavorite") : L10n.string("Favorite")
-    }
-
-    private var sizeTitle: String {
-        if item.contentType == .image {
-            guard let fileSize = item.fileSize else { return L10n.string("Image") }
-            return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
-        }
-        return String(format: L10n.string("%lld chars"), item.textLength)
     }
 }

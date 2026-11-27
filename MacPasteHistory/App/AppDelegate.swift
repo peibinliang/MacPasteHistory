@@ -46,6 +46,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var mainWindowController: NSWindowController?
     private var settingsWindowController: NSWindowController?
+    private var historyViewModel: ClipboardHistoryViewModel?
+    private var contentActionViewModel: ContentActionPanelViewModel?
+    private var settingsViewModel: SettingsViewModel?
+    private let pasteTarget = DynamicPasteTarget()
     private var clipboardHistoryRepository: ClipboardHistoryRepository?
     private var clipboardWriter: ClipboardWriter?
     private var imageStorageService: ImageStorageService?
@@ -167,6 +171,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 imageStorageService: imageStorageService,
                 aiTokenUsageRepository: aiTokenUsageRepository
             ).clearAllData()
+            PreviewImageCache.shared.removeAll()
+            historyViewModel?.loadHistory()
             logger.info("All clipboard data cleared")
         } catch {
             logger.error("Failed to clear all data: \(error.localizedDescription)")
@@ -220,21 +226,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 thumbnailsDirectory: try applicationSupportService.thumbnailsURL,
                 maxImageSizeInBytesProvider: { UserDefaultsConfig().maxImageSizeInBytes }
             )
-            clipboardHistoryRepository = repository
-            aiTokenUsageRepository = AITokenUsageRepository(database: database)
-            clipboardWriter = writer
-            self.imageStorageService = imageStorageService
-            clipboardMonitor = ClipboardMonitor(
-                repository: repository,
-                imageStorageService: imageStorageService,
-                restorationState: restorationState
-            )
-            searchCoordinator = SearchCoordinator(
-                provider: SearchCandidateProvider(databaseURL: try applicationSupportService.databaseURL)
-            )
-            logger.info("Local storage initialized")
-
-            // Perform data cleanup on startup (expired records, count limits, storage caps)
             let cleanupService = DataCleanupService(
                 repository: repository,
                 imageStorageService: imageStorageService,
@@ -243,6 +234,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     preferences: makeCaptureEventAggregationPreferences()
                 )
             )
+            clipboardHistoryRepository = repository
+            aiTokenUsageRepository = AITokenUsageRepository(database: database)
+            clipboardWriter = writer
+            self.imageStorageService = imageStorageService
+            clipboardMonitor = ClipboardMonitor(
+                repository: repository,
+                imageStorageService: imageStorageService,
+                restorationState: restorationState,
+                periodicCleanupHandler: {
+                    cleanupService.performStartupCleanup()
+                }
+            )
+            searchCoordinator = SearchCoordinator(
+                provider: SearchCandidateProvider(databaseURL: try applicationSupportService.databaseURL)
+            )
+            logger.info("Local storage initialized")
+
+            // Perform data cleanup on startup (expired records, count limits, storage caps)
             cleanupService.performStartupCleanup()
             startStorageReconciliation()
         } catch {
@@ -287,35 +296,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             logger.error("Cannot open history before local storage is initialized")
             return
         }
-        let pasteTargetApplication = currentPasteTargetApplication()
-        let viewModel = ClipboardHistoryViewModel(
+        if let existingController = mainWindowController,
+           let existingPanel = existingController.window as? HistoryPanelWindow,
+           existingPanel.isVisible,
+           existingPanel.attachedSheet != nil {
+            existingPanel.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        pasteTarget.application = currentPasteTargetApplication()
+        let viewModel = historyViewModel ?? ClipboardHistoryViewModel(
             repository: clipboardHistoryRepository,
             writer: clipboardWriter,
             imageStorageService: imageStorageService,
-            searchCoordinator: searchCoordinator
+            searchCoordinator: searchCoordinator,
+            historySnapshotLoader: (try? applicationSupportService.databaseURL).map(
+                DatabaseHistoryListSnapshotLoader.init(databaseURL:)
+            )
         )
+        historyViewModel = viewModel
+
+        let actionViewModel = contentActionViewModel ?? makeContentActionViewModel()
+        contentActionViewModel = actionViewModel
+
         let controller = mainWindowController ?? createHistoryPanelController(
             viewModel: viewModel,
+            actionViewModel: actionViewModel,
             pasteCoordinator: makePasteCoordinator(
                 viewModel: viewModel,
-                targetApplication: pasteTargetApplication
+                target: pasteTarget
             )
         )
-        if let hostingView = controller.window?.contentView as? NSHostingView<MainPanelView> {
-            hostingView.rootView = MainPanelView(
-                viewModel: viewModel,
-                accessibilityPermissionService: accessibilityPermissionService,
-                actionViewModel: makeContentActionViewModel(),
-                pasteCoordinator: makePasteCoordinator(
-                    viewModel: viewModel,
-                    targetApplication: pasteTargetApplication
-                ),
-                dismissAction: { [weak window = controller.window] in
-                    window?.orderOut(nil)
-                }
-            )
-        }
         mainWindowController = controller
+        viewModel.setPanelVisible(true)
         showHistoryPanel(controller)
     }
 
@@ -399,13 +412,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSettings() {
+        let viewModel = settingsViewModel ?? makeSettingsViewModel()
+        settingsViewModel = viewModel
         let controller = settingsWindowController ?? createWindowController(
             title: L10n.string("Settings"),
             rootView: SettingsView(
-                viewModel: makeSettingsViewModel(),
+                viewModel: viewModel,
                 updateService: makeUpdateService()
             ),
-            size: NSSize(width: 520, height: 420)
+            size: NSSize(width: 720, height: 560)
         )
         settingsWindowController = controller
         showWindow(controller)
@@ -435,19 +450,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func createHistoryPanelController(
         viewModel: ClipboardHistoryViewModel,
+        actionViewModel: ContentActionPanelViewModel,
         pasteCoordinator: PasteCoordinator
     ) -> NSWindowController {
         let panel = HistoryPanelWindow(
             contentRect: NSRect(origin: .zero, size: HistoryPanelWindow.defaultSize)
         )
+        panel.onDidOrderOut = { [weak viewModel] in
+            viewModel?.setPanelVisible(false)
+        }
         panel.contentView = NSHostingView(
             rootView: MainPanelView(
                 viewModel: viewModel,
                 accessibilityPermissionService: accessibilityPermissionService,
-                actionViewModel: makeContentActionViewModel(),
+                actionViewModel: actionViewModel,
                 pasteCoordinator: pasteCoordinator,
                 dismissAction: { [weak panel] in
                     panel?.orderOut(nil)
+                },
+                openSettingsAction: { [weak self] in
+                    self?.openSettings()
                 }
             )
         )
@@ -456,14 +478,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makePasteCoordinator(
         viewModel: ClipboardHistoryViewModel,
-        targetApplication: NSRunningApplication?
+        target: any PasteTargetActivating
     ) -> PasteCoordinator {
         PasteCoordinator(
             writer: viewModel,
             readinessProvider: AutomaticPastePolicy(
                 accessibilityPermissionService: accessibilityPermissionService
             ),
-            target: targetApplication.map(RunningApplicationPasteTarget.init(application:)),
+            target: target,
             commandDispatcher: PasteCommandService(),
             usageRecorder: viewModel
         )

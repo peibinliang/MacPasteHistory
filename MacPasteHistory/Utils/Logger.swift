@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-struct Logger {
+struct Logger: Sendable {
     private let logger: os.Logger
 
     init(category: String) {

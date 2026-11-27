@@ -2,7 +2,7 @@ import Foundation
 
 /// Performs periodic data cleanup for clipboard history records.
 /// Removes expired records, trims count limits, and evicts image files when storage caps are exceeded.
-struct DataCleanupService {
+struct DataCleanupService: @unchecked Sendable {
     private let repository: ClipboardHistoryRepository
     private let imageStorageService: ImageStorageService?
     private let settings: UserDefaultsConfig

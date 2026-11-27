@@ -15,15 +15,41 @@ struct HistoryTimelineView: View {
     let recommendedActionsAction: (ClipboardHistoryItem) -> Void
     let loadMoreAction: (ClipboardHistoryItem) -> Void
 
+    static func shouldTriggerLoadMore(
+        sectionIndex: Int,
+        itemIndex: Int,
+        sectionCount: Int,
+        itemCount: Int
+    ) -> Bool {
+        sectionCount > 0
+            && itemCount > 0
+            && sectionIndex == sectionCount - 1
+            && itemIndex == itemCount - 1
+    }
+
     var body: some View {
-        ForEach(sections) { section in
+        ForEach(Array(sections.enumerated()), id: \.element.id) { sectionIndex, section in
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) { Circle().stroke(Color.secondary.opacity(0.55), lineWidth: 1.5).frame(width: 9, height: 9); Text(section.group.title).font(.callout.weight(.semibold)) }
                     .foregroundStyle(.secondary)
-                VStack(spacing: 0) {
+                LazyVStack(spacing: 0) {
                     ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
                         HistoryRowView(item: item, isSelected: selectedItemID == item.id, highlightedTerms: highlightedTerms, detailAction: { detailAction(item) }, favoriteAction: { favoriteAction(item) }, restoreAction: { restoreAction(item) }, pasteAction: { selectedItemID = item.id; pasteAction(item) }, deleteAction: { deleteAction(item) }, recommendedActions: recommendedActions(item), contentAction: { contentAction(item, $0) }, allActionsAction: { allActionsAction(item) }, recommendedActionsAction: { recommendedActionsAction(item) })
-                            .onHover { if $0 { selectedItemID = item.id } }.onAppear { loadMoreAction(item) }
+                            .onHover { hovering in
+                                if hovering, selectedItemID != item.id {
+                                    selectedItemID = item.id
+                                }
+                            }
+                            .onAppear {
+                                if Self.shouldTriggerLoadMore(
+                                    sectionIndex: sectionIndex,
+                                    itemIndex: index,
+                                    sectionCount: sections.count,
+                                    itemCount: section.items.count
+                                ) {
+                                    loadMoreAction(item)
+                                }
+                            }
                         if index < section.items.count - 1 { Divider().padding(.leading, 78) }
                     }
                 }

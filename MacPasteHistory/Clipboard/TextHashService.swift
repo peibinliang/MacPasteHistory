@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
 
-final class TextHashService {
+final class TextHashService: Sendable {
     func hash(for text: String) -> String {
         let normalizedText = normalize(text)
         let digest = SHA256.hash(data: Data(normalizedText.utf8))

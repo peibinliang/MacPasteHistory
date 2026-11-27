@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-struct SourceApplication {
+struct SourceApplication: Sendable {
     let name: String?
     let bundleID: String?
 }

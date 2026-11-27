@@ -7,9 +7,37 @@ protocol HistoryListFetching: AnyObject {
 
 extension ClipboardHistoryRepository: HistoryListFetching {}
 
-struct HistoryListSnapshot {
+struct HistoryListSnapshot: Sendable {
     let items: [ClipboardHistoryItem]
     let sourceOptions: [HistorySourceOption]
+}
+
+protocol HistoryListSnapshotLoading: Sendable {
+    func load(query: HistoryQuery) async throws -> HistoryListSnapshot
+}
+
+struct DatabaseHistoryListSnapshotLoader: HistoryListSnapshotLoading {
+    let databaseURL: URL
+
+    func load(query: HistoryQuery) async throws -> HistoryListSnapshot {
+        let url = databaseURL
+        let task = Task.detached(priority: .userInitiated) {
+            try Task.checkCancellation()
+            let database = try DatabaseConnection(databaseURL: url, mode: .readOnly)
+            defer { try? database.close() }
+            let repository = ClipboardHistoryRepository(database: database)
+            let items = try repository.fetchHistory(query: query)
+            try Task.checkCancellation()
+            let sourceOptions = try repository.fetchSourceOptions()
+            try Task.checkCancellation()
+            return HistoryListSnapshot(items: items, sourceOptions: sourceOptions)
+        }
+        return try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            task.cancel()
+        }
+    }
 }
 
 @MainActor
@@ -19,6 +47,8 @@ protocol HistoryListCoordinating: AnyObject {
     var canLoadMore: Bool { get }
 
     func load(query: HistoryQuery) throws -> HistoryListSnapshot
+    func adoptLoadedSnapshot(itemCount: Int)
+    func trimToFirstPage(retainedCount: Int, hasMore: Bool)
     func loadMore(query: HistoryQuery) throws -> [ClipboardHistoryItem]
     func showRankedResults(_ results: [ClipboardHistoryItem]) -> [ClipboardHistoryItem]
     func revealMoreRankedResults(currentItemID: Int64?, displayedLastItemID: Int64?) -> [ClipboardHistoryItem]?
@@ -49,6 +79,24 @@ final class HistoryListCoordinator: HistoryListCoordinating {
         currentOffset = items.count
         canLoadMore = items.count == pageSize
         return HistoryListSnapshot(items: items, sourceOptions: sourceOptions)
+    }
+
+    func adoptLoadedSnapshot(itemCount: Int) {
+        isShowingRankedResults = false
+        rankedCandidates = []
+        visibleCandidateCount = 0
+        currentOffset = itemCount
+        canLoadMore = itemCount == pageSize
+    }
+
+    func trimToFirstPage(retainedCount: Int, hasMore: Bool) {
+        if isShowingRankedResults {
+            visibleCandidateCount = retainedCount
+            rankedCandidates = Array(rankedCandidates.prefix(retainedCount))
+        } else {
+            currentOffset = retainedCount
+            canLoadMore = hasMore
+        }
     }
 
     func loadMore(query: HistoryQuery) throws -> [ClipboardHistoryItem] {

@@ -1,13 +1,22 @@
 import Foundation
 
-struct ContentClassifier {
+struct ContentClassifier: Sendable {
     static let currentVersion = 1
 
+    private static let base64Regex = try? NSRegularExpression(pattern: "^[A-Za-z0-9+/]*={0,2}$")
+    private static let shellEnvCommandRegex = try? NSRegularExpression(
+        pattern: #"(?m)(?:^|\s)[A-Za-z_][A-Za-z0-9_]*+=\S*+\s++\S+"#
+    )
+    private static let shellFlagRegex = try? NSRegularExpression(
+        pattern: #"(?:^|\s)\S++\s++--?\w+"#
+    )
+    private static let maxJSONInspectionBytes = 512 * 1024
+
     func classifyFast(_ input: String, at date: Date = Date()) -> ContentDetectionResult {
-        let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let value = boundedInspectionSlice(of: input)
         let type: DetectedContentType
         if isJWT(value) { type = .jwt }
-        else if isJSON(value) { type = .json }
+        else if isJSON(input, trimmedPreview: value) { type = .json }
         else if isURL(value) { type = .url }
         else if isTimestamp(value) { type = .timestamp }
         else if isBase64(value) { type = .base64 }
@@ -18,7 +27,7 @@ struct ContentClassifier {
     func classifyComplete(_ input: String, at date: Date = Date()) -> ContentDetectionResult {
         let fast = classifyFast(input, at: date)
         guard fast.type == .plainText else { return fast }
-        let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let value = boundedInspectionSlice(of: input)
         let type: DetectedContentType
         if isSQL(value) { type = .sql }
         else if isShell(value) { type = .shell }
@@ -26,15 +35,27 @@ struct ContentClassifier {
         return ContentDetectionResult(type: type, confidence: type == .plainText ? fast.confidence : 0.9, version: Self.currentVersion, detectedAt: date)
     }
 
+    private func boundedInspectionSlice(of input: String) -> String {
+        let limit = DefaultSettings.classificationMaxInspectionCharacters
+        let slice = input.utf8.count > limit ? String(input.prefix(limit)) : input
+        return slice.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private func isJWT(_ value: String) -> Bool {
+        guard value.utf8.count <= 16_384 else { return false }
         let parts = value.split(separator: ".", omittingEmptySubsequences: false)
         guard parts.count == 3, parts.allSatisfy({ $0.isEmpty == false }),
               let header = decodeBase64URL(String(parts[0])), let payload = decodeBase64URL(String(parts[1])) else { return false }
         return isJSONData(header) && isJSONData(payload)
     }
 
-    private func isJSON(_ value: String) -> Bool {
-        guard value.first == "{" || value.first == "[", let data = value.data(using: .utf8) else { return false }
+    private func isJSON(_ rawInput: String, trimmedPreview: String) -> Bool {
+        guard trimmedPreview.first == "{" || trimmedPreview.first == "[",
+              rawInput.utf8.count <= Self.maxJSONInspectionBytes else {
+            return false
+        }
+        let candidate = rawInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let data = candidate.data(using: .utf8) else { return false }
         return isJSONData(data)
     }
 
@@ -56,8 +77,15 @@ struct ContentClassifier {
     }
 
     private func isBase64(_ value: String) -> Bool {
-        guard value.count >= 8, value.range(of: "^[A-Za-z0-9+/]*={0,2}$", options: .regularExpression) != nil,
-              value.count % 4 == 0, let data = Data(base64Encoded: value), let decoded = String(data: data, encoding: .utf8), decoded.isEmpty == false else { return false }
+        guard value.count >= 8, value.utf8.count <= DefaultSettings.classificationMaxInspectionCharacters,
+              value.count % 4 == 0,
+              let regex = Self.base64Regex,
+              regex.firstMatch(in: value, range: NSRange(value.startIndex..., in: value)) != nil,
+              let data = Data(base64Encoded: value),
+              let decoded = String(data: data, encoding: .utf8),
+              decoded.isEmpty == false else {
+            return false
+        }
         let printable = decoded.unicodeScalars.filter {
             $0.properties.isWhitespace || CharacterSet.controlCharacters.contains($0) == false
         }.count
@@ -75,6 +103,13 @@ struct ContentClassifier {
     }
 
     private func isShell(_ value: String) -> Bool {
-        value.contains("|") || value.contains(">") || value.range(of: "\\b[a-zA-Z_][a-zA-Z0-9_]*=.*\\s+\\S+", options: .regularExpression) != nil || value.range(of: "\\S+\\s+--?\\w+", options: .regularExpression) != nil
+        if value.contains("|") || value.contains(">") {
+            return true
+        }
+        let range = NSRange(value.startIndex..., in: value)
+        if Self.shellEnvCommandRegex?.firstMatch(in: value, range: range) != nil {
+            return true
+        }
+        return Self.shellFlagRegex?.firstMatch(in: value, range: range) != nil
     }
 }

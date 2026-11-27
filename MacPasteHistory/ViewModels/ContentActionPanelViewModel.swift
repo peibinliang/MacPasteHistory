@@ -32,6 +32,7 @@ final class ContentActionPanelViewModel: ObservableObject {
     private var executionTask: Task<Void, Never>?
     private var executionID = UUID()
     private var pendingAIActionID: ContentActionID?
+    private let recommendedActionsByType: [DetectedContentType: [any ContentAction]]
 
     init(
         registry: ContentActionRegistry = ContentActionRegistry(),
@@ -45,6 +46,15 @@ final class ContentActionPanelViewModel: ObservableObject {
         self.classifier = classifier
         self.suitabilityPolicy = suitabilityPolicy
         self.config = config
+        var cachedByType: [DetectedContentType: [any ContentAction]] = [:]
+        let sortedActions = registry.sorted
+        for type in DetectedContentType.allCases {
+            cachedByType[type] = sortedActions.filter { action in
+                suitabilityPolicy.isSuitable(action, for: type)
+                    && action.supportedTypes.contains(type)
+            }
+        }
+        self.recommendedActionsByType = cachedByType
     }
 
     var allActions: [any ContentAction] {
@@ -72,10 +82,7 @@ final class ContentActionPanelViewModel: ObservableObject {
     }
 
     func recommendedActions(for type: DetectedContentType) -> [any ContentAction] {
-        registry.sorted.filter { action in
-            suitabilityPolicy.isSuitable(action, for: type)
-                && action.supportedTypes.contains(type)
-        }
+        recommendedActionsByType[type] ?? []
     }
 
     func present(for item: ClipboardHistoryItem, sourceText: String? = nil, recommendedOnly: Bool = false) {
