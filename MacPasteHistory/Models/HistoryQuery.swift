@@ -1,7 +1,7 @@
 import Foundation
 
-struct HistoryQuery {
-    enum TimeRange: String, CaseIterable, Identifiable {
+struct HistoryQuery: Sendable {
+    enum TimeRange: String, CaseIterable, Identifiable, Sendable {
         case all
         case today
         case last7Days
@@ -37,7 +37,7 @@ struct HistoryQuery {
         }
     }
 
-    struct SourceFilter: Equatable {
+    struct SourceFilter: Equatable, Sendable {
         let appName: String?
         let bundleID: String?
 
@@ -75,7 +75,7 @@ struct HistoryQuery {
     }
 }
 
-struct HistorySourceOption: Equatable, Identifiable, Hashable {
+struct HistorySourceOption: Equatable, Identifiable, Hashable, Sendable {
     let appName: String?
     let bundleID: String?
 
@@ -84,7 +84,10 @@ struct HistorySourceOption: Equatable, Identifiable, Hashable {
     }
 
     var title: String {
-        appName?.isEmpty == false ? appName! : L10n.string("Unknown Source")
+        if let appName, appName.isEmpty == false {
+            return appName
+        }
+        return L10n.string("Unknown Source")
     }
 
     var filter: HistoryQuery.SourceFilter {

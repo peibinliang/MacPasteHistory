@@ -24,10 +24,13 @@ struct SearchBarView: View {
                 .onKeyPress(.upArrow) { moveSuggestion(by: -1) }
                 .onKeyPress(.return) { acceptSelectedSuggestion() }
                 .onKeyPress(.escape) { dismissSuggestionMenu() }
-            if tokens.isEmpty == false {
+            if tokens.isEmpty == false, text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
                 FlowLayout(spacing: 5) {
-                    ForEach(Array(tokens.enumerated()), id: \.offset) { index, token in
-                        SearchTokenView(token: token, title: String(text[token.range]), removeAction: { removeToken(token) })
+                    ForEach(Array(tokens.enumerated()), id: \.offset) { _, token in
+                        let title = token.displayTitle(in: text)
+                        if title.isEmpty == false {
+                            SearchTokenView(token: token, title: title, removeAction: { removeToken(token) })
+                        }
                     }
                 }
             }

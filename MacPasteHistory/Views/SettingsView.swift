@@ -475,8 +475,7 @@ struct SettingsView: View {
     }
 
     private func restartApp() {
-        AppRelauncher().relaunchAfterTermination(bundlePath: Bundle.main.bundlePath)
-        NSApp.terminate(nil)
+        AppRelauncher().relaunchAndTerminate(bundlePath: Bundle.main.bundlePath)
     }
 }
 

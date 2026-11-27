@@ -1,6 +1,6 @@
 import Foundation
 
-enum ClipboardContentType: String {
+enum ClipboardContentType: String, Sendable {
     case text
     case image
 }

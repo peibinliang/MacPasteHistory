@@ -1,6 +1,6 @@
 import Foundation
 
-struct StoredClipboardImage: Equatable {
+struct StoredClipboardImage: Equatable, Sendable {
     let fileURL: URL
     let thumbnailURL: URL
     let contentHash: String

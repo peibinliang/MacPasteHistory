@@ -1,6 +1,6 @@
 import Foundation
 
-struct ClipboardHistoryItem: Identifiable, Equatable {
+struct ClipboardHistoryItem: Identifiable, Equatable, Sendable {
     let id: Int64
     let contentType: ClipboardContentType
     let textContent: String

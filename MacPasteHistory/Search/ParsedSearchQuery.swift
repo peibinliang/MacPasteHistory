@@ -15,6 +15,30 @@ struct ParsedSearchQuery: Equatable {
 struct SearchToken: Equatable {
     let kind: SearchTokenKind
     let range: Range<String.Index>
+    let rawText: String
+
+    init(kind: SearchTokenKind, range: Range<String.Index>, rawText: String = "") {
+        self.kind = kind
+        self.range = range
+        self.rawText = rawText
+    }
+
+    static func == (lhs: SearchToken, rhs: SearchToken) -> Bool {
+        lhs.kind == rhs.kind && lhs.range == rhs.range
+    }
+
+    func displayTitle(in currentText: String) -> String {
+        if rawText.isEmpty == false {
+            return rawText
+        }
+        guard range.lowerBound >= currentText.startIndex,
+              range.upperBound <= currentText.endIndex,
+              range.lowerBound.samePosition(in: currentText.unicodeScalars) != nil,
+              range.upperBound.samePosition(in: currentText.unicodeScalars) != nil else {
+            return ""
+        }
+        return String(currentText[range])
+    }
 }
 
 enum SearchTokenKind: Equatable {
