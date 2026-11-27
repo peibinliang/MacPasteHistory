@@ -1,6 +1,8 @@
 import AppKit
 import CryptoKit
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 enum ImageStorageError: Error {
     case invalidImageData
@@ -8,7 +10,7 @@ enum ImageStorageError: Error {
     case thumbnailEncodingFailed
 }
 
-final class ImageStorageService {
+final class ImageStorageService: @unchecked Sendable {
     private let imagesDirectory: URL
     private let thumbnailsDirectory: URL
     private let maxImageSizeInBytesProvider: () -> Int
@@ -34,7 +36,7 @@ final class ImageStorageService {
         guard candidate.pngData.count <= maxImageSizeInBytesProvider() else {
             throw ImageStorageError.imageTooLarge
         }
-        guard NSImage(data: candidate.pngData) != nil else {
+        guard Self.isValidImageData(candidate.pngData) else {
             throw ImageStorageError.invalidImageData
         }
 
@@ -63,18 +65,21 @@ final class ImageStorageService {
     }
 
     func deleteImageFiles(filePath: String?, thumbnailPath: String?) {
+        PreviewImageCache.shared.removeImages(forPath: filePath)
+        PreviewImageCache.shared.removeImages(forPath: thumbnailPath)
         deleteManagedFile(atPath: filePath, within: imagesDirectory)
         deleteManagedFile(atPath: thumbnailPath, within: thumbnailsDirectory)
     }
 
     func deleteAllFiles() throws {
+        PreviewImageCache.shared.removeAll()
         try deleteContents(of: imagesDirectory)
         try deleteContents(of: thumbnailsDirectory)
     }
 
     func regenerateThumbnail(from originalURL: URL, to thumbnailURL: URL) throws {
         let originalData = try Data(contentsOf: originalURL)
-        guard NSImage(data: originalData) != nil else {
+        guard Self.isValidImageData(originalData) else {
             throw ImageStorageError.invalidImageData
         }
         try fileManager.createDirectory(
@@ -82,27 +87,50 @@ final class ImageStorageService {
             withIntermediateDirectories: true
         )
         try thumbnailData(from: originalData).write(to: thumbnailURL, options: .atomic)
+        PreviewImageCache.shared.removeImages(forPath: thumbnailURL.path)
     }
 
     private func thumbnailData(from pngData: Data) throws -> Data {
-        guard let image = NSImage(data: pngData) else {
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(pngData as CFData, sourceOptions) else {
             throw ImageStorageError.invalidImageData
         }
 
-        let sourceSize = image.size
-        let scale = min(thumbnailMaxDimension / max(sourceSize.width, 1), thumbnailMaxDimension / max(sourceSize.height, 1), 1)
-        let targetSize = NSSize(width: max(1, sourceSize.width * scale), height: max(1, sourceSize.height * scale))
-        let thumbnail = NSImage(size: targetSize)
-        thumbnail.lockFocus()
-        image.draw(in: NSRect(origin: .zero, size: targetSize))
-        thumbnail.unlockFocus()
+        let maxPixelSize = max(1, Int(ceil(thumbnailMaxDimension)))
+        let thumbnailOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions as CFDictionary) else {
+            throw ImageStorageError.invalidImageData
+        }
 
-        guard let tiffData = thumbnail.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData),
-              let data = bitmap.representation(using: .png, properties: [:]) else {
+        let mutableData = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            mutableData,
+            UTType.png.identifier as CFString,
+            1,
+            nil
+        ) else {
             throw ImageStorageError.thumbnailEncodingFailed
         }
-        return data
+        CGImageDestinationAddImage(destination, cgImage, nil)
+        guard CGImageDestinationFinalize(destination) else {
+            throw ImageStorageError.thumbnailEncodingFailed
+        }
+        return mutableData as Data
+    }
+
+    private static func isValidImageData(_ data: Data) -> Bool {
+        let options = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, options),
+              CGImageSourceGetCount(source) > 0,
+              CGImageSourceCreateImageAtIndex(source, 0, options) != nil else {
+            return false
+        }
+        return true
     }
 
     private func hash(_ data: Data) -> String {

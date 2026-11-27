@@ -275,6 +275,53 @@ final class ClipboardMonitorTests: XCTestCase {
         )
     }
 
+    func testPerformTimerPoll_whenPasteboardChanges_shouldSaveTextAsynchronouslyOffMainPath() throws {
+        let monitor = makeMonitor()
+        _ = pasteboard.setString("async timer text", forType: .string)
+
+        monitor.performTimerPollForTesting()
+        monitor.flushPendingCapturesForTesting()
+
+        let items = try repository.fetchTextHistory(matching: nil)
+        XCTAssertEqual(items.map(\.textContent), ["async timer text"])
+    }
+
+    func testPollOnce_whenCaptureThresholdIsReached_shouldInvokePeriodicCleanupHandler() {
+        final class CleanupCounter: @unchecked Sendable {
+            private let lock = NSLock()
+            private(set) var count = 0
+
+            func increment() {
+                lock.lock()
+                defer { lock.unlock() }
+                count += 1
+            }
+        }
+
+        let counter = CleanupCounter()
+        let monitor = ClipboardMonitor(
+            pasteboard: pasteboard,
+            repository: repository,
+            imageStorageService: imageStorageService,
+            sourceApplicationProvider: StubSourceApplicationProvider(),
+            restorationState: restorationState,
+            recordingSettings: StubRecordingSettings(shouldRecordText: true, shouldRecordImage: true),
+            privacyService: PrivacyService(),
+            logger: Logger(category: "ClipboardMonitorTests"),
+            periodicCleanupHandler: { counter.increment() },
+            periodicCleanupCaptureThreshold: 2,
+            periodicCleanupInterval: 3_600
+        )
+
+        _ = pasteboard.setString("first synthetic capture", forType: .string)
+        monitor.pollOnce()
+        XCTAssertEqual(counter.count, 0)
+
+        _ = pasteboard.setString("second synthetic capture", forType: .string)
+        monitor.pollOnce()
+        XCTAssertEqual(counter.count, 1)
+    }
+
     private func makeMonitor() -> ClipboardMonitor {
         makeMonitor(recordingSettings: StubRecordingSettings(shouldRecordText: true, shouldRecordImage: true))
     }

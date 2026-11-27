@@ -1,5 +1,5 @@
 import Foundation
 
-enum ClipboardImageFormat: String {
+enum ClipboardImageFormat: String, Sendable {
     case png
 }

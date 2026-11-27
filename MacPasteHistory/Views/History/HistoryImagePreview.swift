@@ -23,7 +23,6 @@ struct HistoryImagePreview: View {
     }
 
     private var image: NSImage? {
-        guard let path else { return nil }
-        return NSImage(contentsOfFile: path)
+        PreviewImageCache.shared.image(atPath: path, fitting: size)
     }
 }

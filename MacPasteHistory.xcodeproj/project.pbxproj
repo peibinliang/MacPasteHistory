@@ -38,6 +38,7 @@
 		2379BA62988C51806C27ACB2 /* URLContentActionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25D534E4C239135CC72464F /* URLContentActionsTests.swift */; };
 		2443498BC10F3C1C106775B0 /* DataCleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E6205E6E9C67B90AAA6E2D /* DataCleanupService.swift */; };
 		25C296210C984150C1CCE7FC /* ActionSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D23D0A3EC64A75E500311F /* ActionSessionTests.swift */; };
+		262B143F870D77ED711799CE /* PreviewImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE8E907A7774A4840C3E5BD /* PreviewImageCache.swift */; };
 		2636A66F404EABD2ACB3BD5D /* ClipboardCaptureEventSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31311F1A5D8D066973CEB005 /* ClipboardCaptureEventSummary.swift */; };
 		295A104399EE5F6714338E4A /* ClipboardRestorationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A35C0BCF17E0DE4CDC8061BE /* ClipboardRestorationState.swift */; };
 		2A70146F10A28C866750713A /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59402AFB167155D2052B9985 /* SettingsViewModel.swift */; };
@@ -354,6 +355,7 @@
 		9A9868E957927B329E3952DC /* ClipboardHistoryRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistoryRepositoryTests.swift; sourceTree = "<group>"; };
 		9B7194653D8500E14A302130 /* MainPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPanelView.swift; sourceTree = "<group>"; };
 		9EB1793FC1F6FDA78BA53AAD /* ClipboardDataClearService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardDataClearService.swift; sourceTree = "<group>"; };
+		9FE8E907A7774A4840C3E5BD /* PreviewImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewImageCache.swift; sourceTree = "<group>"; };
 		A17D6CC36FFC7B290BC5CBAE /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		A1D23D0A3EC64A75E500311F /* ActionSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionSessionTests.swift; sourceTree = "<group>"; };
 		A28802B5450F610E72476314 /* JWTContentActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWTContentActionTests.swift; sourceTree = "<group>"; };
@@ -651,6 +653,7 @@
 				C42979051F78EB5C5490EB0D /* LoginItemService.swift */,
 				E1FB76BFCE8E190C38BA03E2 /* PasteCommandService.swift */,
 				AB746F4D2D876939184C0400 /* PasteCoordinator.swift */,
+				9FE8E907A7774A4840C3E5BD /* PreviewImageCache.swift */,
 				0F41BE278810E2DD572202D9 /* PrivacyService.swift */,
 				660DF8A3E084F5528CDA0377 /* RecordingSettingsProvider.swift */,
 				07E562038800F71E12EF3CD0 /* SensitiveContentDetector.swift */,
@@ -1170,6 +1173,7 @@
 				9BF2234E5710422404C00F5C /* PasteCoordination.swift in Sources */,
 				7A643FC838E4B39D7CE7D1E1 /* PasteCoordinator.swift in Sources */,
 				499C45159CAEE137B0CAF84A /* PasteboardProviding.swift in Sources */,
+				262B143F870D77ED711799CE /* PreviewImageCache.swift in Sources */,
 				E7C64CAA955DDED488FE4F82 /* PrivacyService.swift in Sources */,
 				D0343A7EFD403E45E0BB102A /* RecordingSettingsProvider.swift in Sources */,
 				2B447E66A908ED23006F7507 /* SQLContentAction.swift in Sources */,

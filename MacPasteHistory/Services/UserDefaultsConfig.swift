@@ -2,7 +2,7 @@ import Foundation
 
 /// Type-safe wrapper around `UserDefaults` for persisting app settings.
 /// Writes are immediately synchronized; reads fall back to `DefaultDefaults` when no value exists.
-struct UserDefaultsConfig {
+struct UserDefaultsConfig: @unchecked Sendable {
     private let defaults: UserDefaults
 
     var backingDefaults: UserDefaults {

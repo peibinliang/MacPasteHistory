@@ -1,6 +1,6 @@
 import Foundation
 
-enum DetectedContentType: String, CaseIterable, Codable {
+enum DetectedContentType: String, CaseIterable, Codable, Sendable {
     case plainText
     case image
     case json

@@ -70,18 +70,18 @@ scripts/verify-release-qa-package.sh /path/to/MacPasteHistory-*.zip
 ```
 
 The formal Sparkle update is a separate artifact. It must be named
-`MacPasteHistory-1.0.5-7.zip`, have an adjacent `.sha256`, and pass the strict verifier:
+`MacPasteHistory-1.0.6-8.zip`, have an adjacent `.sha256`, and pass the strict verifier:
 
-PD-011 allows the public V1.0.5 artifact to remain ad-hoc. For that explicitly
+PD-011 allows the public V1.0.6 artifact to remain ad-hoc. For that explicitly
 waived artifact, run the package verifier without `--formal-update` and record
 the expected Developer ID/notarization failure separately; do not mark the
 formal gate as passed.
 
-Actual V1.0.5 waived-artifact verification:
+Actual V1.0.6 waived-artifact verification:
 
 ```bash
 scripts/verify-release-qa-package.sh \
-  /path/to/MacPasteHistory-1.0.5-7.zip
+  /path/to/MacPasteHistory-1.0.6-8.zip
 ```
 
 The following formal command is retained as expected-failure evidence for the
@@ -90,15 +90,15 @@ missing Developer ID identity and notarization:
 ```bash
 scripts/verify-release-qa-package.sh \
   --formal-update \
-  /path/to/MacPasteHistory-1.0.5-7.zip
+  /path/to/MacPasteHistory-1.0.6-8.zip
 
 scripts/verify-sparkle-appcast.sh \
   --appcast /path/to/appcast.xml \
-  --archive /path/to/MacPasteHistory-1.0.5-7.zip \
+  --archive /path/to/MacPasteHistory-1.0.6-8.zip \
   --expected-public-key "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' MacPasteHistory/Resources/Info.plist)" \
-  --expected-version 1.0.5 \
-  --expected-build 7 \
-  --expected-url https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.5/MacPasteHistory-1.0.5-7.zip
+  --expected-version 1.0.6 \
+  --expected-build 8 \
+  --expected-url https://github.com/peibinliang/MacPasteHistory/releases/download/v1.0.6/MacPasteHistory-1.0.6-8.zip
 ```
 
 The verifiers reject unsafe archive paths, a top-level app symlink, and bundle
@@ -172,7 +172,7 @@ scripts/verify-release-screenshot-assets.sh
 | Tester | TBD |
 | Git commit | TBD |
 | App path | TBD |
-| Version / build | `1.0.5 (7)` |
+| Version / build | `1.0.6 (8)` |
 | Signing identity | TBD |
 | Package SHA-256 | TBD |
 | Package manifest | TBD |

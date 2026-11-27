@@ -27,10 +27,21 @@ final class HistoryDisplayFormatter {
     }
 
     func preview(for text: String) -> String {
-        let lines = text.components(separatedBy: .newlines)
+        let maxScanCharacters = maxPreviewCharacters + maxPreviewLines * 2 + 16
+        let scanSource: String
+        let wasPreTruncated: Bool
+        if text.utf8.count > maxScanCharacters * 4, text.count > maxScanCharacters {
+            scanSource = String(text.prefix(maxScanCharacters))
+            wasPreTruncated = true
+        } else {
+            scanSource = text
+            wasPreTruncated = false
+        }
+
+        let lines = scanSource.components(separatedBy: .newlines)
         let boundedLines = Array(lines.prefix(maxPreviewLines))
         var preview = boundedLines.joined(separator: "\n")
-        var didTruncate = lines.count > maxPreviewLines
+        var didTruncate = wasPreTruncated || lines.count > maxPreviewLines
 
         if preview.count > maxPreviewCharacters {
             preview = String(preview.prefix(maxPreviewCharacters))
@@ -163,5 +174,66 @@ struct HistoryTimelineOrganizer {
             return .today
         }
         return .earlier
+    }
+}
+
+final class SharedHistoryDisplayFormatter: @unchecked Sendable {
+    static let shared = SharedHistoryDisplayFormatter()
+
+    private let lock = NSLock()
+    private var cachedLocaleIdentifier = Locale.current.identifier
+    private var cachedTimeZoneIdentifier = TimeZone.current.identifier
+    private var displayFormatter = HistoryDisplayFormatter()
+    private let byteCountFormatter: ByteCountFormatter = {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter
+    }()
+    private var relativeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter
+    }()
+
+    func preview(for text: String) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        return displayFormatter.preview(for: text)
+    }
+
+    func displayTime(for date: Date, now: Date = Date()) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        refreshFormattersIfNeededLocked()
+        return displayFormatter.displayTime(for: date, now: now)
+    }
+
+    func fileSizeString(for byteCount: Int) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        return byteCountFormatter.string(fromByteCount: Int64(byteCount))
+    }
+
+    func relativeTime(for date: Date, relativeTo referenceDate: Date = Date()) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        refreshFormattersIfNeededLocked()
+        return relativeFormatter.localizedString(for: date, relativeTo: referenceDate)
+    }
+
+    private func refreshFormattersIfNeededLocked() {
+        let localeIdentifier = Locale.current.identifier
+        let timeZoneIdentifier = TimeZone.current.identifier
+        guard localeIdentifier != cachedLocaleIdentifier
+                || timeZoneIdentifier != cachedTimeZoneIdentifier else {
+            return
+        }
+        cachedLocaleIdentifier = localeIdentifier
+        cachedTimeZoneIdentifier = timeZoneIdentifier
+        displayFormatter = HistoryDisplayFormatter()
+        let updatedRelative = RelativeDateTimeFormatter()
+        updatedRelative.unitsStyle = .short
+        updatedRelative.locale = Locale.current
+        relativeFormatter = updatedRelative
     }
 }

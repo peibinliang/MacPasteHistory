@@ -13,6 +13,7 @@ final class HistoryPanelWindow: NSPanel {
     static let defaultTopInset: CGFloat = 12
     static let cornerRadius: CGFloat = 24
     nonisolated static let keyboardFocusEffectDisabled = true
+    var onDidOrderOut: (() -> Void)?
 
     override var canBecomeKey: Bool {
         true
@@ -81,13 +82,19 @@ final class HistoryPanelWindow: NSPanel {
         setContentSize(Self.panelSize(for: mode, screenVisibleFrame: activeScreen.visibleFrame))
     }
 
+    override func orderOut(_ sender: Any?) {
+        super.orderOut(sender)
+        onDidOrderOut?()
+    }
+
     override func resignKey() {
         super.resignKey()
         DispatchQueue.main.async { [weak self] in
             guard let self else {
                 return
             }
-            let shouldHide = Self.shouldHideAfterResigningKey(
+            let hasModalOrChildWindow = NSApp.modalWindow != nil || (childWindows?.isEmpty == false)
+            let shouldHide = hasModalOrChildWindow == false && Self.shouldHideAfterResigningKey(
                 hasAttachedSheet: attachedSheet != nil,
                 isKeyWindow: isKeyWindow
             )

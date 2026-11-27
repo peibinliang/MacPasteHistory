@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 1.0.6 - 2026-11-27
+
+### Added
+
+- Added downsampled `PreviewImageCache` (`ImageIO` + bounded `NSCache`), asynchronous read-only history snapshot loading, and periodic runtime retention cleanup for long-running menu bar sessions.
+
+### Changed
+
+- Moved timer-driven clipboard image normalization, thumbnail generation, hashing, sensitive-content checks, classification, and SQLite persistence onto a background serial utility queue while reusing a single history panel ViewModel across invocations and rendering timeline sections lazily.
+
+### Fixed
+
+- Fixed `String.Index` out-of-bounds crashes when editing or clearing search text with active `SearchToken` chips, sandbox relaunch failures after changing language, premature overlay dismissal behind modal alerts, and the unconnected empty-state Open Settings button.
+- Fixed multi-second main-thread hangs and `1 GB+` memory spikes caused by catastrophic regex backtracking in `ContentClassifier` on `200 KB+` single-line text, uncached full-resolution image decoding, and eager multi-section pagination storms.
+
 ## 1.0.5 - 2026-08-12
 
 ### Added

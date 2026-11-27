@@ -42,11 +42,12 @@ struct SensitiveDetectionResult: Equatable, Sendable {
     }
 }
 
-protocol SensitiveContentRule {
+protocol SensitiveContentRule: Sendable {
     func match(in text: String) -> SensitiveDetectionResult?
 }
 
-struct SensitiveContentDetector {
+struct SensitiveContentDetector: Sendable {
+    private static let sharedDefault = SensitiveContentDetector()
     private let rules: [any SensitiveContentRule]
 
     init(additionalRules: [any SensitiveContentRule] = []) {
@@ -68,7 +69,7 @@ struct SensitiveContentDetector {
     }
 
     static func detect(_ text: String) -> SensitiveDetectionResult {
-        SensitiveContentDetector().result(for: text)
+        sharedDefault.result(for: text)
     }
 
     static func isSensitive(_ text: String) -> Bool {
@@ -77,7 +78,7 @@ struct SensitiveContentDetector {
 }
 
 /// Extension boundary for future user-defined local rules. The inspected text and matched value are never retained.
-struct UserSensitiveContentRule: SensitiveContentRule {
+struct UserSensitiveContentRule: SensitiveContentRule, @unchecked Sendable {
     private let regex: NSRegularExpression
     private let confidence: SensitiveDetectionConfidence
 
@@ -97,22 +98,22 @@ struct UserSensitiveContentRule: SensitiveContentRule {
 }
 
 private struct CredentialSensitiveContentRule: SensitiveContentRule {
-    private let assignmentRegex = try? NSRegularExpression(
-        pattern: #"(?i)(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-])*(?:password|passwd|pwd|api[_-]?key|access[_-]?token|secret[_-]?access[_-]?key)\b\s*[:=]\s*["']?\S+"#
+    private static let assignmentRegex = try? NSRegularExpression(
+        pattern: #"(?i)(?<![A-Za-z0-9])(?:[A-Za-z0-9]++[_-])*(?:password|passwd|pwd|api[_-]?key|access[_-]?token|secret[_-]?access[_-]?key)\b\s*+[:=]\s*+["']?\S+"#
     )
-    private let authorizationRegex = try? NSRegularExpression(
-        pattern: #"(?i)(\bauthorization\s*:\s*)?\b(bearer|basic)\s+[A-Za-z0-9+/_=.\-]{20,}"#
+    private static let authorizationRegex = try? NSRegularExpression(
+        pattern: #"(?i)(\bauthorization\s*+:\s*+)?\b(bearer|basic)\s++[A-Za-z0-9+/_=.\-]{20,}"#
     )
 
     func match(in text: String) -> SensitiveDetectionResult? {
-        if assignmentRegex?.hasMatch(in: text) == true {
+        if Self.assignmentRegex?.hasMatch(in: text) == true {
             return SensitiveDetectionResult(
                 category: .credential,
                 confidence: .high,
                 reason: .credentialAssignment
             )
         }
-        if authorizationRegex?.hasMatch(in: text) == true {
+        if Self.authorizationRegex?.hasMatch(in: text) == true {
             return SensitiveDetectionResult(
                 category: .credential,
                 confidence: .high,
@@ -124,12 +125,12 @@ private struct CredentialSensitiveContentRule: SensitiveContentRule {
 }
 
 private struct ContextualSecretContentRule: SensitiveContentRule {
-    private let regex = try? NSRegularExpression(
-        pattern: #"(?i)(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-])*(?:secret(?:[_-]?key)?|client[_-]?secret)\b\s*[:=]\s*["']?\S+"#
+    private static let regex = try? NSRegularExpression(
+        pattern: #"(?i)(?<![A-Za-z0-9])(?:[A-Za-z0-9]++[_-])*(?:secret(?:[_-]?key)?|client[_-]?secret)\b\s*+[:=]\s*+["']?\S+"#
     )
 
     func match(in text: String) -> SensitiveDetectionResult? {
-        guard regex?.hasMatch(in: text) == true else { return nil }
+        guard Self.regex?.hasMatch(in: text) == true else { return nil }
         return SensitiveDetectionResult(
             category: .secret,
             confidence: .high,
@@ -139,12 +140,12 @@ private struct ContextualSecretContentRule: SensitiveContentRule {
 }
 
 private struct BankCardSensitiveContentRule: SensitiveContentRule {
-    private let candidateRegex = try? NSRegularExpression(
+    private static let candidateRegex = try? NSRegularExpression(
         pattern: #"(?<!\d)(?:\d[ -]?){15,18}\d(?!\d)"#
     )
 
     func match(in text: String) -> SensitiveDetectionResult? {
-        guard let candidateRegex else { return nil }
+        guard let candidateRegex = Self.candidateRegex else { return nil }
         for candidate in candidateRegex.matches(in: text) {
             let digits = candidate.filter(\.isNumber)
             if (16...19).contains(digits.count), digits.passesLuhnChecksum {
@@ -160,12 +161,12 @@ private struct BankCardSensitiveContentRule: SensitiveContentRule {
 }
 
 private struct IdentitySensitiveContentRule: SensitiveContentRule {
-    private let candidateRegex = try? NSRegularExpression(
+    private static let candidateRegex = try? NSRegularExpression(
         pattern: #"(?<![0-9A-Za-z])\d{17}[\dXx](?![0-9A-Za-z])"#
     )
 
     func match(in text: String) -> SensitiveDetectionResult? {
-        guard let candidateRegex else { return nil }
+        guard let candidateRegex = Self.candidateRegex else { return nil }
         for candidate in candidateRegex.matches(in: text) where candidate.isValidMainlandIdentityNumber {
             return SensitiveDetectionResult(
                 category: .identity,

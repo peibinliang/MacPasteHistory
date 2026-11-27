@@ -4,6 +4,8 @@ import Combine
 @MainActor
 final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting, PasteUsageRecording {
     @Published private(set) var items: [ClipboardHistoryItem] = []
+    @Published private(set) var timelineSections: [HistoryTimelineSection] = []
+    @Published private(set) var recentSources: [HistoryRecentSource] = []
     @Published var searchText = ""
     @Published private(set) var parsedSearchQuery = SearchQueryParser().parse("")
     @Published private(set) var searchTokens: [SearchToken] = []
@@ -27,7 +29,13 @@ final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting
     private let listCoordinator: any HistoryListCoordinating
     private let searchLifecycle: any SearchTaskLifecycleManaging
     private let selectionState: any HistorySelectionManaging
+    private let historySnapshotLoader: (any HistoryListSnapshotLoading)?
+    private let timelineOrganizer = HistoryTimelineOrganizer()
     private var historyDidChangeCancellable: AnyCancellable?
+    private var historyLoadTask: Task<Void, Never>?
+    private var historyLoadGeneration = 0
+    private var isPanelVisible = true
+    private var hasPendingHistoryRefresh = false
 
     init(
         repository: ClipboardHistoryRepository,
@@ -37,7 +45,8 @@ final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting
         searchCoordinator: (any SearchCoordinating)? = nil,
         listCoordinator: (any HistoryListCoordinating)? = nil,
         searchLifecycle: (any SearchTaskLifecycleManaging)? = nil,
-        selectionState: (any HistorySelectionManaging)? = nil
+        selectionState: (any HistorySelectionManaging)? = nil,
+        historySnapshotLoader: (any HistoryListSnapshotLoading)? = nil
     ) {
         self.repository = repository
         self.writer = writer
@@ -47,27 +56,110 @@ final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting
         self.listCoordinator = listCoordinator ?? HistoryListCoordinator(provider: repository, pageSize: pageSize)
         self.searchLifecycle = searchLifecycle ?? SearchTaskLifecycle()
         self.selectionState = selectionState ?? HistorySelectionState()
+        self.historySnapshotLoader = historySnapshotLoader
         historyDidChangeCancellable = NotificationCenter.default.publisher(for: .clipboardHistoryDidChange)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.loadHistory()
+                self?.handleClipboardHistoryDidChange()
             }
     }
 
+    deinit {
+        historyLoadTask?.cancel()
+    }
+
+    func setPanelVisible(_ visible: Bool) {
+        if visible {
+            let wasHidden = isPanelVisible == false
+            isPanelVisible = true
+            if hasPendingHistoryRefresh || items.isEmpty {
+                hasPendingHistoryRefresh = false
+                if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    loadHistoryAsync()
+                } else {
+                    refreshSearch()
+                }
+            } else if wasHidden {
+                timelineSections = timelineOrganizer.sections(for: items)
+            }
+        } else {
+            isPanelVisible = false
+            historyLoadTask?.cancel()
+            historyLoadTask = nil
+            searchLifecycle.invalidate()
+            isSearchLoading = false
+            if items.count > pageSize {
+                let retained = Array(items.prefix(pageSize))
+                listCoordinator.trimToFirstPage(retainedCount: retained.count, hasMore: true)
+                updateDisplayedItems(retained)
+            }
+        }
+    }
+
     func loadHistory() {
+        historyLoadTask?.cancel()
+        historyLoadTask = nil
+        historyLoadGeneration += 1
         searchLifecycle.invalidate()
         isSearchLoading = false
+        hasPendingHistoryRefresh = false
         do {
             let snapshot = try listCoordinator.load(query: currentQuery(offset: 0))
-            items = snapshot.items
-            sourceOptions = snapshot.sourceOptions
-            if let selectedSourceOption, sourceOptions.contains(selectedSourceOption) == false {
-                self.selectedSourceOption = nil
-            }
-            errorMessage = nil
+            applyHistorySnapshot(snapshot, adoptInCoordinator: false)
         } catch {
             errorMessage = L10n.string("Failed to load clipboard history.")
         }
+    }
+
+    func loadHistoryAsync() {
+        guard let historySnapshotLoader else {
+            loadHistory()
+            return
+        }
+        historyLoadTask?.cancel()
+        historyLoadGeneration += 1
+        let generation = historyLoadGeneration
+        let query = currentQuery(offset: 0)
+        searchLifecycle.invalidate()
+        isSearchLoading = false
+        hasPendingHistoryRefresh = false
+        historyLoadTask = Task { [weak self] in
+            do {
+                let snapshot = try await historySnapshotLoader.load(query: query)
+                guard Task.isCancelled == false else { return }
+                guard let self, self.historyLoadGeneration == generation else { return }
+                self.applyHistorySnapshot(snapshot, adoptInCoordinator: true)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard let self, self.historyLoadGeneration == generation else { return }
+                self.errorMessage = L10n.string("Failed to load clipboard history.")
+            }
+        }
+    }
+
+    private func handleClipboardHistoryDidChange() {
+        guard isPanelVisible else {
+            hasPendingHistoryRefresh = true
+            return
+        }
+        if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            loadHistoryAsync()
+        } else {
+            refreshSearch()
+        }
+    }
+
+    private func applyHistorySnapshot(_ snapshot: HistoryListSnapshot, adoptInCoordinator: Bool) {
+        if adoptInCoordinator {
+            listCoordinator.adoptLoadedSnapshot(itemCount: snapshot.items.count)
+        }
+        updateDisplayedItems(snapshot.items)
+        sourceOptions = snapshot.sourceOptions
+        if let selectedSourceOption, sourceOptions.contains(selectedSourceOption) == false {
+            self.selectedSourceOption = nil
+        }
+        errorMessage = nil
     }
 
     func search() {
@@ -134,7 +226,18 @@ final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting
 
     func removeSearchToken(_ token: SearchToken) {
         var updatedText = searchText
-        updatedText.removeSubrange(token.range)
+        if updatedText == parsedSearchQuery.rawInput,
+           token.range.lowerBound >= updatedText.startIndex,
+           token.range.upperBound <= updatedText.endIndex,
+           token.range.lowerBound.samePosition(in: updatedText.unicodeScalars) != nil,
+           token.range.upperBound.samePosition(in: updatedText.unicodeScalars) != nil {
+            updatedText.removeSubrange(token.range)
+        } else {
+            let reparsed = SearchQueryParser().parse(updatedText)
+            if let matchedToken = reparsed.tokens.first(where: { $0.kind == token.kind }) {
+                updatedText.removeSubrange(matchedToken.range)
+            }
+        }
         updatedText = updatedText
             .split(whereSeparator: { $0.isWhitespace })
             .joined(separator: " ")
@@ -155,7 +258,7 @@ final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting
                 currentItemID: currentItem?.id,
                 displayedLastItemID: items.last?.id
             ) {
-                items = visibleItems
+                updateDisplayedItems(visibleItems)
             }
             return
         }
@@ -175,7 +278,7 @@ final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting
             let loadedItems = try listCoordinator.loadMore(
                 query: currentQuery(offset: listCoordinator.currentOffset)
             )
-            items.append(contentsOf: loadedItems)
+            updateDisplayedItems(items + loadedItems)
             errorMessage = nil
         } catch {
             errorMessage = L10n.string("Failed to load more clipboard history.")
@@ -422,7 +525,13 @@ final class ClipboardHistoryViewModel: ObservableObject, ClipboardContentWriting
     }
 
     private func showRankedResults(_ results: [ClipboardHistoryItem]) {
-        items = listCoordinator.showRankedResults(results)
+        updateDisplayedItems(listCoordinator.showRankedResults(results))
+    }
+
+    private func updateDisplayedItems(_ newItems: [ClipboardHistoryItem]) {
+        items = newItems
+        timelineSections = timelineOrganizer.sections(for: newItems)
+        recentSources = timelineOrganizer.recentSources(from: newItems, limit: 6)
     }
 
     private func restoreImage(_ item: ClipboardHistoryItem) -> Bool {

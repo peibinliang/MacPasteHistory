@@ -33,7 +33,13 @@ struct SearchQueryParser {
 
             if let tokenKind = parsedToken(for: prefixAndValue, referenceDate: referenceDate) {
                 tokens.removeAll { $0.kind.dimension == tokenKind.dimension }
-                tokens.append(SearchToken(kind: tokenKind, range: lexeme.range))
+                tokens.append(
+                    SearchToken(
+                        kind: tokenKind,
+                        range: lexeme.range,
+                        rawText: String(input[lexeme.range])
+                    )
+                )
                 switch tokenKind {
                 case let .app(value):
                     app = value
@@ -51,7 +57,8 @@ struct SearchQueryParser {
             } else {
                 let token = SearchToken(
                     kind: .invalid(prefix: prefixAndValue.prefix, value: prefixAndValue.value),
-                    range: lexeme.range
+                    range: lexeme.range,
+                    rawText: String(input[lexeme.range])
                 )
                 tokens.append(token)
                 issues.append(SearchParseIssue(kind: .invalidValue, range: lexeme.range))

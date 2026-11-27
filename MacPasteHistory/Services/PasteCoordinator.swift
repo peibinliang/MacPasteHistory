@@ -14,7 +14,12 @@ protocol AutomaticPasteReadinessProviding {
 
 @MainActor
 protocol PasteTargetActivating: AnyObject {
+    var isAvailable: Bool { get }
     func activateForPaste() -> Bool
+}
+
+extension PasteTargetActivating {
+    var isAvailable: Bool { true }
 }
 
 @MainActor
@@ -94,7 +99,7 @@ final class PasteCoordinator {
                 outcome: .cancelled(clipboardAvailable: true)
             )
         }
-        guard let target else {
+        guard let target, target.isAvailable else {
             return recordClipboardOnly(request.historyID, outcome: .clipboardOnly(.targetUnavailable))
         }
         beforeDispatch?()
@@ -164,5 +169,22 @@ final class RunningApplicationPasteTarget: PasteTargetActivating {
 
     func activateForPaste() -> Bool {
         application.activate(options: PasteActivationPolicy.options)
+    }
+}
+
+@MainActor
+final class DynamicPasteTarget: PasteTargetActivating {
+    var application: NSRunningApplication?
+
+    init(application: NSRunningApplication? = nil) {
+        self.application = application
+    }
+
+    var isAvailable: Bool {
+        application != nil
+    }
+
+    func activateForPaste() -> Bool {
+        application?.activate(options: PasteActivationPolicy.options) ?? false
     }
 }

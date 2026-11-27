@@ -1,9 +1,10 @@
 import Foundation
 import SQLite3
 
-final class DatabaseConnection {
+final class DatabaseConnection: @unchecked Sendable {
     let databaseURL: URL
     private(set) var handle: OpaquePointer?
+    private let operationLock = NSRecursiveLock()
 
     init(databaseURL: URL, mode: DatabaseOpenMode = .readWriteCreate) throws {
         self.databaseURL = databaseURL
@@ -34,74 +35,94 @@ final class DatabaseConnection {
         try? close()
     }
 
+    func synchronized<T>(_ operation: () throws -> T) rethrows -> T {
+        operationLock.lock()
+        defer { operationLock.unlock() }
+        return try operation()
+    }
+
     func close() throws {
-        guard let handle else {
-            return
+        try synchronized {
+            guard let handle else {
+                return
+            }
+            guard sqlite3_close(handle) == SQLITE_OK else {
+                throw DatabaseError.executeFailed(lastErrorMessage)
+            }
+            self.handle = nil
         }
-        guard sqlite3_close(handle) == SQLITE_OK else {
-            throw DatabaseError.executeFailed(lastErrorMessage)
-        }
-        self.handle = nil
     }
 
     func execute(_ sql: String) throws {
-        guard let handle else {
-            throw DatabaseError.executeFailed("Database is closed")
-        }
+        try synchronized {
+            guard let handle else {
+                throw DatabaseError.executeFailed("Database is closed")
+            }
 
-        var errorMessage: UnsafeMutablePointer<Int8>?
-        guard sqlite3_exec(handle, sql, nil, nil, &errorMessage) == SQLITE_OK else {
-            let message = errorMessage.map { String(cString: $0) } ?? lastErrorMessage
-            sqlite3_free(errorMessage)
-            throw DatabaseError.executeFailed(message)
+            var errorMessage: UnsafeMutablePointer<Int8>?
+            guard sqlite3_exec(handle, sql, nil, nil, &errorMessage) == SQLITE_OK else {
+                let message = errorMessage.map { String(cString: $0) } ?? lastErrorMessage
+                sqlite3_free(errorMessage)
+                throw DatabaseError.executeFailed(message)
+            }
         }
     }
 
     func prepare(_ sql: String) throws -> OpaquePointer? {
-        guard let handle else {
-            throw DatabaseError.prepareFailed("Database is closed")
-        }
+        try synchronized {
+            guard let handle else {
+                throw DatabaseError.prepareFailed("Database is closed")
+            }
 
-        var statement: OpaquePointer?
-        guard sqlite3_prepare_v2(handle, sql, -1, &statement, nil) == SQLITE_OK else {
-            throw DatabaseError.prepareFailed(lastErrorMessage)
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(handle, sql, -1, &statement, nil) == SQLITE_OK else {
+                throw DatabaseError.prepareFailed(lastErrorMessage)
+            }
+            return statement
         }
-        return statement
     }
 
     func inTransaction<T>(_ operation: () throws -> T) throws -> T {
-        try execute("BEGIN IMMEDIATE TRANSACTION;")
-        do {
-            let value = try operation()
-            try execute("COMMIT;")
-            return value
-        } catch {
-            try? execute("ROLLBACK;")
-            throw error
+        try synchronized {
+            try execute("BEGIN IMMEDIATE TRANSACTION;")
+            do {
+                let value = try operation()
+                try execute("COMMIT;")
+                return value
+            } catch {
+                try? execute("ROLLBACK;")
+                throw error
+            }
         }
     }
 
     func foreignKeysAreEnabled() throws -> Bool {
-        let statement = try prepare("PRAGMA foreign_keys;")
-        defer { sqlite3_finalize(statement) }
+        try synchronized {
+            let statement = try prepare("PRAGMA foreign_keys;")
+            defer { sqlite3_finalize(statement) }
 
-        guard sqlite3_step(statement) == SQLITE_ROW else {
-            throw DatabaseError.stepFailed(lastErrorMessage)
+            guard sqlite3_step(statement) == SQLITE_ROW else {
+                throw DatabaseError.stepFailed(lastErrorMessage)
+            }
+            return sqlite3_column_int(statement, 0) == 1
         }
-        return sqlite3_column_int(statement, 0) == 1
     }
 
     var lastInsertedRowID: Int64 {
-        guard let handle else {
-            return 0
+        synchronized {
+            guard let handle else {
+                return 0
+            }
+            return sqlite3_last_insert_rowid(handle)
         }
-        return sqlite3_last_insert_rowid(handle)
     }
 
     var lastErrorMessage: String {
-        guard let handle else {
-            return "Database is closed"
+        synchronized {
+            guard let handle else {
+                return "Database is closed"
+            }
+            return String(cString: sqlite3_errmsg(handle))
         }
-        return String(cString: sqlite3_errmsg(handle))
     }
 }

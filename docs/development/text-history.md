@@ -19,9 +19,9 @@ Text history is the first user-facing clipboard workflow. It records accepted pl
 3. Internal restore changes are skipped through `ClipboardRestorationState`.
 4. The monitor captures one immutable source-application and timestamp context for the pasteboard change.
 5. Pause and blocked-app privacy checks use that captured context before content is read.
-6. `ClipboardReader` reads sanitized plain text and sensitive filtering decides whether it may be persisted.
-7. `ClipboardHistoryRepository` saves or updates the text record and capture event with the same source context.
-8. `ClipboardHistoryViewModel` reloads the list after save, search, delete, or clear.
+6. On timer ticks, raw pasteboard payload bytes/text are snapshotted on the main run loop and processed on a serial `.utility` queue: `ClipboardReader` sanitizes plain text, `SensitiveContentDetector` decides whether it may be persisted, and `ContentClassifier` classifies the text with bounded linear-time regular expressions.
+7. `ClipboardHistoryRepository` saves or updates the text record and capture event with the same source context, and `ClipboardMonitor` triggers periodic retention cleanup when capture count or elapsed interval thresholds are reached.
+8. `ClipboardHistoryViewModel` reloads the list asynchronously when visible, or defers reload until the next panel presentation when hidden.
 
 ## Modules
 

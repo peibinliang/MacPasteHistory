@@ -4,7 +4,7 @@ import SwiftUI
 struct HistoryRowPresentation {
     let item: ClipboardHistoryItem
     let isSelected: Bool
-    private let formatter = HistoryDisplayFormatter()
+    private var formatter: SharedHistoryDisplayFormatter { .shared }
 
     var metadataTitle: String {
         var parts = [item.contentType == .text ? L10n.string("Text") : L10n.string("Image")]
@@ -28,7 +28,7 @@ struct HistoryRowPresentation {
     var selectedRowHint: String? { isSelected ? L10n.string("Click to paste into the previous app") : nil }
     var sizeTitle: String {
         guard let fileSize = item.fileSize else { return L10n.string("Image") }
-        return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
+        return formatter.fileSizeString(for: fileSize)
     }
 }
 
@@ -133,6 +133,6 @@ struct HistoryRowView: View {
               highlightedTerms.contains(where: { ocrText.localizedCaseInsensitiveContains($0) }) else {
             return presentation.previewText
         }
-        return HistoryDisplayFormatter().preview(for: ocrText)
+        return SharedHistoryDisplayFormatter.shared.preview(for: ocrText)
     }
 }

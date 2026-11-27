@@ -292,6 +292,64 @@ final class ClipboardHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.items.map(\.id), [image.id])
     }
 
+    func testSetPanelVisible_whenHidden_shouldSuppressBackgroundReloadUntilVisibleAndTrimToFirstPage() async throws {
+        let baseDate = Date(timeIntervalSince1970: 1_800_000_000)
+        _ = try repository.saveText("first", sourceApp: nil, sourceBundleID: nil, capturedAt: baseDate)
+        _ = try repository.saveText("second", sourceApp: nil, sourceBundleID: nil, capturedAt: baseDate.addingTimeInterval(1))
+        _ = try repository.saveText("third", sourceApp: nil, sourceBundleID: nil, capturedAt: baseDate.addingTimeInterval(2))
+
+        viewModel.loadHistory()
+        viewModel.loadMoreIfNeeded(currentItem: viewModel.items.last)
+        XCTAssertEqual(viewModel.items.count, 3)
+
+        viewModel.setPanelVisible(false)
+        XCTAssertEqual(viewModel.items.count, 2)
+
+        _ = try repository.saveText(
+            "captured while hidden",
+            sourceApp: nil,
+            sourceBundleID: nil,
+            capturedAt: baseDate.addingTimeInterval(3)
+        )
+        NotificationCenter.default.post(name: .clipboardHistoryDidChange, object: nil)
+        try await Task.sleep(for: .milliseconds(50))
+
+        // While hidden, background clipboard notifications should not reload SQLite into UI state.
+        XCTAssertFalse(viewModel.items.map(\.textContent).contains("captured while hidden"))
+
+        viewModel.setPanelVisible(true)
+        await Task.yield()
+
+        XCTAssertEqual(viewModel.items.first?.textContent, "captured while hidden")
+    }
+
+    func testHistoryTimelineView_shouldTriggerLoadMoreOnlyForLastItemInLastSection() {
+        XCTAssertFalse(
+            HistoryTimelineView.shouldTriggerLoadMore(
+                sectionIndex: 0,
+                itemIndex: 2,
+                sectionCount: 2,
+                itemCount: 3
+            )
+        )
+        XCTAssertFalse(
+            HistoryTimelineView.shouldTriggerLoadMore(
+                sectionIndex: 1,
+                itemIndex: 1,
+                sectionCount: 2,
+                itemCount: 3
+            )
+        )
+        XCTAssertTrue(
+            HistoryTimelineView.shouldTriggerLoadMore(
+                sectionIndex: 1,
+                itemIndex: 2,
+                sectionCount: 2,
+                itemCount: 3
+            )
+        )
+    }
+
     private func saveImageRecord(pngData: Data) throws -> ClipboardHistoryItem {
         let candidate = ClipboardImageCandidate(pngData: pngData, width: 8, height: 8, format: .png)
         let storedImage = try imageStorageService.storeImage(candidate)

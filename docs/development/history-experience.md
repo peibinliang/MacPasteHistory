@@ -6,11 +6,11 @@ This phase improves browsing and inspecting saved clipboard history after text c
 
 ## User Flow
 
-1. `ClipboardHistoryViewModel` loads the first page through `ClipboardHistoryRepository`.
+1. `ClipboardHistoryViewModel` loads the first page asynchronously through `DatabaseHistoryListSnapshotLoader` (falling back to `ClipboardHistoryRepository` when injected directly in unit tests) while reusing a single panel ViewModel instance across overlay invocations.
 2. Search text, favorites-only state, and content type filter are converted into a single `HistoryQuery`.
-3. `MainPanelView` renders a compact row with metadata, bounded preview text, and row actions.
-4. Selecting a row opens `HistoryDetailView` with full text and available metadata.
-5. Scrolling to the last loaded row calls `loadMoreIfNeeded(currentItem:)` to request the next page.
+3. `MainPanelView` and `HistoryTimelineView` render chronological `LazyVStack` sections with bounded preview text, downsampled `PreviewImageCache` thumbnails, and cached source-application icons.
+4. Selecting the detail button opens `HistoryDetailView` with full text or downsampled preview image and available metadata.
+5. Scrolling to the last row of the final timeline section calls `loadMoreIfNeeded(currentItem:)` to request the next page; closing the panel suppresses background reloads and trims loaded items back to the first page.
 
 ## Overlay Presentation
 

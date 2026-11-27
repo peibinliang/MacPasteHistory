@@ -134,7 +134,13 @@ expect_failure \
     "$CURRENT_FIXTURE/scripts/verify-release-entitlements.sh"
 
 create_fixture
-perl -pi -e 's/1\.0\.4/1x0x4/g' \
+current_version="$(
+    /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
+        "$CURRENT_FIXTURE/MacPasteHistory/Resources/Info.plist"
+)"
+current_version_with_x="${current_version//./x}"
+CURRENT_VERSION="$current_version" CURRENT_VERSION_WITH_X="$current_version_with_x" \
+    perl -pi -e 's/\Q$ENV{CURRENT_VERSION}\E/$ENV{CURRENT_VERSION_WITH_X}/g' \
     "$CURRENT_FIXTURE/docs/release/RELEASE_PREP_GUIDE.md" \
     "$CURRENT_FIXTURE/docs/release/manual-qa-record.md"
 expect_failure \

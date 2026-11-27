@@ -1,7 +1,7 @@
 import Foundation
 import SQLite3
 
-final class ClipboardHistoryRepository {
+final class ClipboardHistoryRepository: @unchecked Sendable {
     private let database: DatabaseConnection
     private let hashService: TextHashService
     private let dateFormatter: SQLiteDateCodec
@@ -98,75 +98,79 @@ final class ClipboardHistoryRepository {
     }
 
     func fetchCaptureEvents(historyID: Int64, since date: Date) throws -> [ClipboardCaptureEvent] {
-        let statement = try database.prepare(
-            """
-            SELECT id, history_id, source_app, source_bundle_id, captured_at
-            FROM clipboard_capture_events
-            WHERE history_id = ? AND julianday(captured_at) >= julianday(?)
-            ORDER BY captured_at DESC, id DESC;
-            """
-        )
-        defer { sqlite3_finalize(statement) }
-
-        try bindInt64(historyID, to: statement, index: 1)
-        try bindText(dateFormatter.string(from: date), to: statement, index: 2)
-
-        var events: [ClipboardCaptureEvent] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
-            let capturedAtValue = stringValue(statement, index: 4)
-            guard let capturedAt = dateFormatter.date(from: capturedAtValue) else {
-                throw DatabaseError.invalidDate(capturedAtValue)
-            }
-            events.append(
-                ClipboardCaptureEvent(
-                    id: sqlite3_column_int64(statement, 0),
-                    historyID: sqlite3_column_int64(statement, 1),
-                    sourceApp: nullableStringValue(statement, index: 2),
-                    sourceBundleID: nullableStringValue(statement, index: 3),
-                    capturedAt: capturedAt
-                )
+        try database.synchronized {
+            let statement = try database.prepare(
+                """
+                SELECT id, history_id, source_app, source_bundle_id, captured_at
+                FROM clipboard_capture_events
+                WHERE history_id = ? AND julianday(captured_at) >= julianday(?)
+                ORDER BY captured_at DESC, id DESC;
+                """
             )
+            defer { sqlite3_finalize(statement) }
+
+            try bindInt64(historyID, to: statement, index: 1)
+            try bindText(dateFormatter.string(from: date), to: statement, index: 2)
+
+            var events: [ClipboardCaptureEvent] = []
+            while sqlite3_step(statement) == SQLITE_ROW {
+                let capturedAtValue = stringValue(statement, index: 4)
+                guard let capturedAt = dateFormatter.date(from: capturedAtValue) else {
+                    throw DatabaseError.invalidDate(capturedAtValue)
+                }
+                events.append(
+                    ClipboardCaptureEvent(
+                        id: sqlite3_column_int64(statement, 0),
+                        historyID: sqlite3_column_int64(statement, 1),
+                        sourceApp: nullableStringValue(statement, index: 2),
+                        sourceBundleID: nullableStringValue(statement, index: 3),
+                        capturedAt: capturedAt
+                    )
+                )
+            }
+            return events
         }
-        return events
     }
 
     func fetchCaptureSummaries(historyID: Int64) throws -> [ClipboardCaptureEventSummary] {
-        let statement = try database.prepare(
-            """
-            SELECT id, history_id, source_key, source_app, source_bundle_id,
-                   capture_count, first_captured_at, last_captured_at
-            FROM clipboard_capture_event_summaries
-            WHERE history_id = ?
-            ORDER BY last_captured_at DESC, id DESC;
-            """
-        )
-        defer { sqlite3_finalize(statement) }
-
-        try bindInt64(historyID, to: statement, index: 1)
-        var summaries: [ClipboardCaptureEventSummary] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
-            let firstCapturedAtValue = stringValue(statement, index: 6)
-            let lastCapturedAtValue = stringValue(statement, index: 7)
-            guard let firstCapturedAt = dateFormatter.date(from: firstCapturedAtValue) else {
-                throw DatabaseError.invalidDate(firstCapturedAtValue)
-            }
-            guard let lastCapturedAt = dateFormatter.date(from: lastCapturedAtValue) else {
-                throw DatabaseError.invalidDate(lastCapturedAtValue)
-            }
-            summaries.append(
-                ClipboardCaptureEventSummary(
-                    id: sqlite3_column_int64(statement, 0),
-                    historyID: sqlite3_column_int64(statement, 1),
-                    sourceKey: stringValue(statement, index: 2),
-                    sourceApp: nullableStringValue(statement, index: 3),
-                    sourceBundleID: nullableStringValue(statement, index: 4),
-                    captureCount: Int(sqlite3_column_int(statement, 5)),
-                    firstCapturedAt: firstCapturedAt,
-                    lastCapturedAt: lastCapturedAt
-                )
+        try database.synchronized {
+            let statement = try database.prepare(
+                """
+                SELECT id, history_id, source_key, source_app, source_bundle_id,
+                       capture_count, first_captured_at, last_captured_at
+                FROM clipboard_capture_event_summaries
+                WHERE history_id = ?
+                ORDER BY last_captured_at DESC, id DESC;
+                """
             )
+            defer { sqlite3_finalize(statement) }
+
+            try bindInt64(historyID, to: statement, index: 1)
+            var summaries: [ClipboardCaptureEventSummary] = []
+            while sqlite3_step(statement) == SQLITE_ROW {
+                let firstCapturedAtValue = stringValue(statement, index: 6)
+                let lastCapturedAtValue = stringValue(statement, index: 7)
+                guard let firstCapturedAt = dateFormatter.date(from: firstCapturedAtValue) else {
+                    throw DatabaseError.invalidDate(firstCapturedAtValue)
+                }
+                guard let lastCapturedAt = dateFormatter.date(from: lastCapturedAtValue) else {
+                    throw DatabaseError.invalidDate(lastCapturedAtValue)
+                }
+                summaries.append(
+                    ClipboardCaptureEventSummary(
+                        id: sqlite3_column_int64(statement, 0),
+                        historyID: sqlite3_column_int64(statement, 1),
+                        sourceKey: stringValue(statement, index: 2),
+                        sourceApp: nullableStringValue(statement, index: 3),
+                        sourceBundleID: nullableStringValue(statement, index: 4),
+                        captureCount: Int(sqlite3_column_int(statement, 5)),
+                        firstCapturedAt: firstCapturedAt,
+                        lastCapturedAt: lastCapturedAt
+                    )
+                )
+            }
+            return summaries
         }
-        return summaries
     }
 
     func aggregateCaptureEvents(before cutoff: Date) throws {
@@ -279,96 +283,106 @@ final class ClipboardHistoryRepository {
     }
 
     func updateDetectedType(id: Int64, result: ContentDetectionResult) throws {
-        let statement = try database.prepare(
-            """
-            UPDATE clipboard_history
-            SET detected_type = ?,
-                detection_confidence = ?,
-                detection_version = ?,
-                detected_at = ?,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?;
-            """
-        )
-        defer { sqlite3_finalize(statement) }
+        try database.synchronized {
+            let statement = try database.prepare(
+                """
+                UPDATE clipboard_history
+                SET detected_type = ?,
+                    detection_confidence = ?,
+                    detection_version = ?,
+                    detected_at = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?;
+                """
+            )
+            defer { sqlite3_finalize(statement) }
 
-        try bindText(result.type.rawValue, to: statement, index: 1)
-        try bindDouble(result.confidence, to: statement, index: 2)
-        try bindInt(result.version, to: statement, index: 3)
-        try bindText(dateFormatter.string(from: result.detectedAt), to: statement, index: 4)
-        try bindInt64(id, to: statement, index: 5)
-        try stepUpdate(statement)
+            try bindText(result.type.rawValue, to: statement, index: 1)
+            try bindDouble(result.confidence, to: statement, index: 2)
+            try bindInt(result.version, to: statement, index: 3)
+            try bindText(dateFormatter.string(from: result.detectedAt), to: statement, index: 4)
+            try bindInt64(id, to: statement, index: 5)
+            try stepUpdate(statement)
+        }
     }
 
     func historyItem(id: Int64) throws -> ClipboardHistoryItem? {
-        try fetchItem(id: id)
+        try database.synchronized {
+            try fetchItem(id: id)
+        }
     }
 
     func updateUserOverrideType(id: Int64, type: DetectedContentType?) throws {
-        let statement = try database.prepare(
-            """
-            UPDATE clipboard_history
-            SET user_override_type = ?,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?;
-            """
-        )
-        defer { sqlite3_finalize(statement) }
+        try database.synchronized {
+            let statement = try database.prepare(
+                """
+                UPDATE clipboard_history
+                SET user_override_type = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?;
+                """
+            )
+            defer { sqlite3_finalize(statement) }
 
-        try bindNullableText(type?.rawValue, to: statement, index: 1)
-        try bindInt64(id, to: statement, index: 2)
-        try stepUpdate(statement)
+            try bindNullableText(type?.rawValue, to: statement, index: 1)
+            try bindInt64(id, to: statement, index: 2)
+            try stepUpdate(statement)
+        }
     }
 
     func saveOCRResult(id: Int64, text: String, detection: ContentDetectionResult) throws {
-        let statement = try database.prepare(
-            """
-            UPDATE clipboard_history
-            SET ocr_status = ?,
-                ocr_text = ?,
-                ocr_updated_at = ?,
-                ocr_error_code = NULL,
-                searchable_text = ?,
-                detected_type = ?,
-                detection_confidence = ?,
-                detection_version = ?,
-                detected_at = ?,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?;
-            """
-        )
-        defer { sqlite3_finalize(statement) }
+        try database.synchronized {
+            let statement = try database.prepare(
+                """
+                UPDATE clipboard_history
+                SET ocr_status = ?,
+                    ocr_text = ?,
+                    ocr_updated_at = ?,
+                    ocr_error_code = NULL,
+                    searchable_text = ?,
+                    detected_type = ?,
+                    detection_confidence = ?,
+                    detection_version = ?,
+                    detected_at = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?;
+                """
+            )
+            defer { sqlite3_finalize(statement) }
 
-        try bindText(OCRStatus.recognized.rawValue, to: statement, index: 1)
-        try bindText(text, to: statement, index: 2)
-        try bindText(dateFormatter.string(from: detection.detectedAt), to: statement, index: 3)
-        try bindText(text, to: statement, index: 4)
-        try bindText(detection.type.rawValue, to: statement, index: 5)
-        try bindDouble(detection.confidence, to: statement, index: 6)
-        try bindInt(detection.version, to: statement, index: 7)
-        try bindText(dateFormatter.string(from: detection.detectedAt), to: statement, index: 8)
-        try bindInt64(id, to: statement, index: 9)
-        try stepUpdate(statement)
+            try bindText(OCRStatus.recognized.rawValue, to: statement, index: 1)
+            try bindText(text, to: statement, index: 2)
+            try bindText(dateFormatter.string(from: detection.detectedAt), to: statement, index: 3)
+            try bindText(text, to: statement, index: 4)
+            try bindText(detection.type.rawValue, to: statement, index: 5)
+            try bindDouble(detection.confidence, to: statement, index: 6)
+            try bindInt(detection.version, to: statement, index: 7)
+            try bindText(dateFormatter.string(from: detection.detectedAt), to: statement, index: 8)
+            try bindInt64(id, to: statement, index: 9)
+            try stepUpdate(statement)
+        }
     }
 
     func markOCRFailure(id: Int64, errorCode: String, at date: Date) throws {
-        let statement = try database.prepare(
-            """
-            UPDATE clipboard_history
-            SET ocr_status = ?,
-                ocr_error_code = ?,
-                ocr_updated_at = ?,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?;
-            """
-        )
-        defer { sqlite3_finalize(statement) }
+        try database.synchronized {
+            let statement = try database.prepare(
+                """
+                UPDATE clipboard_history
+                SET ocr_status = ?,
+                    ocr_error_code = ?,
+                    ocr_updated_at = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?;
+                """
+            )
+            defer { sqlite3_finalize(statement) }
 
-        try bindText(OCRStatus.failed.rawValue, to: statement, index: 1)
-        try bindText(errorCode, to: statement, index: 2)
-        try bindText(dateFormatter.string(from: date), to: statement, index: 3)
-        try bindInt64(id, to: statement, index: 4)
-        try stepUpdate(statement)
+            try bindText(OCRStatus.failed.rawValue, to: statement, index: 1)
+            try bindText(errorCode, to: statement, index: 2)
+            try bindText(dateFormatter.string(from: date), to: statement, index: 3)
+            try bindInt64(id, to: statement, index: 4)
+            try stepUpdate(statement)
+        }
     }
 
     func saveDerivedText(_ request: DerivedClipboardRecordRequest) throws -> ClipboardHistoryItem {
@@ -444,116 +458,126 @@ final class ClipboardHistoryRepository {
     }
 
     func fetchHistory(query: HistoryQuery) throws -> [ClipboardHistoryItem] {
-        let trimmedKeyword = query.keyword?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let hasKeyword = trimmedKeyword?.isEmpty == false
-        let sql = historySQL(hasKeyword: hasKeyword, query: query)
-        let statement = try database.prepare(sql)
-        defer {
-            sqlite3_finalize(statement)
-        }
+        try database.synchronized {
+            let trimmedKeyword = query.keyword?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let hasKeyword = trimmedKeyword?.isEmpty == false
+            let sql = historySQL(hasKeyword: hasKeyword, query: query)
+            let statement = try database.prepare(sql)
+            defer {
+                sqlite3_finalize(statement)
+            }
 
-        var bindIndex: Int32 = 1
-        if let contentType = query.contentType {
-            try bindText(contentType.rawValue, to: statement, index: bindIndex)
-            bindIndex += 1
-        }
-        if let trimmedKeyword, hasKeyword {
-            try bindText("%\(trimmedKeyword)%", to: statement, index: bindIndex)
-            bindIndex += 1
-        }
-        if let startDate = query.timeRange.startDate {
-            try bindText(dateFormatter.string(from: startDate), to: statement, index: bindIndex)
-            bindIndex += 1
-        }
-        if query.sourceFilter.isAll == false {
-            if let bundleID = query.sourceFilter.bundleID {
-                try bindText(bundleID, to: statement, index: bindIndex)
-                bindIndex += 1
-            } else if let appName = query.sourceFilter.appName {
-                try bindText(appName, to: statement, index: bindIndex)
+            var bindIndex: Int32 = 1
+            if let contentType = query.contentType {
+                try bindText(contentType.rawValue, to: statement, index: bindIndex)
                 bindIndex += 1
             }
-        }
-        try bindInt(query.limit, to: statement, index: bindIndex)
-        try bindInt(query.offset, to: statement, index: bindIndex + 1)
+            if let trimmedKeyword, hasKeyword {
+                try bindText("%\(trimmedKeyword)%", to: statement, index: bindIndex)
+                bindIndex += 1
+            }
+            if let startDate = query.timeRange.startDate {
+                try bindText(dateFormatter.string(from: startDate), to: statement, index: bindIndex)
+                bindIndex += 1
+            }
+            if query.sourceFilter.isAll == false {
+                if let bundleID = query.sourceFilter.bundleID {
+                    try bindText(bundleID, to: statement, index: bindIndex)
+                    bindIndex += 1
+                } else if let appName = query.sourceFilter.appName {
+                    try bindText(appName, to: statement, index: bindIndex)
+                    bindIndex += 1
+                }
+            }
+            try bindInt(query.limit, to: statement, index: bindIndex)
+            try bindInt(query.offset, to: statement, index: bindIndex + 1)
 
-        return try collectItems(from: statement)
+            return try collectItems(from: statement)
+        }
     }
 
     func fetchSearchCandidates(request: SearchCandidateRequest) throws -> [ClipboardHistoryItem] {
-        let query = SearchCandidateSQLBuilder().build(request: request)
-        let statement = try database.prepare(query.sql)
-        defer { sqlite3_finalize(statement) }
+        try database.synchronized {
+            let query = SearchCandidateSQLBuilder().build(request: request)
+            let statement = try database.prepare(query.sql)
+            defer { sqlite3_finalize(statement) }
 
-        for (offset, binding) in query.bindings.enumerated() {
-            let index = Int32(offset + 1)
-            switch binding {
-            case let .text(value):
-                try bindText(value, to: statement, index: index)
-            case let .date(value):
-                try bindText(dateFormatter.string(from: value), to: statement, index: index)
-            case let .integer(value):
-                try bindInt(value, to: statement, index: index)
+            for (offset, binding) in query.bindings.enumerated() {
+                let index = Int32(offset + 1)
+                switch binding {
+                case let .text(value):
+                    try bindText(value, to: statement, index: index)
+                case let .date(value):
+                    try bindText(dateFormatter.string(from: value), to: statement, index: index)
+                case let .integer(value):
+                    try bindInt(value, to: statement, index: index)
+                }
             }
+            return try collectItems(from: statement)
         }
-        return try collectItems(from: statement)
     }
 
     func fetchSourceOptions() throws -> [HistorySourceOption] {
-        let statement = try database.prepare(
-            """
-            SELECT source_app, source_bundle_id
-            FROM clipboard_history
-            WHERE source_app IS NOT NULL OR source_bundle_id IS NOT NULL
-            GROUP BY source_app, source_bundle_id
-            ORDER BY source_app COLLATE NOCASE ASC, source_bundle_id COLLATE NOCASE ASC;
-            """
-        )
-        defer { sqlite3_finalize(statement) }
-
-        var options: [HistorySourceOption] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
-            options.append(
-                HistorySourceOption(
-                    appName: nullableStringValue(statement, index: 0),
-                    bundleID: nullableStringValue(statement, index: 1)
-                )
+        try database.synchronized {
+            let statement = try database.prepare(
+                """
+                SELECT source_app, source_bundle_id
+                FROM clipboard_history
+                WHERE source_app IS NOT NULL OR source_bundle_id IS NOT NULL
+                GROUP BY source_app, source_bundle_id
+                ORDER BY source_app COLLATE NOCASE ASC, source_bundle_id COLLATE NOCASE ASC;
+                """
             )
+            defer { sqlite3_finalize(statement) }
+
+            var options: [HistorySourceOption] = []
+            while sqlite3_step(statement) == SQLITE_ROW {
+                options.append(
+                    HistorySourceOption(
+                        appName: nullableStringValue(statement, index: 0),
+                        bundleID: nullableStringValue(statement, index: 1)
+                    )
+                )
+            }
+            return options
         }
-        return options
     }
 
     func setFavorite(_ isFavorite: Bool, id: Int64) throws {
-        let statement = try database.prepare(
-            """
-            UPDATE clipboard_history
-            SET is_favorite = ?,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?;
-            """
-        )
-        defer {
-            sqlite3_finalize(statement)
-        }
+        try database.synchronized {
+            let statement = try database.prepare(
+                """
+                UPDATE clipboard_history
+                SET is_favorite = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?;
+                """
+            )
+            defer {
+                sqlite3_finalize(statement)
+            }
 
-        try bindInt(isFavorite ? 1 : 0, to: statement, index: 1)
-        try bindInt64(id, to: statement, index: 2)
+            try bindInt(isFavorite ? 1 : 0, to: statement, index: 1)
+            try bindInt64(id, to: statement, index: 2)
 
-        guard sqlite3_step(statement) == SQLITE_DONE else {
-            throw DatabaseError.stepFailed(database.lastErrorMessage)
+            guard sqlite3_step(statement) == SQLITE_DONE else {
+                throw DatabaseError.stepFailed(database.lastErrorMessage)
+            }
         }
     }
 
     func deleteItem(id: Int64) throws {
-        let statement = try database.prepare("DELETE FROM clipboard_history WHERE id = ?;")
-        defer {
-            sqlite3_finalize(statement)
-        }
+        try database.synchronized {
+            let statement = try database.prepare("DELETE FROM clipboard_history WHERE id = ?;")
+            defer {
+                sqlite3_finalize(statement)
+            }
 
-        try bindInt64(id, to: statement, index: 1)
+            try bindInt64(id, to: statement, index: 1)
 
-        guard sqlite3_step(statement) == SQLITE_DONE else {
-            throw DatabaseError.stepFailed(database.lastErrorMessage)
+            guard sqlite3_step(statement) == SQLITE_DONE else {
+                throw DatabaseError.stepFailed(database.lastErrorMessage)
+            }
         }
     }
 
@@ -581,58 +605,66 @@ final class ClipboardHistoryRepository {
     /// Returns expired image records so callers can remove files before deleting database rows.
     func expiredImageRecords(retentionDays: Int) throws -> [ClipboardHistoryItem] {
         guard retentionDays > 0 else { return [] }
-        let sql = """
-        \(Self.selectHistorySQL)
-        WHERE content_type = ?
-          AND is_favorite = 0
-          AND datetime(created_at) < datetime('now', ?);
-        """
-        let statement = try database.prepare(sql)
-        defer { sqlite3_finalize(statement) }
+        return try database.synchronized {
+            let sql = """
+            \(Self.selectHistorySQL)
+            WHERE content_type = ?
+              AND is_favorite = 0
+              AND datetime(created_at) < datetime('now', ?);
+            """
+            let statement = try database.prepare(sql)
+            defer { sqlite3_finalize(statement) }
 
-        try bindText(ClipboardContentType.image.rawValue, to: statement, index: 1)
-        try bindText("-\(retentionDays) days", to: statement, index: 2)
+            try bindText(ClipboardContentType.image.rawValue, to: statement, index: 1)
+            try bindText("-\(retentionDays) days", to: statement, index: 2)
 
-        return try collectItems(from: statement)
+            return try collectItems(from: statement)
+        }
     }
 
     /// Returns IDs of text records exceeding `maxCount`, ordered oldest first (favorites preserved).
     func textRecordsExceeding(limit maxCount: Int) throws -> [Int64] {
         guard maxCount > 0 else { return [] }
-        let nonFavoriteLimit = try max(0, maxCount - favoriteRecordCount(contentType: .text))
-        let sql = """
-        SELECT id FROM clipboard_history
-        WHERE content_type = 'text' AND is_favorite = 0
-        ORDER BY datetime(created_at) DESC, id DESC
-        LIMIT -1 OFFSET ?;
-        """
-        let statement = try database.prepare(sql)
-        defer { sqlite3_finalize(statement) }
-        try bindInt(nonFavoriteLimit, to: statement, index: 1)
-        return try collectInt64Column(from: statement)
+        return try database.synchronized {
+            let nonFavoriteLimit = try max(0, maxCount - favoriteRecordCount(contentType: .text))
+            let sql = """
+            SELECT id FROM clipboard_history
+            WHERE content_type = 'text' AND is_favorite = 0
+            ORDER BY datetime(created_at) DESC, id DESC
+            LIMIT -1 OFFSET ?;
+            """
+            let statement = try database.prepare(sql)
+            defer { sqlite3_finalize(statement) }
+            try bindInt(nonFavoriteLimit, to: statement, index: 1)
+            return try collectInt64Column(from: statement)
+        }
     }
 
     /// Returns image records exceeding `maxCount`, as full items (needed for file cleanup).
     func imageRecordsForEviction(limit maxCount: Int) throws -> [ClipboardHistoryItem] {
         guard maxCount > 0 else { return [] }
-        let nonFavoriteLimit = try max(0, maxCount - favoriteRecordCount(contentType: .image))
-        let sql = """
-        SELECT id FROM clipboard_history
-        WHERE content_type = 'image' AND is_favorite = 0
-        ORDER BY datetime(created_at) DESC, id DESC
-        LIMIT -1 OFFSET ?;
-        """
-        let statement = try database.prepare(sql)
-        defer { sqlite3_finalize(statement) }
-        try bindInt(nonFavoriteLimit, to: statement, index: 1)
-        let ids = try collectInt64Column(from: statement)
-        return try ids.compactMap { try fetchItem(id: $0) }
+        return try database.synchronized {
+            let nonFavoriteLimit = try max(0, maxCount - favoriteRecordCount(contentType: .image))
+            let sql = """
+            SELECT id FROM clipboard_history
+            WHERE content_type = 'image' AND is_favorite = 0
+            ORDER BY datetime(created_at) DESC, id DESC
+            LIMIT -1 OFFSET ?;
+            """
+            let statement = try database.prepare(sql)
+            defer { sqlite3_finalize(statement) }
+            try bindInt(nonFavoriteLimit, to: statement, index: 1)
+            let ids = try collectInt64Column(from: statement)
+            return try ids.compactMap { try fetchItem(id: $0) }
+        }
     }
 
     /// Deletes records by ID. Used after fetching records that exceed limits.
     func deleteItems(withIDs ids: [Int64]) throws {
-        for id in ids {
-            try deleteItem(id: id)
+        try database.synchronized {
+            for id in ids {
+                try deleteItem(id: id)
+            }
         }
     }
 
@@ -640,68 +672,76 @@ final class ClipboardHistoryRepository {
     /// The `maxStorageInBytes` parameter defines the ceiling; records beyond it are evicted.
     func imageRecordsBeyondStorage(maxStorageInBytes: Int) throws -> [ClipboardHistoryItem] {
         guard maxStorageInBytes > 0 else { return [] }
-        // Fetch image records ordered by oldest first, compute running total to find eviction candidates.
-        let sql = """
-        SELECT id, file_size FROM clipboard_history
-        WHERE content_type = 'image' AND is_favorite = 0
-        ORDER BY datetime(created_at) ASC, id ASC;
-        """
-        let statement = try database.prepare(sql)
-        defer { sqlite3_finalize(statement) }
+        return try database.synchronized {
+            // Fetch image records ordered by oldest first, compute running total to find eviction candidates.
+            let sql = """
+            SELECT id, file_size FROM clipboard_history
+            WHERE content_type = 'image' AND is_favorite = 0
+            ORDER BY datetime(created_at) ASC, id ASC;
+            """
+            let statement = try database.prepare(sql)
+            defer { sqlite3_finalize(statement) }
 
-        var records: [(id: Int64, fileSize: Int)] = []
-        var totalSize = 0
-        while sqlite3_step(statement) == SQLITE_ROW {
-            let id = sqlite3_column_int64(statement, 0)
-            let fileSize = Int(sqlite3_column_int(statement, 1))
-            records.append((id: id, fileSize: fileSize))
-            totalSize += fileSize
+            var records: [(id: Int64, fileSize: Int)] = []
+            var totalSize = 0
+            while sqlite3_step(statement) == SQLITE_ROW {
+                let id = sqlite3_column_int64(statement, 0)
+                let fileSize = Int(sqlite3_column_int(statement, 1))
+                records.append((id: id, fileSize: fileSize))
+                totalSize += fileSize
+            }
+
+            guard totalSize > maxStorageInBytes else { return [] }
+
+            var runningSize = totalSize
+            var idsToEvict: [Int64] = []
+            for record in records where runningSize > maxStorageInBytes {
+                idsToEvict.append(record.id)
+                runningSize -= record.fileSize
+            }
+
+            return try idsToEvict.compactMap { try fetchItem(id: $0) }
         }
-
-        guard totalSize > maxStorageInBytes else { return [] }
-
-        var runningSize = totalSize
-        var idsToEvict: [Int64] = []
-        for record in records where runningSize > maxStorageInBytes {
-            idsToEvict.append(record.id)
-            runningSize -= record.fileSize
-        }
-
-        return try idsToEvict.compactMap { try fetchItem(id: $0) }
     }
 
     /// Returns the total count of image records currently stored.
     func imageRecordCount() throws -> Int {
-        let statement = try database.prepare(
-            "SELECT COUNT(*) FROM clipboard_history WHERE content_type = 'image';"
-        )
-        defer { sqlite3_finalize(statement) }
-        guard sqlite3_step(statement) == SQLITE_ROW else { return 0 }
-        return Int(sqlite3_column_int(statement, 0))
+        try database.synchronized {
+            let statement = try database.prepare(
+                "SELECT COUNT(*) FROM clipboard_history WHERE content_type = 'image';"
+            )
+            defer { sqlite3_finalize(statement) }
+            guard sqlite3_step(statement) == SQLITE_ROW else { return 0 }
+            return Int(sqlite3_column_int(statement, 0))
+        }
     }
 
     /// Returns every image record for conservative storage reconciliation without a UI pagination limit.
     func imageRecordsForReconciliation() throws -> [ClipboardHistoryItem] {
-        let statement = try database.prepare(
-            """
-            \(Self.selectHistorySQL)
-            WHERE content_type = ?
-            ORDER BY id ASC;
-            """
-        )
-        defer { sqlite3_finalize(statement) }
-        try bindText(ClipboardContentType.image.rawValue, to: statement, index: 1)
-        return try collectItems(from: statement)
+        try database.synchronized {
+            let statement = try database.prepare(
+                """
+                \(Self.selectHistorySQL)
+                WHERE content_type = ?
+                ORDER BY id ASC;
+                """
+            )
+            defer { sqlite3_finalize(statement) }
+            try bindText(ClipboardContentType.image.rawValue, to: statement, index: 1)
+            return try collectItems(from: statement)
+        }
     }
 
     /// Returns the total count of text records currently stored.
     func textRecordCount() throws -> Int {
-        let statement = try database.prepare(
-            "SELECT COUNT(*) FROM clipboard_history WHERE content_type = 'text';"
-        )
-        defer { sqlite3_finalize(statement) }
-        guard sqlite3_step(statement) == SQLITE_ROW else { return 0 }
-        return Int(sqlite3_column_int(statement, 0))
+        try database.synchronized {
+            let statement = try database.prepare(
+                "SELECT COUNT(*) FROM clipboard_history WHERE content_type = 'text';"
+            )
+            defer { sqlite3_finalize(statement) }
+            guard sqlite3_step(statement) == SQLITE_ROW else { return 0 }
+            return Int(sqlite3_column_int(statement, 0))
+        }
     }
 
     private func favoriteRecordCount(contentType: ClipboardContentType) throws -> Int {
@@ -791,20 +831,22 @@ final class ClipboardHistoryRepository {
         timestampColumn: String,
         at date: Date
     ) throws {
-        let statement = try database.prepare(
-            """
-            UPDATE clipboard_history
-            SET \(countColumn) = \(countColumn) + 1,
-                \(timestampColumn) = ?,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?;
-            """
-        )
-        defer { sqlite3_finalize(statement) }
+        try database.synchronized {
+            let statement = try database.prepare(
+                """
+                UPDATE clipboard_history
+                SET \(countColumn) = \(countColumn) + 1,
+                    \(timestampColumn) = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?;
+                """
+            )
+            defer { sqlite3_finalize(statement) }
 
-        try bindText(dateFormatter.string(from: date), to: statement, index: 1)
-        try bindInt64(historyID, to: statement, index: 2)
-        try stepUpdate(statement)
+            try bindText(dateFormatter.string(from: date), to: statement, index: 1)
+            try bindInt64(historyID, to: statement, index: 2)
+            try stepUpdate(statement)
+        }
     }
 
     private func updateDuplicateImageItem(
